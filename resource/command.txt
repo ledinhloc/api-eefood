@@ -1,0 +1,1 @@
+docker compose -f docker-compose.infa.yml up -d

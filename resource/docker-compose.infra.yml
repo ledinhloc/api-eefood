@@ -1,0 +1,182 @@
+services:
+  postgresql:
+    container_name: pg_sql
+    image: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      PGDATA: /data/postgres
+    volumes:
+      - postgres:/data/postgres
+      - ./init-multiple-db.sh:/docker-entrypoint-initdb.d/init-multiple-db.sh
+    ports:
+      - "5435:5432"
+    networks:
+      - microservices-net
+    restart: unless-stopped
+
+#  pgadmin:
+#    container_name: pgadmin
+#    image: dpage/pgadmin4
+#    environment:
+#      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-pgadmin4@pgadmin.org}
+#      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
+#      PGADMIN_CONFIG_SERVER_MODE: 'False'
+#    volumes:
+#      - pgadmin:/var/lib/pgadmin
+#    ports:
+#      - "5050:80"
+#    networks:
+#      - microservices-net
+#    restart: unless-stopped
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    container_name: zookeeper_ha
+    environment:
+      ZOOKEEPER_SERVER_ID: 1
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "22181:2181"
+    networks:
+      - microservices-net
+  kafka:
+    image: confluentinc/cp-kafka:7.4.3
+    container_name: kafka_ha
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    environment:
+      KAFKA_BROKER_ID: 2
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_LISTENERS: PLAINTEXT_INTERNAL://0.0.0.0:29092,PLAINTEXT_C://0.0.0.0:9093,PLAINTEXT_L://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT_INTERNAL://kafka_ha:29092,PLAINTEXT_L://localhost:9092,PLAINTEXT_C://kafka_ha:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT_INTERNAL:PLAINTEXT,PLAINTEXT_L:PLAINTEXT,PLAINTEXT_C:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
+    networks:
+      - microservices-net
+
+  schema-registry:
+    image: confluentinc/cp-schema-registry:7.5.0
+    container_name: schema_registry_ha
+    depends_on:
+      - kafka
+    ports:
+      - "8086:8081"
+    environment:
+      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'kafka_ha:29092'
+      SCHEMA_REGISTRY_LISTENERS: http://schema-registry:8081
+    networks:
+      - microservices-net
+
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka_ui_ha
+    depends_on:
+      - kafka
+    ports:
+      - "9010:8080"
+    environment:
+      - KAFKA_CLUSTERS_0_NAME=kafka_ha
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka_ha:9093
+      - KAFKA_CLUSTERS_0_ZOOKEEPER=zookeeper_ha:2181
+      - KAFKA_CLUSTERS_0_SCHEMAREGISTRY=http://schema-registry:8081
+    restart: always
+    networks:
+      - microservices-net
+
+  keycloak:
+    container_name: keycloak-ha
+    image: quay.io/keycloak/keycloak:26.3.1
+    ports:
+      - 9098:9098
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: postgres
+      KC_DB_URL_HOST: pg_sql
+      KC_DB_URL_DATABASE: keycloak
+      KC_DB_USERNAME: postgres
+      KC_DB_PASSWORD: postgres
+      KC_HTTP_PORT: 9098
+      KC_HOSTNAME: keycloak-ha
+      KC_PROXY: "edge"
+#      KC_HOSTNAME_STRICT: false
+#      KC_HOSTNAME_STRICT_HTTPS: false
+#      KEYCLOAK_FRONTEND_URL: http://localhost:9098/
+      KC_HOSTNAME_URL: http://localhost:9098
+      KC_HOSTNAME_ADMIN_URL: http://localhost:9098
+    networks:
+      - microservices-net
+    command:
+      - "start-dev"
+
+  redis:
+    image: redis:latest
+    container_name: redis-server
+    restart: always
+    ports:
+      - "6379:6379"
+    #    command: [ "redis-server", "--requirepass", "12345678" ]
+    networks:
+      - microservices-net
+
+  redisinsight:
+    image: redis/redisinsight:latest
+    container_name: redis-ui
+    restart: always
+    ports:
+      - "5540:5540"
+    depends_on:
+      - redis
+
+  loki:
+    container_name: loki
+    image: grafana/loki:latest
+    command: [ '-config.file=/etc/loki/local-config.yaml' ]
+    ports:
+      - '3100:3100'
+    networks:
+      - microservices-net
+
+  prometheus:
+    container_name: prometheus
+    image: prom/prometheus:latest
+    command:
+      - --enable-feature=exemplar-storage
+      - --config.file=/etc/prometheus/prometheus.yml
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - '9090:9090'
+    networks:
+      - microservices-net
+
+  grafana:
+    container_name: grafana
+    image: grafana/grafana:10.1.0
+    volumes:
+      - ./docker/grafana:/etc/grafana/provisioning/datasources:ro
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+    ports:
+      - '3000:3000'
+    networks:
+      - microservices-net
+networks:
+  microservices-net:
+    driver: bridge
+
+volumes:
+  postgres:
+  pgadmin:
