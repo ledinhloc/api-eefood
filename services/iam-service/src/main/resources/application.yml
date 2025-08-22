@@ -1,0 +1,8 @@
+spring:
+  application:
+    name: iam-service
+  config:
+    import: optional:configserver:http://CONFIG-SERVER
+
+
+

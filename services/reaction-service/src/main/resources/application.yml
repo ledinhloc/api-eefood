@@ -1,0 +1,7 @@
+spring:
+  application:
+    name: reaction-service
+  config:
+    import: optional:configserver:http://CONFIG-SERVER
+
+
