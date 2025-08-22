@@ -8,20 +8,23 @@ spring:
         webflux:
           routes:
             - id: keycloak
-              uri: http://keycloak:9098
+              uri: http://localhost:9098
               predicates:
                 - Path=/auth/**
               filters:
                 - RewritePath=/auth/(?<segment>.*), /$\{segment}
+
             - id: patient-service
               uri: lb://PATIENT-SERVICE
               predicates:
                 - Path=/api/v1/patients/**
-            - id: test-order-service-orders
-              uri: lb://TEST-ORDER-SERVICE
+            - id: dfasfsad
+              uri: lb://IAM-SERVICE
               predicates:
-                - Path=/api/v1/test-orders/**
-
+                - Path=/api/v1/users/**
+#http://localhost:8222/api/v1/users/1
+#lb://IAM-SERVICE/api/v1/users/1
+#http://localhost:8085/api/v1/users/1
             - id: test-order-service-order
               uri: lb://TEST-ORDER-SERVICE
               predicates:
