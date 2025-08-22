@@ -21,6 +21,21 @@ spring:
               uri: lb://TEST-ORDER-SERVICE
               predicates:
                 - Path=/api/v1/test-orders/**
+
+            - id: test-order-service-order
+              uri: lb://TEST-ORDER-SERVICE
+              predicates:
+                - Path=/api/v1/test-order/**
+
+            - id: test-order-service-comments
+              uri: lb://TEST-ORDER-SERVICE
+              predicates:
+                - Path=/api/v1/comments/**
+
+            - id: iam-service-users
+              uri: lb://IAM-SERVICE
+              predicates:
+                - Path=/api/v1/users/**
     bus:
       enabled: true
     stream:
