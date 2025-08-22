@@ -8,6 +8,10 @@
         <option value="$PROJECT_DIR$/services/config-service/pom.xml" />
         <option value="$PROJECT_DIR$/services/discovery/pom.xml" />
         <option value="$PROJECT_DIR$/services/gateway/pom.xml" />
+        <option value="$PROJECT_DIR$/services/iam-service/pom.xml" />
+        <option value="$PROJECT_DIR$/services/notification-service/pom.xml" />
+        <option value="$PROJECT_DIR$/services/recipe-service/pom.xml" />
+        <option value="$PROJECT_DIR$/services/reaction-service/pom.xml" />
       </list>
     </option>
   </component>
