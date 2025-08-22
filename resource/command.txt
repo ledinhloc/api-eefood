@@ -1,2 +1,3 @@
 
-docker compose -f docker-compose.infra.yml up -d
+lenh chay docker compose: docker compose -f docker-compose.infra.yml up -d
+link ui swagger: https://editor.swagger.io/
