@@ -1,0 +1,1159 @@
+openapi: 3.0.3
+info:
+  title: Food Social Network API (Gateway Surface)
+  version: 0.1.0
+  description: |
+    API hợp nhất qua API Gateway cho ứng dụng mạng xã hội về ẩm thực (Flutter + Spring Boot microservices).
+    \n**Lưu ý**
+    - Đây là spec ở tầng Gateway; thực thi nằm ở các service phía sau (IAM, Recipe, Reaction, Notification, CMS, Search/AI...).
+    - Auth sử dụng Keycloak (OAuth2/OIDC). Các endpoint `/auth/*` chỉ là wrapper tiện dụng qua Gateway.
+    - Các path có thể route nội bộ: `X-Internal-Service` theo tag.
+servers:
+  - url: https://api.foodgram.example.com
+    description: Production (via Spring Cloud Gateway)
+  - url: https://staging.foodgram.example.com
+    description: Staging
+
+security:
+  - oauth2: [openid, profile, email]
+
+tags:
+  - name: Auth
+  - name: Users (IAM)
+  - name: Recipes
+  - name: Ingredients
+  - name: Categories
+  - name: ShoppingList
+  - name: Posts/Interactions
+  - name: Follow
+  - name: Search & AI
+  - name: Notifications
+  - name: CMS
+
+paths:
+  ########################
+  # AUTH (Keycloak wrapper)
+  ########################
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Đăng nhập (email/password) -> OIDC tokens
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Token trả về từ Keycloak
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Đăng ký tài khoản bằng email/password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: Tạo user thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+  /auth/otp/send:
+    post:
+      tags: [Auth]
+      summary: Gửi OTP (email)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '204': { description: Đã gửi }
+  /auth/otp/verify:
+    post:
+      tags: [Auth]
+      summary: Xác minh OTP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email: { type: string, format: email }
+                otp: { type: string }
+      responses:
+        '200': { description: Hợp lệ }
+
+  ########################
+  # USERS (IAM)
+  ########################
+  /users/me:
+    get:
+      tags: [Users (IAM)]
+      summary: Lấy hồ sơ người dùng hiện tại
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+    patch:
+      tags: [Users (IAM)]
+      summary: Cập nhật hồ sơ của tôi
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdateRequest'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+  /users/{id}:
+    get:
+      tags: [Users (IAM)]
+      summary: Lấy hồ sơ công khai của user
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicUser'
+  /users:
+    get:
+      tags: [Users (IAM)]
+      summary: (Admin) Danh sách user
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageUser'
+
+  ########################
+  # RECIPES
+  ########################
+  /recipes:
+    get:
+      tags: [Recipes]
+      summary: Danh sách công thức/ món ăn
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+        - in: query
+          name: q
+          description: tìm theo tên
+          schema: { type: string }
+        - in: query
+          name: region
+          schema: { type: string, enum: [VN, CN, JP, KR, US, EU, OTHER] }
+        - in: query
+          name: category
+          schema: { type: string }
+        - in: query
+          name: cookTimeLt
+          description: Thời gian nấu nhỏ hơn (phút)
+          schema: { type: integer }
+        - in: query
+          name: mealType
+          schema: { $ref: '#/components/schemas/MealType' }
+        - in: query
+          name: diet
+          schema: { $ref: '#/components/schemas/DietType' }
+        - in: query
+          name: sort
+          schema: { type: string, enum: [relevance, newest, oldest, az, za] }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageRecipe'
+    post:
+      tags: [Recipes]
+      summary: Tạo công thức mới
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecipeCreateRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recipe'
+  /recipes/{id}:
+    get:
+      tags: [Recipes]
+      summary: Chi tiết công thức
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RecipeDetail'
+    patch:
+      tags: [Recipes]
+      summary: Cập nhật công thức (chủ bài hoặc admin)
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecipeUpdateRequest'
+      responses:
+        '200': { description: Updated }
+    delete:
+      tags: [Recipes]
+      summary: Xoá công thức
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '204': { description: Deleted }
+
+  /recipes/{id}/steps:
+    get:
+      tags: [Recipes]
+      summary: Danh sách bước nấu
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/RecipeStep' }
+    post:
+      tags: [Recipes]
+      summary: Thêm bước nấu
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RecipeStepCreate' }
+      responses:
+        '201': { description: Created }
+
+  /recipes/{id}/ingredients:
+    get:
+      tags: [Recipes]
+      summary: Nguyên liệu của công thức
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/RecipeIngredient' }
+    post:
+      tags: [Recipes]
+      summary: Thêm nguyên liệu cho công thức
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/RecipeIngredientCreate' }
+      responses:
+        '201': { description: Created }
+
+  /ingredients:
+    get:
+      tags: [Ingredients]
+      summary: Từ điển nguyên liệu
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+        - in: query
+          name: q
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageIngredient'
+    post:
+      tags: [Ingredients]
+      summary: (Admin) Tạo nguyên liệu
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/IngredientCreate' }
+      responses:
+        '201': { description: Created }
+
+  /categories:
+    get:
+      tags: [Categories]
+      summary: Danh mục món ăn
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Category' }
+
+  ########################
+  # SHOPPING LIST
+  ########################
+  /shopping-lists:
+    get:
+      tags: [ShoppingList]
+      summary: Danh sách mua sắm của tôi
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PageShoppingList' }
+    post:
+      tags: [ShoppingList]
+      summary: Tạo danh sách mua sắm từ công thức
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                recipeId: { type: string, format: uuid }
+                servings: { type: integer, minimum: 1, default: 1 }
+      responses:
+        '201': { description: Created }
+  /shopping-lists/{id}:
+    delete:
+      tags: [ShoppingList]
+      summary: Xoá danh sách mua sắm
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '204': { description: Deleted }
+
+  ########################
+  # POSTS / INTERACTIONS
+  ########################
+  /posts:
+    get:
+      tags: [Posts/Interactions]
+      summary: Danh sách bài viết (feed chung hoặc của user)
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+        - in: query
+          name: authorId
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PagePost' }
+    post:
+      tags: [Posts/Interactions]
+      summary: Đăng bài (1 ảnh, nội dung về món ăn/công thức)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PostCreateRequest' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Post' }
+
+  /posts/{id}:
+    get:
+      tags: [Posts/Interactions]
+      summary: Chi tiết bài viết
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PostDetail' }
+    delete:
+      tags: [Posts/Interactions]
+      summary: Xoá bài viết (tác giả hoặc admin)
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '204': { description: Deleted }
+
+  /posts/{id}/comments:
+    get:
+      tags: [Posts/Interactions]
+      summary: Danh sách bình luận
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PageComment' }
+    post:
+      tags: [Posts/Interactions]
+      summary: Thêm bình luận
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CommentCreate' }
+      responses:
+        '201': { description: Created }
+
+  /posts/{id}/reactions:
+    post:
+      tags: [Posts/Interactions]
+      summary: Thả reaction cho bài viết
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                type: { $ref: '#/components/schemas/ReactionType' }
+      responses:
+        '200': { description: Count updated }
+
+  /comments/{id}/reactions:
+    post:
+      tags: [Posts/Interactions]
+      summary: Thả reaction cho bình luận
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                type: { $ref: '#/components/schemas/ReactionType' }
+      responses:
+        '200': { description: Count updated }
+
+  /posts/{id}/share:
+    post:
+      tags: [Posts/Interactions]
+      summary: Chia sẻ bài viết
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                platform: { type: string, enum: [internal, facebook, twitter, link] }
+      responses:
+        '201': { description: Shared }
+
+  ########################
+  # FOLLOW
+  ########################
+  /follow:
+    post:
+      tags: [Follow]
+      summary: Follow một user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId: { type: string, format: uuid }
+      responses:
+        '201': { description: Followed }
+    delete:
+      tags: [Follow]
+      summary: Unfollow một user
+      parameters:
+        - in: query
+          name: userId
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '204': { description: Unfollowed }
+  /users/{id}/followers:
+    get:
+      tags: [Follow]
+      summary: Danh sách follower của user
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PagePublicUser' }
+  /users/{id}/following:
+    get:
+      tags: [Follow]
+      summary: Danh sách user mà user đang theo dõi
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PagePublicUser' }
+
+  ########################
+  # SEARCH & AI
+  ########################
+  /search:
+    get:
+      tags: [Search & AI]
+      summary: Tìm kiếm tổng hợp (món ăn, công thức, bài viết)
+      parameters:
+        - in: query
+          name: q
+          schema: { type: string }
+        - in: query
+          name: type
+          schema: { type: string, enum: [recipe, post, ingredient] }
+        - in: query
+          name: sort
+          schema: { type: string, enum: [relevance, newest, oldest, az, za] }
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SearchResult' }
+
+  /search/by-image:
+    post:
+      tags: [Search & AI]
+      summary: Tìm kiếm/gợi ý món ăn bằng ảnh nguyên liệu hoặc món
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Kết quả nhận diện + gợi ý món
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ImageSuggestResult' }
+
+  /recommendations/me:
+    get:
+      tags: [Search & AI]
+      summary: Gợi ý món theo lịch sử like/xem + ngữ cảnh (thời gian, thời tiết)
+      parameters:
+        - in: query
+          name: contextTime
+          description: ISO datetime hiện tại của client (tùy chọn)
+          schema: { type: string, format: date-time }
+        - in: query
+          name: weather
+          description: Thời tiết tóm tắt (optional)
+          schema: { type: string }
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Recipe' }
+
+  ########################
+  # NOTIFICATIONS
+  ########################
+  /notifications:
+    get:
+      tags: [Notifications]
+      summary: Danh sách thông báo của tôi
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/SizeParam'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PageNotification' }
+  /notifications/{id}/read:
+    post:
+      tags: [Notifications]
+      summary: Đánh dấu đã đọc
+      parameters:
+        - $ref: '#/components/parameters/IdPath'
+      responses:
+        '200': { description: OK }
+  /notification-settings:
+    get:
+      tags: [Notifications]
+      summary: Lấy cài đặt thông báo của tôi
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/NotificationSettings' }
+    patch:
+      tags: [Notifications]
+      summary: Cập nhật cài đặt thông báo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NotificationSettingsUpdate' }
+      responses:
+        '200': { description: OK }
+
+  ########################
+  # CMS (Configs)
+  ########################
+  /cms/services:
+    get:
+      tags: [CMS]
+      summary: (Admin) Danh sách service config
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/ServiceConfig' }
+    post:
+      tags: [CMS]
+      summary: (Admin) Tạo service config
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ServiceConfigCreate' }
+      responses:
+        '201': { description: Created }
+
+components:
+  securitySchemes:
+    oauth2:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: https://auth.foodgram.example.com/realms/foodgram/protocol/openid-connect/auth
+          tokenUrl: https://auth.foodgram.example.com/realms/foodgram/protocol/openid-connect/token
+          scopes:
+            openid: OpenID scope
+            profile: Access profile
+            email: Access email
+  parameters:
+    IdPath:
+      name: id
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
+    PageParam:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 0, default: 0 }
+    SizeParam:
+      name: size
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+  schemas:
+    ########################
+    # COMMON ENUMS
+    ########################
+    MealType:
+      type: string
+      enum: [appetizer, main, dessert, drink, breakfast, lunch, dinner, snack]
+    DietType:
+      type: string
+      enum: [vegan, vegetarian, healthy, high_protein, low_fat, low_sugar, none]
+    ReactionType:
+      type: string
+      enum: [like, love, wow, haha, sad, angry]
+
+    ########################
+    # AUTH
+    ########################
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, format: password }
+    RegisterRequest:
+      type: object
+      required: [email, username, password]
+      properties:
+        email: { type: string, format: email }
+        username: { type: string }
+        password: { type: string, format: password }
+        dob: { type: string, format: date }
+        gender: { type: string, enum: [male, female, other] }
+    TokenResponse:
+      type: object
+      properties:
+        access_token: { type: string }
+        refresh_token: { type: string }
+        token_type: { type: string }
+        expires_in: { type: integer }
+
+    ########################
+    # USER / IAM
+    ########################
+    User:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        username: { type: string }
+        email: { type: string, format: email }
+        role: { type: string, enum: [USER, ADMIN] }
+        avatarUrl: { type: string, format: uri }
+        nickname: { type: string }
+        dob: { type: string, format: date }
+        gender: { type: string, enum: [male, female, other] }
+        address: { type: string }
+        provider: { type: string, enum: [local, google] }
+        allergies:
+          type: array
+          items: { type: string }
+        eatingPreferences:
+          type: array
+          items: { $ref: '#/components/schemas/DietType' }
+        status: { type: string, enum: [active, blocked, deleted] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    PagePublicUser:
+      type: object
+      properties:
+        content:
+          type: array
+          items:
+            $ref: '#/components/schemas/PublicUser'
+        page:
+          type: integer
+        size:
+          type: integer
+        totalElements:
+          type: integer
+        totalPages:
+          type: integer
+    PublicUser:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        username: { type: string }
+        avatarUrl: { type: string, format: uri }
+        nickname: { type: string }
+    UserUpdateRequest:
+      type: object
+      properties:
+        avatarUrl: { type: string, format: uri }
+        nickname: { type: string }
+        gender: { type: string, enum: [male, female, other] }
+        address: { type: string }
+        allergies:
+          type: array
+          items: { type: string }
+        eatingPreferences:
+          type: array
+          items: { $ref: '#/components/schemas/DietType' }
+    PageUser:
+      type: object
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/User' }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer }
+
+    ########################
+    # RECIPE
+    ########################
+    Recipe:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        authorId: { type: string, format: uuid }
+        title: { type: string }
+        description: { type: string }
+        region: { type: string, enum: [VN, CN, JP, KR, US, EU, OTHER] }
+        imageUrl: { type: string, format: uri }
+        videoUrl: { type: string, format: uri }
+        prepTime: { type: integer, description: 'phút' }
+        cookTime: { type: integer, description: 'phút' }
+        difficulty: { type: string, enum: [easy, medium, hard] }
+        categories:
+          type: array
+          items: { $ref: '#/components/schemas/Category' }
+        mealType: { $ref: '#/components/schemas/MealType' }
+        diet: { $ref: '#/components/schemas/DietType' }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    RecipeDetail:
+      allOf:
+        - $ref: '#/components/schemas/Recipe'
+        - type: object
+          properties:
+            steps:
+              type: array
+              items: { $ref: '#/components/schemas/RecipeStep' }
+            ingredients:
+              type: array
+              items: { $ref: '#/components/schemas/RecipeIngredient' }
+    RecipeCreateRequest:
+      type: object
+      required: [title]
+      properties:
+        title: { type: string }
+        description: { type: string }
+        region: { type: string }
+        imageUrl: { type: string, format: uri }
+        videoUrl: { type: string, format: uri }
+        prepTime: { type: integer }
+        cookTime: { type: integer }
+        difficulty: { type: string }
+        mealType: { $ref: '#/components/schemas/MealType' }
+        diet: { $ref: '#/components/schemas/DietType' }
+        categories:
+          type: array
+          items: { type: string }
+    RecipeUpdateRequest:
+      type: object
+      properties:
+        title: { type: string }
+        description: { type: string }
+        region: { type: string }
+        imageUrl: { type: string, format: uri }
+        videoUrl: { type: string, format: uri }
+        prepTime: { type: integer }
+        cookTime: { type: integer }
+        difficulty: { type: string }
+        mealType: { $ref: '#/components/schemas/MealType' }
+        diet: { $ref: '#/components/schemas/DietType' }
+        categories:
+          type: array
+          items: { type: string }
+    RecipeStep:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        recipeId: { type: string, format: uuid }
+        stepNumber: { type: integer }
+        instruction: { type: string }
+        imageUrl: { type: string, format: uri }
+        videoUrl: { type: string, format: uri }
+        stepTime: { type: integer }
+    RecipeStepCreate:
+      type: object
+      required: [stepNumber, instruction]
+      properties:
+        stepNumber: { type: integer }
+        instruction: { type: string }
+        imageUrl: { type: string, format: uri }
+        videoUrl: { type: string, format: uri }
+        stepTime: { type: integer }
+    Ingredient:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        image: { type: string, format: uri }
+        description: { type: string }
+    IngredientCreate:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        image: { type: string, format: uri }
+        description: { type: string }
+    RecipeIngredient:
+      type: object
+      properties:
+        recipeId: { type: string, format: uuid }
+        ingredientId: { type: string, format: uuid }
+        quantity: { type: number }
+        unit: { type: string }
+    RecipeIngredientCreate:
+      type: object
+      required: [ingredientId, quantity, unit]
+      properties:
+        ingredientId: { type: string, format: uuid }
+        quantity: { type: number }
+        unit: { type: string }
+    Category:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        iconUrl: { type: string, format: uri }
+        name: { type: string }
+
+    PageRecipe:
+      type: object
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/Recipe' }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer }
+    PageIngredient:
+      type: object
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/Ingredient' }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer }
+
+    ########################
+    # SHOPPING LIST
+    ########################
+    ShoppingList:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        userId: { type: string, format: uuid }
+        recipeId: { type: string, format: uuid }
+        quantity: { type: integer }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    PageShoppingList:
+      type: object
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/ShoppingList' }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer }
+
+    ########################
+    # POSTS / COMMENTS / REACTIONS
+    ########################
+    Post:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        userId: { type: string, format: uuid }
+        recipeId: { type: string, format: uuid, nullable: true }
+        title: { type: string }
+        content: { type: string }
+        imageUrl: { type: string, format: uri }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    PostDetail:
+      allOf:
+        - $ref: '#/components/schemas/Post'
+        - type: object
+          properties:
+            likeCount: { type: integer }
+            reactions:
+              type: object
+              additionalProperties: { type: integer }
+    PostCreateRequest:
+      type: object
+      required: [title]
+      properties:
+        recipeId: { type: string, format: uuid, nullable: true }
+        title: { type: string }
+        content: { type: string }
+        imageUrl: { type: string, format: uri }
+    Comment:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        postId: { type: string, format: uuid }
+        userId: { type: string, format: uuid }
+        parentId: { type: string, format: uuid, nullable: true }
+        content: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    CommentCreate:
+      type: object
+      required: [content]
+      properties:
+        parentId: { type: string, format: uuid, nullable: true }
+        content: { type: string }
+    PagePost:
+      type: object
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/Post' }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer }
+    PageComment:
+      type: object
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/Comment' }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer }
+
+    ########################
+    # SEARCH & AI
+    ########################
+    SearchResult:
+      type: object
+      properties:
+        recipes:
+          type: array
+          items: { $ref: '#/components/schemas/Recipe' }
+        posts:
+          type: array
+          items: { $ref: '#/components/schemas/Post' }
+        ingredients:
+          type: array
+          items: { $ref: '#/components/schemas/Ingredient' }
+    ImageSuggestResult:
+      type: object
+      properties:
+        detectedLabels:
+          type: array
+          items: { type: string }
+        suggestions:
+          type: array
+          items: { $ref: '#/components/schemas/Recipe' }
+
+    ########################
+    # NOTIFICATIONS
+    ########################
+    Notification:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        userId: { type: string, format: uuid }
+        type: { type: string }
+        data: { type: object }
+        isRead: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    PageNotification:
+      type: object
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/Notification' }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer }
+    NotificationSettings:
+      type: object
+      properties:
+        userId: { type: string, format: uuid }
+        type: { type: string }
+        channel: { type: string, enum: [in_app, email, push] }
+        enabled: { type: boolean }
+    NotificationSettingsUpdate:
+      type: object
+      properties:
+        type: { type: string }
+        channel: { type: string, enum: [in_app, email, push] }
+        enabled: { type: boolean }
+
+    ########################
+    # CMS
+    ########################
+    ServiceConfig:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        description: { type: string }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        createdBy: { type: string }
+        updatedBy: { type: string }
+        isDeleted: { type: boolean }
+    ServiceConfigCreate:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string }
+        description: { type: string }
