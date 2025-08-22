@@ -2,5 +2,5 @@ spring:
   application:
     name: recipe-service
   config:
-    import: optional:configserver:http://CONFIG-SERVER
+    import: optional:configserver:http://localhost:8888
 
