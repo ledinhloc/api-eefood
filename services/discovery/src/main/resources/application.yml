@@ -1,0 +1,8 @@
+spring:
+  application:
+    name: discovery-service
+  config:
+    import: optional:configserver:http://CONFIG-SERVER
+
+
+
