@@ -13,32 +13,22 @@ spring:
                 - Path=/auth/**
               filters:
                 - RewritePath=/auth/(?<segment>.*), /$\{segment}
-
-            - id: patient-service
-              uri: lb://PATIENT-SERVICE
+            - id: reaction-service
+              uri: lb://REACTION-SERVICE
               predicates:
-                - Path=/api/v1/patients/**
-            - id: dfasfsad
+                - Path=/api/v1/reaction/**
+            - id: iam-service
               uri: lb://IAM-SERVICE
               predicates:
                 - Path=/api/v1/users/**
-#http://localhost:8222/api/v1/users/1
-#lb://IAM-SERVICE/api/v1/users/1
-#http://localhost:8085/api/v1/users/1
-            - id: test-order-service-order
-              uri: lb://TEST-ORDER-SERVICE
+            - id: recipe-service
+              uri: lb://RECIPE-SERVICE
               predicates:
-                - Path=/api/v1/test-order/**
-
-            - id: test-order-service-comments
-              uri: lb://TEST-ORDER-SERVICE
+                - Path=/api/v1/recipe/**
+            - id: notification-service
+              uri: lb://NOTIFICATION-SERVICE
               predicates:
-                - Path=/api/v1/comments/**
-
-            - id: iam-service-users
-              uri: lb://IAM-SERVICE
-              predicates:
-                - Path=/api/v1/users/**
+                - Path=/api/v1/notification/**
     bus:
       enabled: true
     stream:
