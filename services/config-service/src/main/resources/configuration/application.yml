@@ -15,11 +15,11 @@ spring:
     allow-bean-definition-overriding: true
 
 # security
-#  security:
-#    oauth2:
-#      resourceserver:
-#        jwt:
-#          issuer-uri: ${env.global.jwt.issuer-uri}
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${env.global.jwt.issuer-uri:http://localhost:9098/realms/eefood-realm}
 
 idp:
   url: ${env.global.idp.url:http://localhost:9098}
