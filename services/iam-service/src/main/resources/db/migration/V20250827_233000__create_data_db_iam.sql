@@ -1,0 +1,22 @@
+INSERT INTO public.users (created_by, is_deleted, updated_at, updated_by, address, auth_id, avatar_url, dob, email, gender, provider, role, username)
+VALUES
+    ('system', false, now(), 'system', '{"city":"Hà Nội","street":"12 Nguyễn Trãi"}', 'auth001', NULL, '1995-05-12', 'nguyenvana@gmail.com', 'MALE', 'NORMAL', 'USER', 'Nguyen Van A'),
+    ('system', false, now(), 'system', '{"city":"Hồ Chí Minh","street":"45 Lê Lợi"}', 'auth002', NULL, '1992-11-23', 'tranthib@gmail.com', 'FEMALE', 'GOOGLE', 'USER', 'Tran Thi B'),
+    ('system', false, now(), 'system', '{"city":"Đà Nẵng","street":"78 Hải Phòng"}', 'auth003', NULL, '1998-03-14', 'leminhc@gmail.com', 'MALE', 'NORMAL', 'ADMIN', 'Le Minh C'),
+    ('system', false, now(), 'system', '{"city":"Huế","street":"21 Hùng Vương"}', 'auth004', NULL, '1990-07-30', 'phamthid@gmail.com', 'FEMALE', 'NORMAL', 'USER', 'Pham Thi D'),
+    ('system', false, now(), 'system', '{"city":"Cần Thơ","street":"5 Nguyễn Văn Linh"}', 'auth005', NULL, '1988-12-01', 'dangquane@gmail.com', 'MALE', 'GOOGLE', 'USER', 'Dang Quan E'),
+    ('system', false, now(), 'system', '{"city":"Hải Phòng","street":"33 Điện Biên Phủ"}', 'auth006', NULL, '1997-08-18', 'buitranf@gmail.com', 'FEMALE', 'NORMAL', 'USER', 'Bui Tran F'),
+    ('system', false, now(), 'system', '{"city":"Quảng Ninh","street":"9 Trần Phú"}', 'auth007', NULL, '1996-06-10', 'hoanggg@gmail.com', 'MALE', 'NORMAL', 'USER', 'Hoang G'),
+    ('system', false, now(), 'system', '{"city":"Nam Định","street":"101 Hàng Bông"}', 'auth008', NULL, '1991-02-27', 'vuhoa@gmail.com', 'FEMALE', 'GOOGLE', 'USER', 'Vu Hoa'),
+    ('system', false, now(), 'system', '{"city":"Bình Định","street":"25 Lê Duẩn"}', 'auth009', NULL, '1994-09-15', 'nguyenthih@gmail.com', 'FEMALE', 'NORMAL', 'USER', 'Nguyen Thi H'),
+    ('system', false, now(), 'system', '{"city":"Khánh Hòa","street":"88 Trần Quang Khải"}', 'auth010', NULL, '1993-04-05', 'trank@gmail.com', 'MALE', 'GOOGLE', 'ADMIN', 'Tran K'),
+    ('system', false, now(), 'system', '{"city":"Đắk Lắk","street":"12 Lý Thường Kiệt"}', 'auth011', NULL, '1989-10-22', 'phamlam@gmail.com', 'MALE', 'NORMAL', 'USER', 'Pham Lam'),
+    ('system', false, now(), 'system', '{"city":"Nghệ An","street":"77 Quang Trung"}', 'auth012', NULL, '1995-01-19', 'lethao@gmail.com', 'FEMALE', 'NORMAL', 'USER', 'Le Thao'),
+    ('system', false, now(), 'system', '{"city":"Thanh Hóa","street":"30 Bà Triệu"}', 'auth013', NULL, '1999-06-09', 'dinhson@gmail.com', 'MALE', 'GOOGLE', 'USER', 'Dinh Son'),
+    ('system', false, now(), 'system', '{"city":"An Giang","street":"55 Lê Lai"}', 'auth014', NULL, '1992-12-31', 'huongnt@gmail.com', 'FEMALE', 'NORMAL', 'USER', 'Huong NT'),
+    ('system', false, now(), 'system', '{"city":"Kiên Giang","street":"60 Nguyễn Huệ"}', 'auth015', NULL, '1997-03-02', 'trieuphu@gmail.com', 'MALE', 'GOOGLE', 'USER', 'Trieu Phu'),
+    ('system', false, now(), 'system', '{"city":"Vũng Tàu","street":"101 Võ Thị Sáu"}', 'auth016', NULL, '1990-05-25', 'thuytrang@gmail.com', 'FEMALE', 'NORMAL', 'USER', 'Thuy Trang'),
+    ('system', false, now(), 'system', '{"city":"Hà Nội","street":"14 Láng Hạ"}', 'auth017', NULL, '1987-09-09', 'longnv@gmail.com', 'MALE', 'GOOGLE', 'USER', 'Long NV'),
+    ('system', false, now(), 'system', '{"city":"Hà Nam","street":"27 Trần Hưng Đạo"}', 'auth018', NULL, '1998-11-11', 'minhchau@gmail.com', 'FEMALE', 'NORMAL', 'ADMIN', 'Minh Chau'),
+    ('system', false, now(), 'system', '{"city":"Lâm Đồng","street":"19 Phan Đình Phùng"}', 'auth019', NULL, '1996-07-01', 'duchoang@gmail.com', 'MALE', 'NORMAL', 'USER', 'Duc Hoang'),
+    ('system', false, now(), 'system', '{"city":"Quảng Nam","street":"22 Lý Tự Trọng"}', 'auth020', NULL, '1993-02-20', 'thuytien@gmail.com', 'FEMALE', 'GOOGLE', 'USER', 'Thuy Tien');
