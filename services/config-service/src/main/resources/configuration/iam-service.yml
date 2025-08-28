@@ -31,12 +31,6 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
 
-springdoc:
-  api-docs:
-    path: /api-docs
-  swagger-ui:
-    path: /swagger-ui
-
 management:
   endpoints:
     web:
