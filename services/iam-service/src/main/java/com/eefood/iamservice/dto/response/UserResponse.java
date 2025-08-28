@@ -1,5 +1,6 @@
 package com.eefood.iamservice.dto.response;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -12,14 +13,14 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class UserResponseDto {
+public class UserResponse {
   private Long id;
   private String username;
   private String email;
   private String role;
   private LocalDate dob;
   private String gender;
-  private String address;
+  private JsonNode address;
   private String provider;
   private String avatarUrl;
   private List<String> allergies;

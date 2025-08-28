@@ -2,9 +2,12 @@ package com.eefood.iamservice.model;
 import com.eefood.iamservice.enums.Gender;
 import com.eefood.iamservice.enums.Provider;
 import com.eefood.iamservice.enums.Role;
+import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -40,7 +43,11 @@ public class User extends BaseEntity {
   private Gender gender;
 
   @Column(columnDefinition = "jsonb")
-  private String address;
+  @JdbcTypeCode(SqlTypes.JSON)   // Hibernate 6 hỗ trợ
+  private JsonNode address;
+
+//  @Column(columnDefinition = "jsonb")
+//  private String address;
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)
