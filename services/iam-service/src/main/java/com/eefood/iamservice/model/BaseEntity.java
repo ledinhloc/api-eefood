@@ -3,10 +3,7 @@ package com.eefood.iamservice.model;
 import jakarta.persistence.Column;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.MappedSuperclass;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
@@ -39,6 +36,7 @@ public class BaseEntity {
   @Column(nullable = false)
   private String updatedBy;   // email người cập nhật
 
+  @Builder.Default
   @Column(nullable = false)
   private Boolean isDeleted = false;
 }

@@ -30,6 +30,7 @@ public class Otp {
   @CreatedDate
   private LocalDateTime createdAt;
 
+  @Builder.Default
   @Column(nullable = false)
   private Boolean isDeleted = false;
 }
