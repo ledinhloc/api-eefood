@@ -12,7 +12,7 @@ tags:
   - name: Users
 
 paths:
-  /auth/signup:
+  /auth/register:
     post:
       tags: [Auth]
       summary: Đăng ký tài khoản mới
@@ -185,7 +185,7 @@ paths:
                     type: string
                     example: "OTP sent to your email"
 
-  /auth/forgot-password/verify:
+  /auth/verify-otp:
     post:
       tags: [Auth]
       summary: Xác thực OTP quên mật khẩu

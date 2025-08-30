@@ -1,24 +1,21 @@
 package com.eefood.iamservice.service;
 
 import com.eefood.iamservice.dto.request.Credential;
-import com.eefood.iamservice.dto.request.TokenExchangeParam;
 import com.eefood.iamservice.dto.request.UserCreateRequest;
 import com.eefood.iamservice.dto.request.UserCreationParam;
 import com.eefood.iamservice.dto.response.UserResponse;
+import com.eefood.iamservice.enums.ErrorMessage;
 import com.eefood.iamservice.mapper.UserMapper;
 import com.eefood.iamservice.model.User;
 import com.eefood.iamservice.repository.UserRepository;
-import com.eefood.iamservice.repository.httpclient.KeycloakClient;
+import com.eefood.iamservice.utils.ExceptionUtil;
 import lombok.RequiredArgsConstructor;
-import lombok.experimental.NonFinal;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.util.List;
 import java.util.Optional;
 
@@ -28,23 +25,7 @@ import java.util.Optional;
 public class UserService {
   private final UserRepository userRepository;
   private final UserMapper userMapper;
-  private final KeycloakClient keycloakClient;
-
-  @Value("${idp.realm}")
-  @NonFinal
-  String realm;
-
-  @Value("${idp.client-id}")
-  @NonFinal
-  String clientId;
-
-  @Value("${idp.client-secret}")
-  @NonFinal
-  String clientSecret;
-
-  @Value("${idp.realm}")
-  @NonFinal
-  private String keycloakRealm;
+  private final KeycloakAdminService keycloakAdminService;
 
   //lay user dang login
   public UserResponse getCurrentUser() {
@@ -52,7 +33,7 @@ public class UserService {
     String authId = authentication.getName(); // authId trong JWT
 
     User user = userRepository.findByAuthIdAndIsDeletedFalse(authId)
-      .orElseThrow(() -> new RuntimeException("User not found"));
+      .orElseThrow(()-> ExceptionUtil.badRequest(ErrorMessage.USER_NOT_FOUND));
 
     return userMapper.toUserResponse(user);
   }
@@ -62,37 +43,25 @@ public class UserService {
     //kiem tra email chua ton tai
     Optional<User> userOpt = userRepository.findByEmail(request.getEmail());
     if(userOpt.isPresent()) {
-      throw new RuntimeException("User already exists");
+      throw ExceptionUtil.badRequest(ErrorMessage.USER_EXISTED);
     }
 
     //luu user
     User user = userMapper.toUser(request);
     User savedUser = userRepository.save(user);
 
-    // Get token from keycloak
-    var token = keycloakClient.exchangeToken(
-      realm,
-      TokenExchangeParam.builder()
-        .grant_type("client_credentials")
-        .client_id(clientId)
-        .client_secret(clientSecret)
-        .scope("openid")
-        .build());
-
     //Create user in Keycloak
-    var creationResponse = keycloakClient.createUser(
-      "Bearer " + token.getAccessToken(),
-      realm,
-      UserCreationParam.builder()
-        .email(request.getEmail())
-        .enabled(true)
-        .emailVerified(true)
-        .credentials(List.of(Credential.builder()
-          .type("password")
-          .temporary(false)
-          .value(request.getPassword())
-          .build()))
-        .build());
+    var creationResponse = keycloakAdminService.createUserInKeycloak(
+            UserCreationParam.builder()
+                    .email(request.getEmail())
+                    .enabled(true)
+                    .emailVerified(true)
+                    .credentials(List.of(Credential.builder()
+                            .type("password")
+                            .temporary(false)
+                            .value(request.getPassword())
+                            .build()))
+                    .build());
 
     // Extract userId
     String authId = extractUserId(creationResponse);
@@ -109,4 +78,5 @@ public class UserService {
     String[] splitedStr = location.split("/");
     return splitedStr[splitedStr.length - 1];
   }
+
 }
