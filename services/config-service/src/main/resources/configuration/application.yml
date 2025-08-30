@@ -20,10 +20,13 @@ spring:
       resourceserver:
         jwt:
           issuer-uri: ${env.global.jwt.issuer-uri:http://localhost:9098/realms/eefood-realm}
+  kafka:
+    bootstrap-servers: ${env.global.kafka.bootstrap-servers:localhost:9092}
 
 idp:
   url: ${env.global.idp.url:http://localhost:9098}
   realm: ${env.global.realm:eefood-realm}
   client-id: ${env.global.idp.client-id:client_backend}
-  client-secret: ${env.global.idp.client-secret:TurN2PytrHC3zQJtLgKQ9jBONAY6Km7m}
+  client-secret: ${env.global.idp.client-secret:MCKrWc2Ru5WE1TQodq0EKxliT5xe0wqD}
+
 
