@@ -61,6 +61,7 @@ logging:
     # Log feign chi tiết
     feign: DEBUG
     feign.client: DEBUG
+    org.springframework.security: DEBUG
 
 
 

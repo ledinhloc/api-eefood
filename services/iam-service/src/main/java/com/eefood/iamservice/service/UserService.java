@@ -109,8 +109,40 @@ public class UserService {
   public UserResponse updateRole(Long userId, Role role) {
     User user = userRepository.findByIdAndIsDeletedFalse(userId)
             .orElseThrow(()-> ExceptionUtil.badRequest(ErrorMessage.USER_NOT_FOUND));
+
+    Role oldRole = user.getRole();
+    log.info("oldRole: {}", oldRole);
+    log.info("Role: {}", role.name());
+
+    // Cập nhật role trong DB
     user.setRole(role);
     userRepository.save(user);
+
+    // Lấy userId trong Keycloak (ưu tiên authId lưu trong DB, nếu không có thì tìm theo email)
+    String keycloakId = user.getAuthId();
+    if (keycloakId == null || keycloakId.isBlank()) {
+      keycloakId = keycloakAdminService.findUserIdByEmail(user.getEmail())
+              .orElseThrow(() -> ExceptionUtil.badRequest(ErrorMessage.USER_NOT_FOUND));
+    }
+
+    // Map enum sang role name đúng với Keycloak
+    String newKcRoleName = mapRoleToKeycloakName(role);
+    String oldKcRoleName = oldRole != null ? mapRoleToKeycloakName(oldRole) : null;
+
+    try {
+      // Nếu có old role khác new role -> remove old role
+      if (oldKcRoleName != null && !oldKcRoleName.equals(newKcRoleName)) {
+        keycloakAdminService.removeRealmRoleFromUser(keycloakId, oldKcRoleName);
+      }
+
+      // Gán role mới (nếu chưa có)
+      keycloakAdminService.assignRealmRoleToUser(keycloakId, newKcRoleName);
+    } catch (Exception ex) {
+      log.error("Failed to sync role to Keycloak for userId={}, kcId={}, newRole={}",
+              userId, keycloakId, newKcRoleName, ex);
+      throw ExceptionUtil.badRequest(ErrorMessage.FAIL_UPDATE_ROLE);
+    }
+
     return userMapper.toUserResponse(user);
   }
 
@@ -130,6 +162,17 @@ public class UserService {
     String location = response.getHeaders().get("Location").get(0);
     String[] splitedStr = location.split("/");
     return splitedStr[splitedStr.length - 1];
+  }
+
+  private String mapRoleToKeycloakName(Role role) {
+    switch (role) {
+      case USER:
+        return "user";
+      case ADMIN:
+        return "admin";
+      default:
+        throw new IllegalArgumentException(ErrorMessage.ROLE_NOT_FOUND.getMessage());
+    }
   }
 
 }

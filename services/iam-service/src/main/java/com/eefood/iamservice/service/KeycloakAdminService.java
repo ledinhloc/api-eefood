@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -133,6 +134,55 @@ public class KeycloakAdminService {
             throw ExceptionUtil.badRequest(ErrorMessage.FAIL_DELETE_USER);
         }
         log.info("Disabled user={} successfully in Keycloak", userId);
+    }
+
+    // Gán 1 realm role (roleName) cho user (userId)
+    public void assignRealmRoleToUser(String userId, String roleName) {
+        String token = "Bearer " + getAdminAccessToken();
+
+        // Lấy role representation
+        Map<String, Object> roleRep = keycloakClient.getRoleByName(token, realm, roleName);
+        if (roleRep == null) {
+            log.error("Keycloak: role not found name={}", roleName);
+            throw ExceptionUtil.badRequest(ErrorMessage.FAIL_UPDATE_ROLE);
+        }
+
+        List<Map<String, Object>> roles = new ArrayList<>();
+        roles.add(roleRep);
+
+        ResponseEntity<Void> resp = keycloakClient.addRealmRoleMappingsToUser(token, realm, userId, roles);
+        if (resp == null || !resp.getStatusCode().is2xxSuccessful()) {
+            log.error("Failed to add realm role={} to user={} status={}", roleName, userId,
+                    resp != null ? resp.getStatusCode() : "null response");
+            throw ExceptionUtil.badRequest(ErrorMessage.FAIL_UPDATE_ROLE);
+        }
+
+        log.info("Assigned realm role={} to userId={}", roleName, userId);
+    }
+
+    // Bỏ 1 realm role (roleName) khỏi user (userId)
+    public void removeRealmRoleFromUser(String userId, String roleName) {
+        String token = "Bearer " + getAdminAccessToken();
+
+        // Lấy role representation
+        Map<String, Object> roleRep = keycloakClient.getRoleByName(token, realm, roleName);
+        if (roleRep == null) {
+            log.warn("Keycloak: role not found name={}", roleName);
+            // Nếu role không tồn tại trên KC, coi như đã "bỏ" — không ném exception cứng
+            return;
+        }
+
+        List<Map<String, Object>> roles = new ArrayList<>();
+        roles.add(roleRep);
+
+        ResponseEntity<Void> resp = keycloakClient.deleteRealmRoleMappingsFromUser(token, realm, userId, roles);
+        if (resp == null || !resp.getStatusCode().is2xxSuccessful()) {
+            log.error("Failed to remove realm role={} from user={} status={}", roleName, userId,
+                    resp != null ? resp.getStatusCode() : "null response");
+            throw ExceptionUtil.badRequest(ErrorMessage.FAIL_UPDATE_ROLE);
+        }
+
+        log.info("Removed realm role={} from userId={}", roleName, userId);
     }
 
 }
