@@ -30,6 +30,7 @@ public enum ErrorMessage {
     FAIL_UPDATE_USER("User cant't update"),
     FAIL_UPDATE_PROFILE_USER("User cant't update profile"),
     FAIL_DELETE_USER("User cant't delete"),
+    FAIL_UPDATE_ROLE("User cant't update role"),
 
     // Message in dto - Start
     FULL_NAME_REQUIRED("Full name is required"),

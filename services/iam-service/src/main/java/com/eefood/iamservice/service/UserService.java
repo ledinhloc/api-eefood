@@ -6,6 +6,7 @@ import com.eefood.iamservice.dto.request.UserCreationParam;
 import com.eefood.iamservice.dto.request.UserUpdateRequest;
 import com.eefood.iamservice.dto.response.UserResponse;
 import com.eefood.iamservice.enums.ErrorMessage;
+import com.eefood.iamservice.enums.Role;
 import com.eefood.iamservice.mapper.UserMapper;
 import com.eefood.iamservice.model.User;
 import com.eefood.iamservice.repository.UserRepository;
@@ -13,6 +14,8 @@ import com.eefood.iamservice.utils.ExceptionUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -75,47 +78,23 @@ public class UserService {
     return userMapper.toUserResponse(savedUser);
   }
 
-  // Hàm cập nhật và kích hoạt user(cho admin)
+  // Hàm cập nhật và kích hoạt user
   @Transactional
   public UserResponse updateUser(UserUpdateRequest request) {
+
     User user = userRepository.findByIdAndIsDeletedFalse(request.getId())
             .orElseThrow(()-> ExceptionUtil.badRequest(ErrorMessage.USER_NOT_FOUND));
 
     user.setEmail(request.getEmail());
     user.setDob(request.getDob());
     user.setGender(request.getGender());
-    user.setRole(request.getRole());
     user.setAddress(request.getAddress());
     user.setAvatarUrl(request.getAvatarUrl());
     user.setUsername(request.getUsername());
     user.setAllergies(request.getAllergies());
     user.setEatingPreferences(request.getEatingPreferences());
+
     User updateUser = userRepository.save(user);
-
-    keycloakAdminService.updateUserInKeycloak(user.getAuthId(),
-            Map.of(
-                    "email", request.getEmail(),
-                    "username", request.getUsername(),
-                    "enabled",true
-            ));
-
-    return userMapper.toUserResponse(updateUser);
-  }
-
-  // Hàm cập nhật thông tin user (cho user)
-  @Transactional
-  public UserResponse updateProfileUser(UserUpdateRequest request) {
-    User user = userRepository.findByIdAndIsDeletedFalse(request.getId())
-            .orElseThrow(()-> ExceptionUtil.badRequest(ErrorMessage.USER_NOT_FOUND));
-    user.setEmail(request.getEmail());
-    user.setDob(request.getDob());
-    user.setGender(request.getGender());
-    user.setAddress(request.getAddress());
-    user.setAvatarUrl(request.getAvatarUrl());
-    user.setUsername(request.getUsername());
-    user.setAllergies(request.getAllergies());
-    user.setEatingPreferences(request.getEatingPreferences());
-    userRepository.save(user);
 
     keycloakAdminService.updateUserInKeycloak(user.getAuthId(),
             Map.of(
@@ -123,6 +102,15 @@ public class UserService {
                     "username", request.getUsername()
             ));
 
+    return userMapper.toUserResponse(updateUser);
+  }
+
+  @Transactional
+  public UserResponse updateRole(Long userId, Role role) {
+    User user = userRepository.findByIdAndIsDeletedFalse(userId)
+            .orElseThrow(()-> ExceptionUtil.badRequest(ErrorMessage.USER_NOT_FOUND));
+    user.setRole(role);
+    userRepository.save(user);
     return userMapper.toUserResponse(user);
   }
 
