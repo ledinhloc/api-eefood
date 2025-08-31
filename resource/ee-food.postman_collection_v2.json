@@ -195,13 +195,13 @@
 					"response": []
 				},
 				{
-					"name": "update profile user",
+					"name": "update role user",
 					"request": {
 						"method": "PUT",
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n  \"id\": 34,\r\n  \"username\": \"Khoa nguyễn\",\r\n  \"email\": \"anhkhoaxn11@gmail.com\",\r\n  \"dob\": \"1999-05-20\",\r\n  \"gender\": \"MALE\",\r\n  \"address\": {\r\n    \"street\": \"123 Lê Lợi\",\r\n    \"city\": \"Hồ Chí Minh\",\r\n    \"country\": \"Vietnam\"\r\n  },\r\n  \"avatarUrl\": \"https://example.com/avatar/khoa.png\",\r\n  \"allergies\": [\"Đậu\", \"Hải sản\"],\r\n  \"eatingPreferences\": [\"Rau củ quả\", \"low-sugar\"]\r\n}",
+							"raw": "{\r\n  \"id\": 34,\r\n  \"username\": \"Khoa nguyễn\",\r\n  \"email\": \"anhkhoaxn11@gmail.com\",\r\n  \"role\": \"USER\",\r\n  \"dob\": \"1999-05-20\",\r\n  \"gender\": \"MALE\",\r\n  \"address\": {\r\n    \"street\": \"123 Lê Lợi\",\r\n    \"city\": \"Hồ Chí Minh\",\r\n    \"country\": \"Vietnam\"\r\n  },\r\n  \"avatarUrl\": \"https://example.com/avatar/khoa.png\",\r\n  \"allergies\": [\"Đậu\", \"Hải sản\"],\r\n  \"eatingPreferences\": [\"Rau củ quả\", \"low-sugar\"]\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -209,7 +209,7 @@
 							}
 						},
 						"url": {
-							"raw": "{{baseurl}}/api/v1/users/update-profile",
+							"raw": "{{baseurl}}/api/v1/users/update",
 							"host": [
 								"{{baseurl}}"
 							],
@@ -217,7 +217,7 @@
 								"api",
 								"v1",
 								"users",
-								"update-profile"
+								"update"
 							]
 						}
 					},
@@ -308,12 +308,12 @@
 								},
 								{
 									"key": "client_secret",
-									"value": "TurN2PytrHC3zQJtLgKQ9jBONAY6Km7m",
+									"value": "MCKrWc2Ru5WE1TQodq0EKxliT5xe0wqD",
 									"type": "text"
 								},
 								{
 									"key": "username",
-									"value": "ledinhloc2@gmail.com",
+									"value": "ledinhloc7@gmail.com",
 									"type": "text"
 								},
 								{

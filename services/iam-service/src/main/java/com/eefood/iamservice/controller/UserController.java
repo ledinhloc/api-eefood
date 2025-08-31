@@ -20,7 +20,6 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
   private final UserService userService;
 
-  @PreAuthorize("hasRole('ADMIN')")
   @GetMapping("/me")
   public ResponseData<UserResponse> getMe() {
     return new ResponseData<>(HttpStatus.OK.value(), "Success", userService.getCurrentUser()) ;

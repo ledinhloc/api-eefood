@@ -55,4 +55,24 @@ public interface KeycloakClient
                                      @PathVariable("realm") String realm,
                                      @PathVariable("id") String id,
                                      @RequestBody Credential payload);
+
+  // Lấy role representation theo tên role
+  @GetMapping(value = "/admin/realms/{realm}/roles/{roleName}", produces = MediaType.APPLICATION_JSON_VALUE)
+  Map<String, Object> getRoleByName(@RequestHeader("Authorization") String token,
+                                    @PathVariable("realm") String realm,
+                                    @PathVariable("roleName") String roleName);
+
+  // Thêm role realm vào user (role-mappings)
+  @PostMapping(value = "/admin/realms/{realm}/users/{id}/role-mappings/realm", consumes = MediaType.APPLICATION_JSON_VALUE)
+  ResponseEntity<Void> addRealmRoleMappingsToUser(@RequestHeader("Authorization") String token,
+                                                  @PathVariable("realm") String realm,
+                                                  @PathVariable("id") String id,
+                                                  @RequestBody List<Map<String, Object>> roles);
+
+  // Xóa role realm từ user (role-mappings)
+  @DeleteMapping(value = "/admin/realms/{realm}/users/{id}/role-mappings/realm", consumes = MediaType.APPLICATION_JSON_VALUE)
+  ResponseEntity<Void> deleteRealmRoleMappingsFromUser(@RequestHeader("Authorization") String token,
+                                                       @PathVariable("realm") String realm,
+                                                       @PathVariable("id") String id,
+                                                       @RequestBody List<Map<String, Object>> roles);
 }
