@@ -3,6 +3,7 @@ package com.eefood.iamservice.enums;
 public enum SuccessMessage {
     CREATE_USER_SUCCESS("Create user successfully"),
     UPDATE_USER_SUCCESS("Update user successfully"),
+    UPDATE_PROFILE_USER_SUCCESS("Update profile user successfully"),
     GET_USER_SUCCESS("Get user successfully"),
     SEARCH_USER_SUCCESS("Search user successfully"),
     NO_DATA_FOUND("No data found"),

@@ -28,6 +28,10 @@ public enum ErrorMessage {
     OTP_SEND_TO_MUCH("OTP send to much"),
     OLD_PASSWORD_INCORRECT("Old password is incorrect"),
     FAIL_RESET_PASSWORD("Failed to reset password in Keycloak"),
+    FAIL_UPDATE_USER("User cant't update"),
+    FAIL_UPDATE_PROFILE_USER("User cant't update profile"),
+    FAIL_DELETE_USER("User cant't delete"),
+    FAIL_UPDATE_ROLE("User cant't update role"),
 
     // Message in dto - Start
     FULL_NAME_REQUIRED("Full name is required"),
