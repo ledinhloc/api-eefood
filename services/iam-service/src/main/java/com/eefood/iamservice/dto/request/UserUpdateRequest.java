@@ -18,7 +18,6 @@ public class UserUpdateRequest {
     Long id;
     String username;
     String email;
-    Role role;
     LocalDate dob;
     Gender gender;
     JsonNode address;
