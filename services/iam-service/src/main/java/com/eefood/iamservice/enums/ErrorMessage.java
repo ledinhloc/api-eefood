@@ -25,6 +25,7 @@ public enum ErrorMessage {
     USER_EXISTED("User already existed"),
     SEND_EMAIL_FAIL("Failed to send OTP email"),
     OTP_INVALID_OR_EXPIRED("OTP is invalid or has expired"),
+    OTP_SEND_TO_MUCH("OTP send to much"),
     OLD_PASSWORD_INCORRECT("Old password is incorrect"),
     FAIL_RESET_PASSWORD("Failed to reset password in Keycloak"),
 
