@@ -27,6 +27,9 @@ public enum ErrorMessage {
     OTP_INVALID_OR_EXPIRED("OTP is invalid or has expired"),
     OLD_PASSWORD_INCORRECT("Old password is incorrect"),
     FAIL_RESET_PASSWORD("Failed to reset password in Keycloak"),
+    FAIL_UPDATE_USER("User cant't update"),
+    FAIL_UPDATE_PROFILE_USER("User cant't update profile"),
+    FAIL_DELETE_USER("User cant't delete"),
 
     // Message in dto - Start
     FULL_NAME_REQUIRED("Full name is required"),

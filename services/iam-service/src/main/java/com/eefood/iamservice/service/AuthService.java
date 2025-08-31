@@ -88,7 +88,7 @@ public class AuthService {
 
     // Hàm xác thực otp
     @Transactional
-    public boolean verifyOtp(String email,String otpCode) {
+    public boolean verifyOtp(String email,String otpCode, OtpType otpType) {
         // Tìm kiếm user theo email
         User user = userRepository.findByEmail(email)
                     .orElseThrow(()->ExceptionUtil.badRequest(ErrorMessage.USER_NOT_FOUND));
@@ -108,8 +108,11 @@ public class AuthService {
         otp.setIsDeleted(true);
         otpRepository.save(otp);
 
-        user.setIsDeleted(false);
-        userRepository.save(user);
+        if(otpType.equals(OtpType.REGISTER)){
+            user.setIsDeleted(false);
+            userRepository.save(user);
+        }
+
 
         // Kích hoạt user keycloak
         boolean kcEnabled = enableUser(user,email);

@@ -1,0 +1,558 @@
+{
+	"info": {
+		"_postman_id": "1abccf05-6101-4ba8-af22-6a320c4210ea",
+		"name": "ee-food",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "41180819"
+	},
+	"item": [
+		{
+			"name": "users",
+			"item": [
+				{
+					"name": "create user",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"username\": \"locdinhle\",\r\n  \"email\": \"ledinhloc2@gmail.com\",\r\n  \"role\": \"USER\",\r\n  \"dob\": \"2025-08-28\",\r\n  \"gender\": \"MALE\",\r\n  \"address\":{\r\n    \"city\": \"Đà Nẵng\",\r\n    \"street\": \"78 Hải Phòng\"\r\n  },\r\n  \"provider\": \"NORMAL\",\r\n  \"avatarUrl\": \"string\",\r\n  \"allergies\": [\r\n    \"cay\"\r\n  ],\r\n  \"eatingPreferences\": [\r\n    \"sua\"\r\n  ],\r\n  \"password\": \"12345678\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseurl}}/api/v1/users",
+							"host": [
+								"{{baseurl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"users"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "refresh token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Parse the JSON response body\r",
+									"var jsonData = pm.response.json();\r",
+									"\r",
+									"// Set the access_token in the environment variable if it exists\r",
+									"if (jsonData.access_token) {\r",
+									"    pm.environment.set(\"access_token\", jsonData.access_token);\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "grant_type",
+									"value": "refresh_token",
+									"type": "text"
+								},
+								{
+									"key": "client_id",
+									"value": "client_backend",
+									"type": "text"
+								},
+								{
+									"key": "client_secret",
+									"value": "mQ7kLSyST3WlwpdkmpbsvWy1GZaTyYGX",
+									"type": "text"
+								},
+								{
+									"key": "username",
+									"value": "admin1@gmail.com",
+									"type": "text",
+									"disabled": true
+								},
+								{
+									"key": "password",
+									"value": "12345678",
+									"type": "text",
+									"disabled": true
+								},
+								{
+									"key": "scope",
+									"value": "openid",
+									"type": "text"
+								},
+								{
+									"key": "refresh_token",
+									"value": "eyJhbGciOiJIUzUxMiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICIyMjU0ZDhkMi05NDc2LTRjYmMtOTdhMy1mZjkwMmJhZGZkNWYifQ.eyJleHAiOjAsImlhdCI6MTc1NjUyNzE0NCwianRpIjoiM2VhYzFhNjUtNTdiNC1lODVkLWM3YmMtMjA1ZTljNGUyMzU2IiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDo5MDk4L3JlYWxtcy9lZWZvb2QtcmVhbG0iLCJhdWQiOiJodHRwOi8vbG9jYWxob3N0OjkwOTgvcmVhbG1zL2VlZm9vZC1yZWFsbSIsInR5cCI6IlJlZ2lzdHJhdGlvbkFjY2Vzc1Rva2VuIiwicmVnaXN0cmF0aW9uX2F1dGgiOiJhdXRoZW50aWNhdGVkIn0.moevIHh3LyXRB7upwn58I42gy1PfFoFcG70rzeGaaYhoPZh3SuBR7www8UWqZFHvKKpgya3zjQzgwiPzm5-sjQ",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:9098/realms/hematology-realm/protocol/openid-connect/token",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "9098",
+							"path": [
+								"realms",
+								"hematology-realm",
+								"protocol",
+								"openid-connect",
+								"token"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "user me",
+					"protocolProfileBehavior": {
+						"disableBodyPruning": true
+					},
+					"request": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"email\": \"ledinhloc7@gmail.com\",\r\n    \"password\": \"12345678\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseurl}}/api/v1/users/me",
+							"host": [
+								"{{baseurl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"users",
+								"me"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update user",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"id\": 34,\r\n  \"username\": \"Khoa nguyễn\",\r\n  \"email\": \"anhkhoaxn11@gmail.com\",\r\n  \"role\": \"USER\",\r\n  \"dob\": \"1999-05-20\",\r\n  \"gender\": \"MALE\",\r\n  \"address\": {\r\n    \"street\": \"123 Lê Lợi\",\r\n    \"city\": \"Hồ Chí Minh\",\r\n    \"country\": \"Vietnam\"\r\n  },\r\n  \"avatarUrl\": \"https://example.com/avatar/khoa.png\",\r\n  \"allergies\": [\"Đậu\", \"Hải sản\"],\r\n  \"eatingPreferences\": [\"Rau củ quả\", \"low-sugar\"]\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseurl}}/api/v1/users/update",
+							"host": [
+								"{{baseurl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"users",
+								"update"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update profile user",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"id\": 34,\r\n  \"username\": \"Khoa nguyễn\",\r\n  \"email\": \"anhkhoaxn11@gmail.com\",\r\n  \"dob\": \"1999-05-20\",\r\n  \"gender\": \"MALE\",\r\n  \"address\": {\r\n    \"street\": \"123 Lê Lợi\",\r\n    \"city\": \"Hồ Chí Minh\",\r\n    \"country\": \"Vietnam\"\r\n  },\r\n  \"avatarUrl\": \"https://example.com/avatar/khoa.png\",\r\n  \"allergies\": [\"Đậu\", \"Hải sản\"],\r\n  \"eatingPreferences\": [\"Rau củ quả\", \"low-sugar\"]\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseurl}}/api/v1/users/update-profile",
+							"host": [
+								"{{baseurl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"users",
+								"update-profile"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "soft delete user",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"id\": 34\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseurl}}/api/v1/users/delete",
+							"host": [
+								"{{baseurl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"users",
+								"delete"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "auth",
+			"item": [
+				{
+					"name": "login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Parse the JSON response body\r",
+									"var jsonData = pm.response.json();\r",
+									"\r",
+									"// Set the access_token in the environment variable if it exists\r",
+									"if (jsonData.access_token) {\r",
+									"    pm.environment.set(\"access_token\", jsonData.access_token);\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "grant_type",
+									"value": "password",
+									"type": "text"
+								},
+								{
+									"key": "client_id",
+									"value": "client_backend",
+									"type": "text"
+								},
+								{
+									"key": "client_secret",
+									"value": "TurN2PytrHC3zQJtLgKQ9jBONAY6Km7m",
+									"type": "text"
+								},
+								{
+									"key": "username",
+									"value": "ledinhloc2@gmail.com",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "12345678",
+									"type": "text"
+								},
+								{
+									"key": "scope",
+									"value": "openid",
+									"type": "text",
+									"disabled": true
+								},
+								{
+									"key": "email",
+									"value": "loc@gmail.com",
+									"type": "text",
+									"disabled": true
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseurl}}/auth/realms/eefood-realm/protocol/openid-connect/token",
+							"host": [
+								"{{baseurl}}"
+							],
+							"path": [
+								"auth",
+								"realms",
+								"eefood-realm",
+								"protocol",
+								"openid-connect",
+								"token"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "register user",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "username",
+									"value": "Khoa",
+									"type": "text"
+								},
+								{
+									"key": "email",
+									"value": "anhkhoa2109.it@gmail.com",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "12341234",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseurl}}/api/v1/auth/register",
+							"host": [
+								"{{baseurl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "verify-otp register",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"email\": \"anhkhoaxn11@gmail.com\",\r\n    \"otpCode\": \"782991\",\r\n    \"otpType\": \"REGISTER\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseurl}}/api/v1/auth/verify-otp",
+							"host": [
+								"{{baseurl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"verify-otp"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "verify-otp forgot password",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"email\": \"anhkhoaxn11@gmail.com\",\r\n    \"otpCode\": \"491572\",\r\n    \"otpType\": \"FORGOT_PASSWORD\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseurl}}/api/v1/auth/verify-otp",
+							"host": [
+								"{{baseurl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"verify-otp"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "forgot password",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"email\": \"anhkhoaxn11@gmail.com\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseurl}}/api/v1/auth/forgot-password/request",
+							"host": [
+								"{{baseurl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"forgot-password",
+								"request"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "reset password",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"email\": \"anhkhoaxn11@gmail.com\",\r\n    \"otp\": \"491572\",\r\n    \"newPassword\": \"12341234\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseurl}}/api/v1/auth/forgot-password/reset",
+							"host": [
+								"{{baseurl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"forgot-password",
+								"reset"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{access_token}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseurl",
+			"value": "http://localhost:8222"
+		},
+		{
+			"key": "access_token",
+			"value": "eyJhbGciOiJIUzUxMiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICI4NmUzYzFiMC0zOGEyLTQxMWUtOTVmMS1lNjFhODZhMzk0MjEifQ.eyJleHAiOjE3NTQzOTA1MzAsImlhdCI6MTc1NDM4ODczMCwianRpIjoiNmVjNTBmMjItZDdkOS1kOWEyLTM1NzktZTc3M2UwMWU0NGRjIiwiaXNzIjoiaHR0cDovL2tleWNsb2FrLWhhOjkwOTgvcmVhbG1zL2hlbWF0b2xvZ3ktcmVhbG0iLCJhdWQiOiJodHRwOi8va2V5Y2xvYWstaGE6OTA5OC9yZWFsbXMvaGVtYXRvbG9neS1yZWFsbSIsInN1YiI6IjdiNTMzYjlkLTU1MmUtNDQ3OS1hZWNkLWExMjJjZDk5ODAwZCIsInR5cCI6IlJlZnJlc2giLCJhenAiOiJjbGllbnRfYmFja2VuZCIsInNpZCI6IjZiZjVmZThkLThhMjUtNDM1Mi1hMDIwLTNjM2NlNDhmOWJhZiIsInNjb3BlIjoib3BlbmlkIHNlcnZpY2VfYWNjb3VudCBiYXNpYyBwcm9maWxlIHdlYi1vcmlnaW5zIGFjciByb2xlcyBlbWFpbCJ9.0H7f6jZfx75lwubvZdx_yIsqOqpYnzK9zPbXQ8NIi-g8sQ0Q6udAqLd_JlnHbbyFWaS0TQVmcxVdDUiuCFS98w"
+		}
+	]
+}
