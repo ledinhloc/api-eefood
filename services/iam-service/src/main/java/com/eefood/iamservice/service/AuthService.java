@@ -45,6 +45,13 @@ public class AuthService {
                 // user đã active
                 throw ExceptionUtil.badRequest(ErrorMessage.USER_EXISTED);
             }
+
+            // Giới hạn số lần gửi mail
+            if(!otpService.canSendOtp(existingUser)){
+                log.warn(String.format("OTP send to much"));
+                throw ExceptionUtil.badRequest(ErrorMessage.OTP_SEND_TO_MUCH);
+            }
+
             // user tồn tại nhưng chưa active → gửi lại OTP, không tạo user mới
             otpService.sendOtp(request.getEmail(), OtpType.REGISTER);
             log.info(String.format("Registered user: %s", request.getEmail()));
@@ -81,6 +88,13 @@ public class AuthService {
                         .build());
 
         handleKeycloakCreationResponse(creationResponse,savedUser,request);
+
+        // Giới hạn số lần gửi mail
+        if(!otpService.canSendOtp(savedUser)){
+            log.warn(String.format("OTP send to much"));
+            throw ExceptionUtil.badRequest(ErrorMessage.OTP_SEND_TO_MUCH);
+        }
+
         log.info(String.format("Registered user: %s", request.getEmail()));
         otpService.sendOtp(request.getEmail(), OtpType.REGISTER);
         return userMapper.toUserResponse(savedUser);
