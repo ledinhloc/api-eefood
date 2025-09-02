@@ -35,6 +35,16 @@ public class KeycloakAdminService {
     @Value("${idp.client-secret}")
     private String clientSecret;
 
+    //logout
+    public void logout(String refreshToken) {
+        TokenExchangeParam param = TokenExchangeParam.builder()
+            .client_id(clientId)
+            .client_secret(clientSecret)
+            .refresh_token(refreshToken)
+            .build();
+        keycloakClient.logout(realm, param);
+    }
+
     // refresh token
     public TokenExchangeResponse refreshToken(String refreshToken) {
         TokenExchangeParam param = TokenExchangeParam.builder()
@@ -128,6 +138,4 @@ public class KeycloakAdminService {
     public boolean isUserExistsInKeycloak(String email) {
         return findUserIdByEmail(email).isPresent();
     }
-
-
 }
