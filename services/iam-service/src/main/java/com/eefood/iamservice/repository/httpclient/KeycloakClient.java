@@ -17,7 +17,16 @@ import java.util.Map;
 @FeignClient(name = "identity-client", url = "${idp.url}")
 public interface KeycloakClient
 {
-  //lay token keycloak
+
+    //logout
+    @PostMapping(
+        value = "/realms/{realm}/protocol/openid-connect/logout",
+        consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+    void logout(
+        @PathVariable("realm") String realm,
+        @RequestBody TokenExchangeParam param);
+
+    //lay token keycloak
   @PostMapping(
     value = "/realms/{realm}/protocol/openid-connect/token",
     consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)

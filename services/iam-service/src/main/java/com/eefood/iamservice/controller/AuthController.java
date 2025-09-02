@@ -31,9 +31,17 @@ public class AuthController {
       return new ResponseData<>(HttpStatus.OK.value(), "Success", keycloakService.login(request.getEmail(), request.getPassword()));
     }
 
-    @PostMapping
+    //refresh token
+    @PostMapping("/refresh")
     public  ResponseData<?> refreshToken(@RequestBody RefreshTokenRequest request){
         return new ResponseData<>(HttpStatus.OK.value(), "Success", keycloakService.refreshToken(request.getRefreshToken()));
+    }
+
+    //logout
+    @PostMapping("/logout")
+    public  ResponseData<?> logout(@RequestBody RefreshTokenRequest request){
+        keycloakService.logout(request.getRefreshToken());
+        return new ResponseData<>(HttpStatus.OK.value(), "Success");
     }
 
     @PostMapping("/register")
