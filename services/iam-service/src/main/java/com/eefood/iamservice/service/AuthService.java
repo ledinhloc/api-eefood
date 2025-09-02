@@ -1,5 +1,6 @@
 package com.eefood.iamservice.service;
 import com.eefood.iamservice.dto.request.*;
+import com.eefood.iamservice.dto.response.KeycloakTokenResponse;
 import com.eefood.iamservice.dto.response.UserResponse;
 import com.eefood.iamservice.enums.ErrorMessage;
 import com.eefood.iamservice.enums.OtpType;
@@ -18,9 +19,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
 
 @RequiredArgsConstructor
 @Service

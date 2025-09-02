@@ -6,7 +6,9 @@ import com.eefood.iamservice.dto.response.UserResponse;
 import com.eefood.iamservice.enums.ErrorMessage;
 import com.eefood.iamservice.enums.OtpType;
 import com.eefood.iamservice.enums.SuccessMessage;
+import com.eefood.iamservice.mapper.UserMapper;
 import com.eefood.iamservice.service.AuthService;
+import com.eefood.iamservice.service.KeycloakAdminService;
 import com.eefood.iamservice.service.OtpService;
 import com.eefood.iamservice.service.UserService;
 import jakarta.validation.Valid;
@@ -21,6 +23,18 @@ public class AuthController {
     private final AuthService authService;
     private final OtpService otpService;
     private final UserService userService;
+    private final KeycloakAdminService keycloakService;
+
+    //login
+    @PostMapping("/login")
+    public ResponseData<?> login(@RequestBody @Valid LoginRequest request) {
+      return new ResponseData<>(HttpStatus.OK.value(), "Success", keycloakService.login(request.getEmail(), request.getPassword()));
+    }
+
+    @PostMapping
+    public  ResponseData<?> refreshToken(@RequestBody RefreshTokenRequest request){
+        return new ResponseData<>(HttpStatus.OK.value(), "Success", keycloakService.refreshToken(request.getRefreshToken()));
+    }
 
     @PostMapping("/register")
     public ResponseData<UserResponse> register(@Valid @RequestBody UserSignUpRequest request) {
