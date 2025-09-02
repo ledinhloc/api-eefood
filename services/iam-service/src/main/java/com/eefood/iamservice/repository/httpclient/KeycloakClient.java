@@ -3,6 +3,7 @@ package com.eefood.iamservice.repository.httpclient;
 import com.eefood.iamservice.dto.request.Credential;
 import com.eefood.iamservice.dto.request.TokenExchangeParam;
 import com.eefood.iamservice.dto.request.UserCreationParam;
+import com.eefood.iamservice.dto.response.KeycloakTokenResponse;
 import com.eefood.iamservice.dto.response.TokenExchangeResponse;
 import feign.QueryMap;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -22,7 +23,7 @@ public interface KeycloakClient
     consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
   TokenExchangeResponse exchangeToken(
     @PathVariable("realm") String realm,
-    @QueryMap TokenExchangeParam param);
+    @RequestBody TokenExchangeParam param);
 
   // Tạo user (admin)
   @PostMapping(value = "/admin/realms/{realm}/users", consumes = MediaType.APPLICATION_JSON_VALUE)

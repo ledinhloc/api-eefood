@@ -3,6 +3,8 @@ package com.eefood.iamservice.service;
 import com.eefood.iamservice.dto.request.Credential;
 import com.eefood.iamservice.dto.request.TokenExchangeParam;
 import com.eefood.iamservice.dto.request.UserCreationParam;
+import com.eefood.iamservice.dto.response.KeycloakTokenResponse;
+import com.eefood.iamservice.dto.response.TokenExchangeResponse;
 import com.eefood.iamservice.enums.ErrorMessage;
 import com.eefood.iamservice.enums.SuccessMessage;
 import com.eefood.iamservice.repository.httpclient.KeycloakClient;
@@ -13,6 +15,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -31,6 +34,29 @@ public class KeycloakAdminService {
 
     @Value("${idp.client-secret}")
     private String clientSecret;
+
+    // refresh token
+    public TokenExchangeResponse refreshToken(String refreshToken) {
+        TokenExchangeParam param = TokenExchangeParam.builder()
+            .grant_type("refresh_token")
+            .client_id(clientId)
+            .client_secret(clientSecret)
+            .refresh_token(refreshToken)
+            .build();
+        return keycloakClient.exchangeToken(realm, param);
+    }
+
+    //login
+    public TokenExchangeResponse login(String email, String password) {
+        TokenExchangeParam param = TokenExchangeParam.builder()
+            .grant_type("password")
+            .client_id(clientId)
+            .client_secret(clientSecret)
+            .username(email)
+            .password(password)
+            .build();
+        return keycloakClient.exchangeToken(realm, param);
+    }
 
     // Hàm lấy exchange token
     public String getAdminAccessToken() {
@@ -102,5 +128,6 @@ public class KeycloakAdminService {
     public boolean isUserExistsInKeycloak(String email) {
         return findUserIdByEmail(email).isPresent();
     }
+
 
 }
