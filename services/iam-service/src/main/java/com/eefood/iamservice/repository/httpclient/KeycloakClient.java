@@ -3,6 +3,7 @@ package com.eefood.iamservice.repository.httpclient;
 import com.eefood.iamservice.dto.request.Credential;
 import com.eefood.iamservice.dto.request.TokenExchangeParam;
 import com.eefood.iamservice.dto.request.UserCreationParam;
+import com.eefood.iamservice.dto.response.KeycloakTokenResponse;
 import com.eefood.iamservice.dto.response.TokenExchangeResponse;
 import feign.QueryMap;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -16,13 +17,22 @@ import java.util.Map;
 @FeignClient(name = "identity-client", url = "${idp.url}")
 public interface KeycloakClient
 {
-  //lay token keycloak
+
+    //logout
+    @PostMapping(
+        value = "/realms/{realm}/protocol/openid-connect/logout",
+        consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+    void logout(
+        @PathVariable("realm") String realm,
+        @RequestBody TokenExchangeParam param);
+
+    //lay token keycloak
   @PostMapping(
     value = "/realms/{realm}/protocol/openid-connect/token",
     consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
   TokenExchangeResponse exchangeToken(
     @PathVariable("realm") String realm,
-    @QueryMap TokenExchangeParam param);
+    @RequestBody TokenExchangeParam param);
 
   // Tạo user (admin)
   @PostMapping(value = "/admin/realms/{realm}/users", consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -55,8 +65,7 @@ public interface KeycloakClient
                                      @PathVariable("realm") String realm,
                                      @PathVariable("id") String id,
                                      @RequestBody Credential payload);
-
-  // Lấy role representation theo tên role
+// Lấy role representation theo tên role
   @GetMapping(value = "/admin/realms/{realm}/roles/{roleName}", produces = MediaType.APPLICATION_JSON_VALUE)
   Map<String, Object> getRoleByName(@RequestHeader("Authorization") String token,
                                     @PathVariable("realm") String realm,
@@ -75,4 +84,7 @@ public interface KeycloakClient
                                                        @PathVariable("realm") String realm,
                                                        @PathVariable("id") String id,
                                                        @RequestBody List<Map<String, Object>> roles);
+
+ 
 }
+
