@@ -54,7 +54,7 @@ public class AuthController {
 
     @PostMapping("/verify-otp")
     public ResponseData<Void> verifyOtp(@Valid  @RequestBody OtpCreateRequest request) {
-        boolean verified = authService.verifyOtp(request.getEmail(),request.getOtpCode());
+        boolean verified = authService.verifyOtp(request.getEmail(),request.getOtpCode(),request.getOtpType());
         return verified
                 ? new ResponseData<>(HttpStatus.OK.value(), SuccessMessage.OTP_VERIFIED_SUCCESS.getMessage())
                 : new ResponseData<>(HttpStatus.BAD_REQUEST.value(), ErrorMessage.OTP_INVALID_OR_EXPIRED.getMessage());
@@ -68,7 +68,7 @@ public class AuthController {
 
     @PostMapping("/forgot-password/reset")
     public ResponseData<Void> resetPassword(@Valid @RequestBody PasswordResetRequest request){
-        boolean verified = authService.verifyOtp(request.getEmail(), request.getOtp());
+        boolean verified = authService.verifyOtp(request.getEmail(), request.getOtp(), OtpType.FORGOT_PASSWORD);
         if(!verified){
             return new ResponseData<>(HttpStatus.BAD_REQUEST.value(), ErrorMessage.OTP_INVALID_OR_EXPIRED.getMessage());
         }
