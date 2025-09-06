@@ -9,6 +9,9 @@ import com.eefood.iamservice.mapper.UserMapper;
 import com.eefood.iamservice.model.User;
 import com.eefood.iamservice.repository.UserRepository;
 import com.eefood.iamservice.utils.ExceptionUtil;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -79,4 +82,18 @@ public class UserService {
     return splitedStr[splitedStr.length - 1];
   }
 
+  public UserResponse login(String email, String password) {
+    var response = keycloakAdminService.login(email, password);
+
+    Optional<User> userOpt = userRepository.findByEmailAndIsDeletedFalse(email);
+    if(userOpt.isEmpty()){
+      throw ExceptionUtil.badRequest(ErrorMessage.USER_NOT_FOUND);
+    }
+
+    var userResponse = userMapper.toUserResponse(userOpt.get());
+    // gan access token, refresh token
+    userResponse.setAccessToken(response.getAccessToken());
+    userResponse.setRefreshToken(response.getRefreshToken());
+    return userResponse;
+  }
 }
