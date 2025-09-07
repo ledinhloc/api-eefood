@@ -45,7 +45,7 @@ public class UserController {
   public ResponseData<UserResponse> updateRoleUser(@RequestBody @Valid AdminUpdateRequest request){
     UserResponse userResponse = userService.updateRole(request.getId(), request.getRole());
     if(userResponse == null){
-      return new ResponseData<>(HttpStatus.FORBIDDEN.value(), ErrorMessage.FAIL_UPDATE_ROLE.getMessage(), null);
+      return new ResponseData<>(HttpStatus.BAD_REQUEST.value(), ErrorMessage.FAIL_UPDATE_ROLE.getMessage(), null);
     }
     return new ResponseData<>(HttpStatus.OK.value(), SuccessMessage.UPDATE_ROLE_OF_USER_SUCCESS.getMessage(), userResponse);
   }
