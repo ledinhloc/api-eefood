@@ -164,6 +164,21 @@ public class UserService {
     return splitedStr[splitedStr.length - 1];
   }
 
+  public UserResponse login(String email, String password) {
+    var response = keycloakAdminService.login(email, password);
+
+    Optional<User> userOpt = userRepository.findByEmailAndIsDeletedFalse(email);
+    if(userOpt.isEmpty()){
+      throw ExceptionUtil.badRequest(ErrorMessage.USER_NOT_FOUND);
+    }
+
+    var userResponse = userMapper.toUserResponse(userOpt.get());
+    // gan access token, refresh token
+    userResponse.setAccessToken(response.getAccessToken());
+    userResponse.setRefreshToken(response.getRefreshToken());
+    return userResponse;
+  }
+
   private String mapRoleToKeycloakName(Role role) {
     switch (role) {
       case USER:
@@ -174,5 +189,4 @@ public class UserService {
         throw new IllegalArgumentException(ErrorMessage.ROLE_NOT_FOUND.getMessage());
     }
   }
-
 }
