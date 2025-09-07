@@ -135,11 +135,6 @@ public class KeycloakAdminService {
         return Optional.ofNullable(id != null ? id.toString() : null);
     }
 
-    // Kiểm tra user tồn tại keycloak ?
-    public boolean isUserExistsInKeycloak(String email) {
-        return findUserIdByEmail(email).isPresent();
-    }
-
 
     // Cập nhật user trong Keycloak
     public void updateUserInKeycloak(String userId, Map<String, Object> fields) {

@@ -182,9 +182,9 @@ public class UserService {
   private String mapRoleToKeycloakName(Role role) {
     switch (role) {
       case USER:
-        return "user";
+        return Role.USER.name();
       case ADMIN:
-        return "admin";
+        return Role.ADMIN.name();
       default:
         throw new IllegalArgumentException(ErrorMessage.ROLE_NOT_FOUND.getMessage());
     }

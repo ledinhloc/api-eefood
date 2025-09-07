@@ -62,9 +62,10 @@ public class AuthService {
         }
 
         // Kiểm tra user tồn tại trên Keycloak chưa
-        if (keycloakAdminService.isUserExistsInKeycloak(request.getEmail())) {
+        String id = keycloakAdminService.findUserIdByEmail(request.getEmail())
+                .orElseThrow(() -> ExceptionUtil.badRequest(ErrorMessage.USER_NOT_EXISTED));
+        if (id!=null) {
             log.warn("User already exists in Keycloak: {}", request.getEmail());
-            throw ExceptionUtil.badRequest(ErrorMessage.USER_EXISTED);
         }
 
         // user chưa tồn tại → tạo mới
