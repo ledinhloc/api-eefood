@@ -3,23 +3,25 @@ package com.eefood.iamservice.service;
 import com.eefood.iamservice.dto.request.Credential;
 import com.eefood.iamservice.dto.request.UserCreateRequest;
 import com.eefood.iamservice.dto.request.UserCreationParam;
+import com.eefood.iamservice.dto.request.UserUpdateRequest;
 import com.eefood.iamservice.dto.response.UserResponse;
 import com.eefood.iamservice.enums.ErrorMessage;
+import com.eefood.iamservice.enums.Role;
 import com.eefood.iamservice.mapper.UserMapper;
 import com.eefood.iamservice.model.User;
 import com.eefood.iamservice.repository.UserRepository;
 import com.eefood.iamservice.utils.ExceptionUtil;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RequiredArgsConstructor
@@ -76,6 +78,86 @@ public class UserService {
     return userMapper.toUserResponse(savedUser);
   }
 
+  // Hàm cập nhật và kích hoạt user
+  @Transactional
+  public UserResponse updateUser(UserUpdateRequest request) {
+
+    User user = userRepository.findByIdAndIsDeletedFalse(request.getId())
+            .orElseThrow(()-> ExceptionUtil.badRequest(ErrorMessage.USER_NOT_FOUND));
+
+    user.setEmail(request.getEmail());
+    user.setDob(request.getDob());
+    user.setGender(request.getGender());
+    user.setAddress(request.getAddress());
+    user.setAvatarUrl(request.getAvatarUrl());
+    user.setUsername(request.getUsername());
+    user.setAllergies(request.getAllergies());
+    user.setEatingPreferences(request.getEatingPreferences());
+
+    User updateUser = userRepository.save(user);
+
+    keycloakAdminService.updateUserInKeycloak(user.getAuthId(),
+            Map.of(
+                    "email", request.getEmail(),
+                    "username", request.getUsername()
+            ));
+
+    return userMapper.toUserResponse(updateUser);
+  }
+
+  @Transactional
+  public UserResponse updateRole(Long userId, Role role) {
+    User user = userRepository.findByIdAndIsDeletedFalse(userId)
+            .orElseThrow(()-> ExceptionUtil.badRequest(ErrorMessage.USER_NOT_FOUND));
+
+    Role oldRole = user.getRole();
+    log.info("oldRole: {}", oldRole);
+    log.info("Role: {}", role.name());
+
+    // Cập nhật role trong DB
+    user.setRole(role);
+    userRepository.save(user);
+
+    // Lấy userId trong Keycloak (ưu tiên authId lưu trong DB, nếu không có thì tìm theo email)
+    String keycloakId = user.getAuthId();
+    if (keycloakId == null || keycloakId.isBlank()) {
+      keycloakId = keycloakAdminService.findUserIdByEmail(user.getEmail())
+              .orElseThrow(() -> ExceptionUtil.badRequest(ErrorMessage.USER_NOT_FOUND));
+    }
+
+    // Map enum sang role name đúng với Keycloak
+    String newKcRoleName = mapRoleToKeycloakName(role);
+    String oldKcRoleName = oldRole != null ? mapRoleToKeycloakName(oldRole) : null;
+
+    try {
+      // Nếu có old role khác new role -> remove old role
+      if (oldKcRoleName != null && !oldKcRoleName.equals(newKcRoleName)) {
+        keycloakAdminService.removeRealmRoleFromUser(keycloakId, oldKcRoleName);
+      }
+
+      // Gán role mới (nếu chưa có)
+      keycloakAdminService.assignRealmRoleToUser(keycloakId, newKcRoleName);
+    } catch (Exception ex) {
+      log.error("Failed to sync role to Keycloak for userId={}, kcId={}, newRole={}",
+              userId, keycloakId, newKcRoleName, ex);
+      throw ExceptionUtil.badRequest(ErrorMessage.FAIL_UPDATE_ROLE);
+    }
+
+    return userMapper.toUserResponse(user);
+  }
+
+  // Hàm xóa mềm user
+  @Transactional
+  public void softDeleteUser(Long userId) {
+    User user = userRepository.findByIdAndIsDeletedFalse(userId)
+            .orElseThrow(()-> ExceptionUtil.badRequest(ErrorMessage.USER_NOT_FOUND));
+
+    user.setIsDeleted(true);
+    userRepository.save(user);
+
+    keycloakAdminService.disableUserInKeycloak(user.getAuthId());
+  }
+
   private String extractUserId(ResponseEntity<?> response) {
     String location = response.getHeaders().get("Location").get(0);
     String[] splitedStr = location.split("/");
@@ -95,5 +177,16 @@ public class UserService {
     userResponse.setAccessToken(response.getAccessToken());
     userResponse.setRefreshToken(response.getRefreshToken());
     return userResponse;
+  }
+
+  private String mapRoleToKeycloakName(Role role) {
+    switch (role) {
+      case USER:
+        return "user";
+      case ADMIN:
+        return "admin";
+      default:
+        throw new IllegalArgumentException(ErrorMessage.ROLE_NOT_FOUND.getMessage());
+    }
   }
 }
