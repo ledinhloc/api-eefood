@@ -553,6 +553,11 @@
 		{
 			"key": "access_token",
 			"value": "eyJhbGciOiJIUzUxMiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICI4NmUzYzFiMC0zOGEyLTQxMWUtOTVmMS1lNjFhODZhMzk0MjEifQ.eyJleHAiOjE3NTQzOTA1MzAsImlhdCI6MTc1NDM4ODczMCwianRpIjoiNmVjNTBmMjItZDdkOS1kOWEyLTM1NzktZTc3M2UwMWU0NGRjIiwiaXNzIjoiaHR0cDovL2tleWNsb2FrLWhhOjkwOTgvcmVhbG1zL2hlbWF0b2xvZ3ktcmVhbG0iLCJhdWQiOiJodHRwOi8va2V5Y2xvYWstaGE6OTA5OC9yZWFsbXMvaGVtYXRvbG9neS1yZWFsbSIsInN1YiI6IjdiNTMzYjlkLTU1MmUtNDQ3OS1hZWNkLWExMjJjZDk5ODAwZCIsInR5cCI6IlJlZnJlc2giLCJhenAiOiJjbGllbnRfYmFja2VuZCIsInNpZCI6IjZiZjVmZThkLThhMjUtNDM1Mi1hMDIwLTNjM2NlNDhmOWJhZiIsInNjb3BlIjoib3BlbmlkIHNlcnZpY2VfYWNjb3VudCBiYXNpYyBwcm9maWxlIHdlYi1vcmlnaW5zIGFjciByb2xlcyBlbWFpbCJ9.0H7f6jZfx75lwubvZdx_yIsqOqpYnzK9zPbXQ8NIi-g8sQ0Q6udAqLd_JlnHbbyFWaS0TQVmcxVdDUiuCFS98w"
+		},
+		{
+			"key": "baseUrl",
+			"value": "",
+			"type": "default"
 		}
 	]
 }
