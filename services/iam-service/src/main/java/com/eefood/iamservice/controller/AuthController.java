@@ -28,7 +28,7 @@ public class AuthController {
     //login
     @PostMapping("/login")
     public ResponseData<?> login(@RequestBody @Valid LoginRequest request) {
-      return new ResponseData<>(HttpStatus.OK.value(), "Success", keycloakService.login(request.getEmail(), request.getPassword()));
+      return new ResponseData<>(HttpStatus.OK.value(), "Success", userService.login(request.getEmail(), request.getPassword()));
     }
 
     //refresh token
