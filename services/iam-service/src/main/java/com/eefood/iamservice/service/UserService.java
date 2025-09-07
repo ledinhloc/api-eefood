@@ -81,65 +81,65 @@ public class UserService {
   // Hàm cập nhật và kích hoạt user
   @Transactional
   public UserResponse updateUser(UserUpdateRequest request) {
+    try{
+      User user = userRepository.findByIdAndIsDeletedFalse(request.getId())
+              .orElseThrow(()-> ExceptionUtil.badRequest(ErrorMessage.USER_NOT_FOUND));
 
-    User user = userRepository.findByIdAndIsDeletedFalse(request.getId())
-            .orElseThrow(()-> ExceptionUtil.badRequest(ErrorMessage.USER_NOT_FOUND));
+      user.setEmail(request.getEmail());
+      user.setDob(request.getDob());
+      user.setGender(request.getGender());
+      user.setAddress(request.getAddress());
+      user.setAvatarUrl(request.getAvatarUrl());
+      user.setUsername(request.getUsername());
+      user.setAllergies(request.getAllergies());
+      user.setEatingPreferences(request.getEatingPreferences());
 
-    user.setEmail(request.getEmail());
-    user.setDob(request.getDob());
-    user.setGender(request.getGender());
-    user.setAddress(request.getAddress());
-    user.setAvatarUrl(request.getAvatarUrl());
-    user.setUsername(request.getUsername());
-    user.setAllergies(request.getAllergies());
-    user.setEatingPreferences(request.getEatingPreferences());
+      User updateUser = userRepository.save(user);
 
-    User updateUser = userRepository.save(user);
+      keycloakAdminService.updateUserInKeycloak(user.getAuthId(),
+              Map.of(
+                      "email", request.getEmail(),
+                      "username", request.getUsername()
+              ));
+      return userMapper.toUserResponse(updateUser);
+    }
+    catch(Exception e) {
+      throw ExceptionUtil.badRequest(ErrorMessage.FAIL_UPDATE_USER);
+    }
 
-    keycloakAdminService.updateUserInKeycloak(user.getAuthId(),
-            Map.of(
-                    "email", request.getEmail(),
-                    "username", request.getUsername()
-            ));
-
-    return userMapper.toUserResponse(updateUser);
   }
 
   @Transactional
   public UserResponse updateRole(Long userId, Role role) {
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    String authId = authentication.getName();
+
     User user = userRepository.findByIdAndIsDeletedFalse(userId)
-            .orElseThrow(()-> ExceptionUtil.badRequest(ErrorMessage.USER_NOT_FOUND));
+            .orElseThrow(() -> ExceptionUtil.badRequest(ErrorMessage.USER_NOT_EXISTED));
+
+    if (authId == null || authId.isBlank()) {
+      authId = keycloakAdminService.findUserIdByEmail(user.getEmail())
+              .orElseThrow(() -> ExceptionUtil.badRequest(ErrorMessage.USER_NOT_FOUND));
+    }
 
     Role oldRole = user.getRole();
-    log.info("oldRole: {}", oldRole);
-    log.info("Role: {}", role.name());
 
     // Cập nhật role trong DB
     user.setRole(role);
     userRepository.save(user);
 
-    // Lấy userId trong Keycloak (ưu tiên authId lưu trong DB, nếu không có thì tìm theo email)
-    String keycloakId = user.getAuthId();
-    if (keycloakId == null || keycloakId.isBlank()) {
-      keycloakId = keycloakAdminService.findUserIdByEmail(user.getEmail())
-              .orElseThrow(() -> ExceptionUtil.badRequest(ErrorMessage.USER_NOT_FOUND));
-    }
-
-    // Map enum sang role name đúng với Keycloak
-    String newKcRoleName = mapRoleToKeycloakName(role);
-    String oldKcRoleName = oldRole != null ? mapRoleToKeycloakName(oldRole) : null;
 
     try {
       // Nếu có old role khác new role -> remove old role
-      if (oldKcRoleName != null && !oldKcRoleName.equals(newKcRoleName)) {
-        keycloakAdminService.removeRealmRoleFromUser(keycloakId, oldKcRoleName);
+      if (oldRole != null && !oldRole.equals(role)) {
+        keycloakAdminService.removeRealmRoleFromUser(authId, oldRole.name());
       }
 
       // Gán role mới (nếu chưa có)
-      keycloakAdminService.assignRealmRoleToUser(keycloakId, newKcRoleName);
+      keycloakAdminService.assignRealmRoleToUser(authId, role.name());
     } catch (Exception ex) {
       log.error("Failed to sync role to Keycloak for userId={}, kcId={}, newRole={}",
-              userId, keycloakId, newKcRoleName, ex);
+              userId, authId, role, ex);
       throw ExceptionUtil.badRequest(ErrorMessage.FAIL_UPDATE_ROLE);
     }
 
@@ -177,16 +177,5 @@ public class UserService {
     userResponse.setAccessToken(response.getAccessToken());
     userResponse.setRefreshToken(response.getRefreshToken());
     return userResponse;
-  }
-
-  private String mapRoleToKeycloakName(Role role) {
-    switch (role) {
-      case USER:
-        return Role.USER.name();
-      case ADMIN:
-        return Role.ADMIN.name();
-      default:
-        throw new IllegalArgumentException(ErrorMessage.ROLE_NOT_FOUND.getMessage());
-    }
   }
 }

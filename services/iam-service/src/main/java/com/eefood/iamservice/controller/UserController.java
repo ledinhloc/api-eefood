@@ -34,9 +34,6 @@ public class UserController {
   @PutMapping("/update")
   public ResponseData<UserResponse> updateUser(@RequestBody @Valid UserUpdateRequest request){
     UserResponse userResponse = userService.updateUser(request);
-    if(userResponse == null){
-      return new ResponseData<>(HttpStatus.BAD_REQUEST.value(), ErrorMessage.FAIL_UPDATE_USER.getMessage(), null);
-    }
     return new ResponseData<>(HttpStatus.OK.value(), SuccessMessage.UPDATE_USER_SUCCESS.getMessage(), userResponse);
   }
 
@@ -44,9 +41,6 @@ public class UserController {
   @PutMapping("/update-role")
   public ResponseData<UserResponse> updateRoleUser(@RequestBody @Valid AdminUpdateRequest request){
     UserResponse userResponse = userService.updateRole(request.getId(), request.getRole());
-    if(userResponse == null){
-      return new ResponseData<>(HttpStatus.BAD_REQUEST.value(), ErrorMessage.FAIL_UPDATE_ROLE.getMessage(), null);
-    }
     return new ResponseData<>(HttpStatus.OK.value(), SuccessMessage.UPDATE_ROLE_OF_USER_SUCCESS.getMessage(), userResponse);
   }
 
