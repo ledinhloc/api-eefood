@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("api/v1/auth")
+@RequestMapping("/api/v1/auth")
 public class AuthController {
     private final AuthService authService;
     private final OtpService otpService;
@@ -72,7 +72,7 @@ public class AuthController {
         if(!verified){
             return new ResponseData<>(HttpStatus.BAD_REQUEST.value(), ErrorMessage.OTP_INVALID_OR_EXPIRED.getMessage());
         }
-        authService.resetPassword(request.getEmail(),request.getOtp());
+        authService.resetPassword(request.getEmail(),request.getNewPassword());
         return new ResponseData<>(HttpStatus.OK.value(), SuccessMessage.PASSWORD_RESET_SUCCESS.getMessage());
     }
 
