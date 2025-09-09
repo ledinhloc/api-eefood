@@ -68,10 +68,6 @@ public class AuthController {
 
     @PostMapping("/forgot-password/reset")
     public ResponseData<Void> resetPassword(@Valid @RequestBody PasswordResetRequest request){
-        boolean verified = authService.verifyOtp(request.getEmail(), request.getOtp(), OtpType.FORGOT_PASSWORD);
-        if(!verified){
-            return new ResponseData<>(HttpStatus.BAD_REQUEST.value(), ErrorMessage.OTP_INVALID_OR_EXPIRED.getMessage());
-        }
         authService.resetPassword(request.getEmail(),request.getNewPassword());
         return new ResponseData<>(HttpStatus.OK.value(), SuccessMessage.PASSWORD_RESET_SUCCESS.getMessage());
     }
