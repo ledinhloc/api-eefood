@@ -84,29 +84,20 @@ public class UserService {
     try{
       User user = userRepository.findByIdAndIsDeletedFalse(request.getId())
               .orElseThrow(()-> ExceptionUtil.badRequest(ErrorMessage.USER_NOT_FOUND));
-
-      user.setEmail(request.getEmail());
-      user.setDob(request.getDob());
-      user.setGender(request.getGender());
-      user.setAddress(request.getAddress());
-      user.setAvatarUrl(request.getAvatarUrl());
-      user.setUsername(request.getUsername());
-      user.setAllergies(request.getAllergies());
-      user.setEatingPreferences(request.getEatingPreferences());
-
+      // neu thay doi email
+      if(request.getEmail() !=null && !request.getEmail().equals(user.getEmail())) {
+        keycloakAdminService.updateUserInKeycloak(user.getAuthId(),
+          Map.of(
+            "email", request.getEmail()
+          ));
+      }
+      userMapper.updateUserFromRequest(request, user);
       User updateUser = userRepository.save(user);
-
-      keycloakAdminService.updateUserInKeycloak(user.getAuthId(),
-              Map.of(
-                      "email", request.getEmail(),
-                      "username", request.getUsername()
-              ));
       return userMapper.toUserResponse(updateUser);
     }
     catch(Exception e) {
       throw ExceptionUtil.badRequest(ErrorMessage.FAIL_UPDATE_USER);
     }
-
   }
 
   @Transactional
