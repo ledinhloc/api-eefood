@@ -61,3 +61,35 @@ INSERT INTO public.user_eating_preferences (user_id, preference) VALUES
      (12, 'Thích đồ ngọt'),
      (16, 'Ưa thích món truyền thống'),
      (18, 'Thích đồ cay');
+
+-- Insert dietary preferences
+INSERT INTO public.user_dietary_preferences (user_id, dietary) VALUES
+   (1, 'Ăn chay trường'),
+   (2, 'Ăn chay 1 phần'),
+   (3, 'Keto'),
+   (4, 'Low-carb'),
+   (5, 'Paleo'),
+   (6, 'Ăn chay trường'),
+   (7, 'Mediterranean diet'),
+   (8, 'Ăn kiêng ít béo'),
+   (9, 'Keto'),
+   (10, 'Ăn chay 1 phần'),
+   (11, 'Ăn kiêng ít carb'),
+   (12, 'Ăn chay trường'),
+   (13, 'Paleo'),
+   (14, 'Low-carb'),
+   (15, 'Ăn kiêng ít béo'),
+   (16, 'Mediterranean diet'),
+   (17, 'Ăn chay 1 phần'),
+   (18, 'Keto'),
+   (19, 'Ăn chay trường'),
+   (20, 'Paleo');
+
+-- Một số người có thêm chế độ ăn thứ 2
+INSERT INTO public.user_dietary_preferences (user_id, dietary) VALUES
+   (2, 'Ăn kiêng ít carb'),
+   (5, 'Ăn kiêng ít béo'),
+   (9, 'Mediterranean diet'),
+   (13, 'Ăn chay trường'),
+   (16, 'Low-carb'),
+   (18, 'Ăn kiêng ít béo');
