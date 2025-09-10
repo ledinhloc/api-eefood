@@ -40,3 +40,9 @@ CREATE TABLE public.user_eating_preferences (
     preference character varying(255),
     CONSTRAINT fk_user_preferences FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
+
+CREATE TABLE public.user_dietary_preferences (
+    user_id bigint NOT NULL,
+    dietary character varying(255),
+    CONSTRAINT fk_user_dietary FOREIGN KEY (user_id) REFERENCES public.users(id)
+);
