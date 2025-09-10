@@ -64,4 +64,9 @@ public class User extends BaseEntity {
   @CollectionTable(name = "user_eating_preferences", joinColumns = @JoinColumn(name = "user_id"))
   @Column(name = "preference")
   private List<String> eatingPreferences;
+
+  @ElementCollection
+  @CollectionTable(name = "user_dietary_preferences", joinColumns = @JoinColumn(name = "user_id"))
+  @Column(name = "dietary")
+  private List<String> dietaryPreferences;
 }
