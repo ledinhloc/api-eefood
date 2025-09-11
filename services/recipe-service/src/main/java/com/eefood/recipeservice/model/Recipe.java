@@ -33,17 +33,12 @@ public class Recipe extends BaseEntity {
 
     private String region;
 
-    @Column(nullable = false)
     private String imageUrl;
 
     private String videoUrl;
 
-    @Min(value = 0)
-    @Max(value = 1440)
     private Integer prepTime;
 
-    @Min(value = 0)
-    @Max(value = 1440)
     private Integer cookTime;
 
     @Enumerated(EnumType.STRING)

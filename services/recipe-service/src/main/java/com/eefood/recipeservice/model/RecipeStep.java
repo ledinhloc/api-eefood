@@ -9,12 +9,7 @@ import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
 @Entity
-@Table(
-        name = "recipe_steps",
-        uniqueConstraints = {
-                @UniqueConstraint(columnNames = {"recipe_id", "step_number"}) // mỗi step_number chỉ duy nhất trong 1 recipe
-        }
-)
+@Table(name = "recipe_steps")
 @Getter
 @Setter
 @NoArgsConstructor
