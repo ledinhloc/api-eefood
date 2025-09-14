@@ -1,6 +1,6 @@
 package com.eefood.notificationservice.enums;
 
 public enum OtpType {
-    REGISTER,
-    FORGOT_PASSWORD
+  REGISTER,
+  FORGOT_PASSWORD
 }

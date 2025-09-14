@@ -16,21 +16,21 @@ import lombok.experimental.SuperBuilder;
 @AllArgsConstructor
 @SuperBuilder
 public class RecipeIngredient extends BaseEntity {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "recipe_id", nullable = false)
-    private Recipe recipe;
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "recipe_id", nullable = false)
+  private Recipe recipe;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "ingredient_id", nullable = false)
-    private Ingredient ingredient;
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "ingredient_id", nullable = false)
+  private Ingredient ingredient;
 
-    @Min(value = 0)
-    private Integer quantity;
+  @Min(value = 0)
+  private Integer quantity;
 
-    @Column(nullable = false)
-    private String unit;
+  @Column(nullable = false)
+  private String unit;
 }

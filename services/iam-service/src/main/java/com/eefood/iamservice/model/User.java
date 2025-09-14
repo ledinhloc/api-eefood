@@ -1,16 +1,16 @@
 package com.eefood.iamservice.model;
+
 import com.eefood.iamservice.enums.Gender;
 import com.eefood.iamservice.enums.Provider;
 import com.eefood.iamservice.enums.Role;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.*;
+import java.time.LocalDate;
+import java.util.List;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
-
-import java.time.LocalDate;
-import java.util.List;
 
 @Entity
 @Table(name = "users")
@@ -24,7 +24,7 @@ public class User extends BaseEntity {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  private String authId;// id keycloak
+  private String authId; // id keycloak
 
   @Column(nullable = false)
   private String username;
@@ -43,11 +43,11 @@ public class User extends BaseEntity {
   private Gender gender;
 
   @Column(columnDefinition = "jsonb")
-  @JdbcTypeCode(SqlTypes.JSON)   // Hibernate 6 hỗ trợ
+  @JdbcTypeCode(SqlTypes.JSON) // Hibernate 6 hỗ trợ
   private JsonNode address;
 
-//  @Column(columnDefinition = "jsonb")
-//  private String address;
+  //  @Column(columnDefinition = "jsonb")
+  //  private String address;
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false)

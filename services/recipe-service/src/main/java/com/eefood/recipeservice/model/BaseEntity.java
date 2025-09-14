@@ -3,6 +3,7 @@ package com.eefood.recipeservice.model;
 import jakarta.persistence.Column;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.MappedSuperclass;
+import java.time.LocalDateTime;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.springframework.data.annotation.CreatedBy;
@@ -10,8 +11,6 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedBy;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
-
-import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -21,8 +20,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class BaseEntity {
-  @CreatedDate
-  private LocalDateTime createdAt;
+  @CreatedDate private LocalDateTime createdAt;
 
   @LastModifiedDate
   @Column(nullable = false)
@@ -30,11 +28,11 @@ public class BaseEntity {
 
   @CreatedBy
   @Column(nullable = false)
-  private String createdBy;   // email người tạo
+  private String createdBy; // email người tạo
 
   @LastModifiedBy
   @Column(nullable = false)
-  private String updatedBy;   // email người cập nhật
+  private String updatedBy; // email người cập nhật
 
   @Builder.Default
   @Column(nullable = false)

@@ -15,25 +15,25 @@ import lombok.experimental.SuperBuilder;
 @NoArgsConstructor
 @AllArgsConstructor
 @SuperBuilder
-public class RecipeStep extends BaseEntity{
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class RecipeStep extends BaseEntity {
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "recipe_id", nullable = false)
-    private Recipe recipe;
+  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @JoinColumn(name = "recipe_id", nullable = false)
+  private Recipe recipe;
 
-    @Min(value = 1)
-    @Column(nullable = false)
-    private Integer stepNumber;
+  @Min(value = 1)
+  @Column(nullable = false)
+  private Integer stepNumber;
 
-    private String instruction;
+  private String instruction;
 
-    private String imageUrl;
+  private String imageUrl;
 
-    private String videoUrl;
+  private String videoUrl;
 
-    @Min(value = 1)
-    private Integer stepTime;
+  @Min(value = 1)
+  private Integer stepTime;
 }

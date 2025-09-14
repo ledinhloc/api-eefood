@@ -11,10 +11,10 @@ public class OpenAPIConfig {
   @Bean
   public OpenAPI setupAPI() {
     return new OpenAPI()
-      .info(
-        new Info()
-          .title("Iam Service API")
-          .description("This is the REST API for Iam Service")
-          .version("v0.0.1"));
+        .info(
+            new Info()
+                .title("Iam Service API")
+                .description("This is the REST API for Iam Service")
+                .version("v0.0.1"));
   }
 }

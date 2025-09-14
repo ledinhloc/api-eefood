@@ -1,4 +1,5 @@
 package com.eefood.iamservice.model;
+
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import lombok.*;
@@ -27,8 +28,7 @@ public class Otp {
   @Column(nullable = false)
   private LocalDateTime otpExpired;
 
-  @CreatedDate
-  private LocalDateTime createdAt;
+  @CreatedDate private LocalDateTime createdAt;
 
   @Builder.Default
   @Column(nullable = false)
