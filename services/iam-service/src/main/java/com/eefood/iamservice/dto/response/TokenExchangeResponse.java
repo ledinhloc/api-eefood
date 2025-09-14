@@ -14,14 +14,13 @@ import lombok.experimental.FieldDefaults;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class TokenExchangeResponse {
-    String accessToken;
-    Integer expiresIn;
-    Integer refreshExpiresIn;
-    String refreshToken;
-    String tokenType;
-    String idToken; // có thể null nếu không yêu cầu scope "openid"
-    Integer notBeforePolicy;
-    String sessionState;
-    String scope;
+  String accessToken;
+  Integer expiresIn;
+  Integer refreshExpiresIn;
+  String refreshToken;
+  String tokenType;
+  String idToken; // có thể null nếu không yêu cầu scope "openid"
+  Integer notBeforePolicy;
+  String sessionState;
+  String scope;
 }
-

@@ -14,7 +14,7 @@ spring:
   main:
     allow-bean-definition-overriding: true
 
-# security
+  # security
   security:
     oauth2:
       resourceserver:

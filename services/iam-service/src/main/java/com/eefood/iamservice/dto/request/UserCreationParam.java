@@ -10,11 +10,11 @@ import lombok.experimental.FieldDefaults;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class UserCreationParam {
-    String username;
-    boolean enabled;
-    String email;
-    boolean emailVerified;
-    String firstName;
-    String lastName;
-    List<Credential> credentials;
+  String username;
+  boolean enabled;
+  String email;
+  boolean emailVerified;
+  String firstName;
+  String lastName;
+  List<Credential> credentials;
 }

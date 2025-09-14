@@ -11,12 +11,12 @@ import lombok.experimental.FieldDefaults;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class TokenExchangeParam {
-    String grant_type;
-    String client_id;
-    String client_secret;
-    String username;
-    String password;
-    String scope;
-    String refresh_token;
-    String subject_token;
+  String grant_type;
+  String client_id;
+  String client_secret;
+  String username;
+  String password;
+  String scope;
+  String refresh_token;
+  String subject_token;
 }
