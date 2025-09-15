@@ -7,6 +7,9 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Table(name = "categories")
 @Getter
@@ -19,9 +22,8 @@ public class Category extends BaseEntity {
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
-  @ManyToOne(fetch = FetchType.LAZY, optional = false)
-  @JoinColumn(name = "recipe_id", nullable = false)
-  private Recipe recipe;
+  @ManyToMany(mappedBy = "categories")
+  private List<Recipe> recipes = new ArrayList<>();
 
   private String iconUrl;
 

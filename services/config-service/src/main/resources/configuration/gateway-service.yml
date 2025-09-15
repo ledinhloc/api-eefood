@@ -16,7 +16,7 @@ spring:
             - id: reaction-service
               uri: lb://REACTION-SERVICE
               predicates:
-                - Path=/api/v1/reaction/**
+                - Path=/api/v1/reactions/**
             - id: iam-service
               uri: lb://IAM-SERVICE
               predicates:
@@ -28,7 +28,7 @@ spring:
             - id: recipe-service
               uri: lb://RECIPE-SERVICE
               predicates:
-                - Path=/api/v1/recipe/**
+                - Path=/api/v1/recipes/**
             - id: notification-service
               uri: lb://NOTIFICATION-SERVICE
               predicates:
