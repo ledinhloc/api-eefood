@@ -2,6 +2,8 @@ package com.eefood.recipeservice.model;
 
 import com.eefood.recipeservice.enums.Difficulty;
 import jakarta.persistence.*;
+
+import java.util.ArrayList;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -42,10 +44,27 @@ public class Recipe extends BaseEntity {
   @Column(length = 7)
   private Difficulty difficulty;
 
-  @ElementCollection
-  @CollectionTable(
-      name = "recipe_dietary_preferences",
-      joinColumns = @JoinColumn(name = "recipe_id"))
-  @Column(name = "dietary")
-  private List<String> dietaryPreferences;
+  @ManyToMany
+  @JoinTable(
+    name = "recipe_category",
+    joinColumns = @JoinColumn(name = "recipe_id"),
+    inverseJoinColumns = @JoinColumn(name = "category_id")
+  )
+  private List<Category> categories = new ArrayList<>();
+
+  @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<RecipeStep> steps = new ArrayList<>();
+
+  @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<RecipeIngredient> ingredients = new ArrayList<>();
+
+  public void addStep(RecipeStep step) {
+    steps.add(step);
+    step.setRecipe(this);
+  }
+
+  public void removeStep(RecipeStep step) {
+    steps.remove(step);
+    step.setRecipe(null);
+  }
 }
