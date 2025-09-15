@@ -5,6 +5,7 @@ import com.eefood.iamservice.dto.request.UserCreateRequest;
 import com.eefood.iamservice.dto.request.UserCreationParam;
 import com.eefood.iamservice.dto.request.UserUpdateRequest;
 import com.eefood.iamservice.dto.response.UserResponse;
+import com.eefood.iamservice.dto.response.UserUpdateResponse;
 import com.eefood.iamservice.enums.ErrorMessage;
 import com.eefood.iamservice.enums.Role;
 import com.eefood.iamservice.mapper.UserMapper;
@@ -169,4 +170,5 @@ public class UserService {
     userResponse.setRefreshToken(response.getRefreshToken());
     return userResponse;
   }
+  
 }

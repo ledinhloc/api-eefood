@@ -5,6 +5,7 @@ import com.eefood.iamservice.dto.request.UserCreateRequest;
 import com.eefood.iamservice.dto.request.UserUpdateRequest;
 import com.eefood.iamservice.dto.response.ResponseData;
 import com.eefood.iamservice.dto.response.UserResponse;
+import com.eefood.iamservice.dto.response.UserUpdateResponse;
 import com.eefood.iamservice.enums.ErrorMessage;
 import com.eefood.iamservice.enums.SuccessMessage;
 import com.eefood.iamservice.service.UserService;
@@ -50,4 +51,5 @@ public class UserController {
     userService.softDeleteUser(id);
     return new ResponseData<>(HttpStatus.OK.value(), SuccessMessage.DELETE_USER_SUCCESS.getMessage(), null);
   }
+
 }
