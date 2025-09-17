@@ -13,7 +13,9 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
@@ -60,8 +62,24 @@ public class RecipeController {
     return recipeService.updateRecipe(id, request, currentUser);
   }
 
-  @GetMapping("/list/{authorId}")
-  public List<RecipeResponse> getRecipeList(@PathVariable Long authorId) {
-    return recipeService.getRecipesByUserId(authorId);
+  @GetMapping("/my/{authId}")
+  public ResponseData<Page<RecipeResponse>> getMyRecipes(
+    @PathVariable Long authId,
+    @RequestParam(required = false) String title,
+    @RequestParam(required = false) String description,
+    @RequestParam(required = false) String region,
+    @RequestParam(required = false) Difficulty difficulty,
+    @RequestParam(required = false) Long categoryId,
+    @RequestParam(defaultValue = "1") int page,
+    @RequestParam(defaultValue = "10") int size,
+    @RequestParam(defaultValue = "createdAt") String sortBy,
+    @RequestParam(defaultValue = "DESC") Sort.Direction direction
+    ) {
+//    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+//    String authId = authentication.getName(); // authId trong JWT
+
+    Pageable pageable = PageRequest.of(page - 1, size, Sort.by(direction, sortBy));
+    var result = recipeService.searchRecipes(title, description, region, difficulty, categoryId, authId,pageable);
+    return new ResponseData<>(HttpStatus.OK.value(), "Success", result);
   }
 }
