@@ -11,4 +11,6 @@ import java.util.List;
 public interface RecipeRepository extends JpaRepository<Recipe, Long> {
   @Query("select r from Recipe r where r.isDeleted = false")
   List<Recipe> findAllActive();
+
+  List<Recipe> findByAuthorIdAndIsDeletedFalse(Long authorId);
 }
