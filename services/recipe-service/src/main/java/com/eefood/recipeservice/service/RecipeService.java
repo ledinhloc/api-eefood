@@ -15,8 +15,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -118,5 +120,15 @@ public class RecipeService {
     }
 
     return recipeMapper.toResponse(recipe);
+  }
+
+  public List<RecipeResponse> getRecipesByUserId(Long userId) {
+    List<Recipe> recipes = recipeRepository.findByAuthorIdAndIsDeletedFalse(userId);
+    if (recipes == null || recipes.isEmpty()) {
+      return Collections.emptyList();
+    }
+    return recipes.stream()
+            .map(recipeMapper::toResponse)
+            .collect(Collectors.toList());
   }
 }
