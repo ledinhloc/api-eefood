@@ -3,6 +3,7 @@ package com.eefood.recipeservice.service;
 import com.eefood.recipeservice.dto.request.RecipeRequest;
 import com.eefood.recipeservice.dto.request.RecipeStepRequest;
 import com.eefood.recipeservice.dto.response.RecipeResponse;
+import com.eefood.recipeservice.enums.Difficulty;
 import com.eefood.recipeservice.mapper.RecipeMapper;
 import com.eefood.recipeservice.model.Category;
 import com.eefood.recipeservice.model.Recipe;
@@ -12,11 +13,15 @@ import com.eefood.recipeservice.repository.RecipeRepository;
 import com.eefood.recipeservice.repository.RecipeStepRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -27,10 +32,26 @@ public class RecipeService {
   private final RecipeMapper recipeMapper;
 
   @Transactional(readOnly = true)
-  public List<RecipeResponse> getAllRecipes() {
-    return recipeRepository.findAllActive().stream()
-      .map(recipeMapper::toResponse)
-      .toList();
+  public Page<RecipeResponse> searchRecipes(
+    String title,
+    String description,
+    String region,
+    Difficulty difficulty,
+    Long categoryId,
+    Long authorId,
+    Pageable pageable
+  ) {
+    Specification<Recipe> spec = Specification.allOf(
+      RecipeSpecification.isNotDeleted(),
+      RecipeSpecification.hasTitle(title),
+      RecipeSpecification.hasDescription(description),
+      RecipeSpecification.hasRegion(region),
+      RecipeSpecification.hasDifficulty(difficulty),
+      RecipeSpecification.hasCategoryId(categoryId),
+      RecipeSpecification.withFetchJoin(),
+      RecipeSpecification.hasAuthor(authorId)
+    );
+    return recipeRepository.findAll(spec, pageable).map(recipeMapper::toResponse);
   }
 
   @Transactional(readOnly = true)
@@ -46,7 +67,7 @@ public class RecipeService {
 
     // set categories
     List<Category> categories = categoryRepository.findAllById(request.getCategoryIds());
-    recipe.setCategories(categories);
+//    recipe.setCategories(Set.of(categories));
 
 
     // add steps
@@ -77,7 +98,7 @@ public class RecipeService {
 
     // update categories
     List<Category> categories = categoryRepository.findAllById(request.getCategoryIds());
-    recipe.setCategories(categories);
+//    recipe.setCategories(categories);
 
     // update steps
     List<Long> requestStepIds = request.getSteps().stream()

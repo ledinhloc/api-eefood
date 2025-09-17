@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class RecipeStepResponse {
+public class StepResponse {
   private Long id;
   private Integer stepNumber;
   private String instruction;

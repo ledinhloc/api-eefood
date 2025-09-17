@@ -2,8 +2,19 @@ package com.eefood.recipeservice.controller;
 
 import com.eefood.recipeservice.dto.request.RecipeRequest;
 import com.eefood.recipeservice.dto.response.RecipeResponse;
+import com.eefood.recipeservice.dto.response.ResponseData;
+import com.eefood.recipeservice.enums.Difficulty;
 import com.eefood.recipeservice.service.RecipeService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -14,10 +25,21 @@ import java.util.List;
 public class RecipeController {
 
   private final RecipeService recipeService;
-
   @GetMapping
-  public List<RecipeResponse> getAllRecipes() {
-    return recipeService.getAllRecipes();
+  public ResponseData<Page<RecipeResponse>> searchService(
+    @RequestParam(required = false) String title,
+    @RequestParam(required = false) String description,
+    @RequestParam(required = false) String region,
+    @RequestParam(required = false)Difficulty difficulty,
+    @RequestParam(required = false) Long categoryId,
+    @RequestParam(defaultValue = "1") int page,
+    @RequestParam(defaultValue = "10") int size,
+    @RequestParam(defaultValue = "createdAt") String sortBy,
+    @RequestParam(defaultValue = "DESC") Sort.Direction direction
+    ) {
+    Pageable pageable = PageRequest.of(page - 1, size, Sort.by(direction, sortBy));
+    var result = recipeService.searchRecipes(title, description, region, difficulty, categoryId, null,pageable);
+    return new ResponseData<>(HttpStatus.OK.value(), "Success", result);
   }
 
   @GetMapping("/{id}")
