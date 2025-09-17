@@ -37,4 +37,9 @@ public class RecipeController {
     String currentUser = "loc";
     return recipeService.updateRecipe(id, request, currentUser);
   }
+
+  @GetMapping("/list/{authorId}")
+  public List<RecipeResponse> getRecipeList(@PathVariable Long authorId) {
+    return recipeService.getRecipesByUserId(authorId);
+  }
 }
