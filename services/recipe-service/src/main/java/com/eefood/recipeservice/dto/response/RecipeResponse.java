@@ -24,5 +24,6 @@ public class RecipeResponse {
   private Difficulty difficulty;
 
   private List<CategoryResponse> categories;
-  private List<RecipeStepResponse> steps;
+  private List<StepResponse> steps;
+  private List<RecipeIngredientResponse> ingredients;
 }
