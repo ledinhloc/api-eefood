@@ -3,8 +3,9 @@ package com.eefood.recipeservice.model;
 import com.eefood.recipeservice.enums.Difficulty;
 import jakarta.persistence.*;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
+
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -50,13 +51,13 @@ public class Recipe extends BaseEntity {
     joinColumns = @JoinColumn(name = "recipe_id"),
     inverseJoinColumns = @JoinColumn(name = "category_id")
   )
-  private List<Category> categories = new ArrayList<>();
+  private Set<Category> categories = new HashSet<>();
 
   @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
-  private List<RecipeStep> steps = new ArrayList<>();
+  private Set<RecipeStep> steps = new HashSet<>();
 
   @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
-  private List<RecipeIngredient> ingredients = new ArrayList<>();
+  private Set<RecipeIngredient> ingredients = new HashSet<>();
 
   public void addStep(RecipeStep step) {
     steps.add(step);
