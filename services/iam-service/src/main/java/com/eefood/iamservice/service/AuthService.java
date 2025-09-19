@@ -15,6 +15,7 @@ import com.eefood.iamservice.utils.ExceptionUtil;
 import jakarta.transaction.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -91,6 +92,7 @@ public class AuthService {
                             .temporary(false)
                             .value(request.getPassword())
                             .build()))
+                .attributes(Map.of("userId", String.valueOf(savedUser.getId())))
                 .build());
 
     handleKeycloakCreationResponse(creationResponse, savedUser, request);
