@@ -51,15 +51,17 @@ public class RecipeController {
 
   @PostMapping
   public RecipeResponse createRecipe(@RequestBody RecipeRequest request) {
-    String currentUser = "loc";
-    return recipeService.createRecipe(request, currentUser);
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    String authorId = authentication.getName();
+    return recipeService.createRecipe(request, authorId);
   }
 
   @PutMapping("/{id}")
   public RecipeResponse updateRecipe(@PathVariable Long id,
                                      @RequestBody RecipeRequest request) {
-    String currentUser = "loc";
-    return recipeService.updateRecipe(id, request, currentUser);
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    String authorId = authentication.getName();
+    return recipeService.updateRecipe(id, request, authorId);
   }
 
   @GetMapping("/my/{authId}")
