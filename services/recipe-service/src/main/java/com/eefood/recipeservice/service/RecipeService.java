@@ -1,14 +1,14 @@
 package com.eefood.recipeservice.service;
 
+import com.eefood.recipeservice.dto.request.RecipeIngredientRequest;
 import com.eefood.recipeservice.dto.request.RecipeRequest;
 import com.eefood.recipeservice.dto.request.RecipeStepRequest;
 import com.eefood.recipeservice.dto.response.RecipeResponse;
 import com.eefood.recipeservice.enums.Difficulty;
 import com.eefood.recipeservice.mapper.RecipeMapper;
-import com.eefood.recipeservice.model.Category;
-import com.eefood.recipeservice.model.Recipe;
-import com.eefood.recipeservice.model.RecipeStep;
+import com.eefood.recipeservice.model.*;
 import com.eefood.recipeservice.repository.CategoryRepository;
+import com.eefood.recipeservice.repository.IngredientRepository;
 import com.eefood.recipeservice.repository.RecipeRepository;
 import com.eefood.recipeservice.repository.RecipeStepRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -19,11 +19,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
-import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -32,6 +29,7 @@ public class RecipeService {
   private final RecipeStepRepository stepRepository;
   private final CategoryRepository categoryRepository;
   private final RecipeMapper recipeMapper;
+  private final IngredientRepository ingredientRepository;
 
   @Transactional(readOnly = true)
   public Page<RecipeResponse> searchRecipes(
@@ -69,8 +67,18 @@ public class RecipeService {
 
     // set categories
     List<Category> categories = categoryRepository.findAllById(request.getCategoryIds());
-//    recipe.setCategories(Set.of(categories));
+    recipe.setCategories(new HashSet<>(categories));
 
+    // set ingredients
+    if(request.getIngredients() != null) {
+      for (RecipeIngredientRequest ingredientReq : request.getIngredients()){
+        RecipeIngredient recipeIngredient = recipeMapper.toEntity(ingredientReq);
+        Ingredient ingredient = ingredientRepository.findById(ingredientReq.getIngredientId())
+                .orElseThrow(() -> new EntityNotFoundException("Ingredient not found with id: " + ingredientReq.getIngredientId()));
+        recipeIngredient.setIngredient(ingredient);
+        recipe.addIngredient(recipeIngredient);
+      }
+    }
 
     // add steps
     if (request.getSteps() != null) {
