@@ -23,5 +23,6 @@ public class RecipeRequest {
   private Difficulty difficulty;
 
   private List<Long> categoryIds;
+  private List<RecipeIngredientRequest> ingredients;
   private List<RecipeStepRequest> steps;
 }
