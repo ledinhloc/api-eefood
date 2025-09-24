@@ -59,7 +59,7 @@ public class Recipe extends BaseEntity {
   private Set<RecipeIngredient> ingredients = new HashSet<>();
 
   public void addStep(RecipeStep step) {
-    this.steps.add(step);
+    steps.add(step);
     step.setRecipe(this);
   }
 
@@ -69,7 +69,7 @@ public class Recipe extends BaseEntity {
   }
 
   public void addIngredient(RecipeIngredient ingredient) {
-    this.ingredients.add(ingredient);
+    ingredients.add(ingredient);
     ingredient.setRecipe(this);
   }
 }
