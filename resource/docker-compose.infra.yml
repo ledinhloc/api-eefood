@@ -62,19 +62,19 @@ services:
     networks:
       - microservices-net
 
-  schema-registry:
-    image: confluentinc/cp-schema-registry:7.5.0
-    container_name: schema_registry
-    depends_on:
-      - kafka
-    ports:
-      - "8086:8081"
-    environment:
-      SCHEMA_REGISTRY_HOST_NAME: schema-registry
-      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'kafka:29092'
-      SCHEMA_REGISTRY_LISTENERS: http://schema-registry:8081
-    networks:
-      - microservices-net
+#  schema-registry:
+#    image: confluentinc/cp-schema-registry:7.5.0
+#    container_name: schema_registry
+#    depends_on:
+#      - kafka
+#    ports:
+#      - "8086:8081"
+#    environment:
+#      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+#      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'kafka:29092'
+#      SCHEMA_REGISTRY_LISTENERS: http://schema-registry:8081
+#    networks:
+#      - microservices-net
 
 
   kafka-ui:
@@ -119,24 +119,24 @@ services:
     command:
       - "start-dev"
 
-  redis:
-    image: redis:latest
-    container_name: redis-server
-    restart: always
-    ports:
-      - "6379:6379"
-    #    command: [ "redis-server", "--requirepass", "12345678" ]
-    networks:
-      - microservices-net
-
-  redisinsight:
-    image: redis/redisinsight:latest
-    container_name: redis-ui
-    restart: always
-    ports:
-      - "5540:5540"
-    depends_on:
-      - redis
+#  redis:
+#    image: redis:latest
+#    container_name: redis-server
+#    restart: always
+#    ports:
+#      - "6379:6379"
+#    #    command: [ "redis-server", "--requirepass", "12345678" ]
+#    networks:
+#      - microservices-net
+#
+#  redisinsight:
+#    image: redis/redisinsight:latest
+#    container_name: redis-ui
+#    restart: always
+#    ports:
+#      - "5540:5540"
+#    depends_on:
+#      - redis
 
 #  loki:
 #    container_name: loki

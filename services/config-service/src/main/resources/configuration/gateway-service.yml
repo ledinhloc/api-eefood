@@ -33,6 +33,14 @@ spring:
               uri: lb://NOTIFICATION-SERVICE
               predicates:
                 - Path=/api/v1/notification/**
+            - id: recipe-service
+              uri: lb://RECIPE-SERVICE
+              predicates:
+                - Path=/api/v1/ingredients/**
+            - id: recipe-service
+              uri: lb://RECIPE-SERVICE
+              predicates:
+                - Path=/api/v1/categories/**
     bus:
       enabled: true
     stream:
