@@ -6,10 +6,7 @@ import jakarta.persistence.*;
 import java.util.HashSet;
 import java.util.Set;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import lombok.experimental.SuperBuilder;
 
 @Entity
@@ -54,9 +51,11 @@ public class Recipe extends BaseEntity {
   private Set<Category> categories = new HashSet<>();
 
   @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
+  @Builder.Default
   private Set<RecipeStep> steps = new HashSet<>();
 
   @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
+  @Builder.Default
   private Set<RecipeIngredient> ingredients = new HashSet<>();
 
   public void addStep(RecipeStep step) {
@@ -67,5 +66,10 @@ public class Recipe extends BaseEntity {
   public void removeStep(RecipeStep step) {
     steps.remove(step);
     step.setRecipe(null);
+  }
+
+  public void addIngredient(RecipeIngredient ingredient) {
+    ingredients.add(ingredient);
+    ingredient.setRecipe(this);
   }
 }

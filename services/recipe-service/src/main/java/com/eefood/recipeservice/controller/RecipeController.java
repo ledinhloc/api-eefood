@@ -51,20 +51,21 @@ public class RecipeController {
 
   @PostMapping
   public RecipeResponse createRecipe(@RequestBody RecipeRequest request) {
-    String currentUser = "loc";
-    return recipeService.createRecipe(request, currentUser);
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    String authorId = authentication.getName();
+    return recipeService.createRecipe(request, authorId);
   }
 
   @PutMapping("/{id}")
   public RecipeResponse updateRecipe(@PathVariable Long id,
                                      @RequestBody RecipeRequest request) {
-    String currentUser = "loc";
-    return recipeService.updateRecipe(id, request, currentUser);
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    String authorId = authentication.getName();
+    return recipeService.updateRecipe(id, request, authorId);
   }
 
-  @GetMapping("/my/{authId}")
+  @GetMapping("/my")
   public ResponseData<Page<RecipeResponse>> getMyRecipes(
-    @PathVariable Long authId,
     @RequestParam(required = false) String title,
     @RequestParam(required = false) String description,
     @RequestParam(required = false) String region,
@@ -75,11 +76,12 @@ public class RecipeController {
     @RequestParam(defaultValue = "createdAt") String sortBy,
     @RequestParam(defaultValue = "DESC") Sort.Direction direction
     ) {
-//    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-//    String authId = authentication.getName(); // authId trong JWT
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    Jwt jwt = (Jwt) authentication.getPrincipal();
+    Long userId = jwt.getClaim("userId");
 
     Pageable pageable = PageRequest.of(page - 1, size, Sort.by(direction, sortBy));
-    var result = recipeService.searchRecipes(title, description, region, difficulty, categoryId, authId,pageable);
+    var result = recipeService.searchRecipes(title, description, region, difficulty, categoryId, userId,pageable);
     return new ResponseData<>(HttpStatus.OK.value(), "Success", result);
   }
 }
