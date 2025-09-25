@@ -11,6 +11,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Service
 @RequiredArgsConstructor
 public class CategoryService {
@@ -23,7 +26,7 @@ public class CategoryService {
 
             if (name != null && !name.isBlank()) {
                 predicate = cb.and(predicate,
-                        cb.like(cb.lower(root.get("name")), "%" + name.trim().toLowerCase() + "%"));
+                        cb.like(cb.lower(root.get("description")), "%" + name.trim().toLowerCase() + "%"));
             }
 
             return predicate;
@@ -31,4 +34,5 @@ public class CategoryService {
 
         return categoryRepository.findAll(spec, pageable).map(recipeMapper::toResponse);
     }
+
 }
