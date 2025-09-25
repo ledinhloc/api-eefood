@@ -26,6 +26,7 @@ public class UserResponse {
   private String avatarUrl;
   private List<String> allergies;
   private List<String> eatingPreferences;
+  private List<String> dietaryPreferences;
   private String accessToken;
   private String refreshToken;
 }
