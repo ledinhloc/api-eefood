@@ -7,23 +7,30 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
-@Table(name = "shopping_list")
+@Table(name = "shopping_items")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @SuperBuilder
-public class ShoppingList extends BaseEntity {
+public class ShoppingItem extends BaseEntity {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
 
   private Long userId;
 
-  @ManyToOne(fetch = FetchType.LAZY, optional = false)
+  @ManyToOne(fetch = FetchType.LAZY)
   @JoinColumn(name = "recipe_id", nullable = false)
   private Recipe recipe;
 
-  private Integer quantity;
+  @Column(nullable = false)
+  private Integer servings = 1;
+
+  @OneToMany(mappedBy = "shoppingItem", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<ShoppingIngredient> ingredients = new ArrayList<>();
 }

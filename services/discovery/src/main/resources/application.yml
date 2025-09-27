@@ -4,5 +4,34 @@ spring:
   config:
     import: optional:configserver:http://localhost:8888
 
+# server discovery
+eureka:
+  client:
+    register-with-eureka: false
+    fetch-registry: false
+
+#spring:
+#  cloud:
+#    bus:
+#      enabled: true
+#    stream:
+#      kafka:
+#        binder:
+#          brokers: ${env.global.kafka.brokers}
+#      bindings:
+#        springCloudBusInput:
+#          destination: springCloudBus
+#        springCloudBusOutput:
+#          destination: springCloudBus
+
+server:
+  port: 8761
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: refresh, health
+
 
 
