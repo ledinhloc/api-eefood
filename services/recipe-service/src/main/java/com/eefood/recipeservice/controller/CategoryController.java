@@ -21,7 +21,7 @@ import java.util.List;
 public class CategoryController {
     private final CategoryService categoryService;
 
-    @GetMapping("/")
+    @GetMapping
     public ResponseData<Page<CategoryResponse>> getAllCategories(
             @RequestParam(required = false) String name,
             @RequestParam(defaultValue = "1") int page,
