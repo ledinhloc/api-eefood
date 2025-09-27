@@ -1,0 +1,20 @@
+package com.eefood.recipeservice.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class ShoppingIngredientDto {
+  private Long id;
+  private Long ingredientId;
+  private String ingredientName;
+  private String image;
+  private Integer quantity;
+  private String unit;
+  private Boolean purchased;
+}

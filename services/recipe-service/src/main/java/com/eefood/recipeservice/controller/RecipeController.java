@@ -5,6 +5,7 @@ import com.eefood.recipeservice.dto.response.RecipeResponse;
 import com.eefood.recipeservice.dto.response.ResponseData;
 import com.eefood.recipeservice.enums.Difficulty;
 import com.eefood.recipeservice.service.RecipeService;
+import com.eefood.recipeservice.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -25,6 +26,7 @@ import java.util.List;
 @RequestMapping("/api/v1/recipes")
 @RequiredArgsConstructor
 public class RecipeController {
+  private final SecurityUtil securityUtil;
 
   private final RecipeService recipeService;
   @GetMapping
@@ -76,9 +78,7 @@ public class RecipeController {
     @RequestParam(defaultValue = "createdAt") String sortBy,
     @RequestParam(defaultValue = "DESC") Sort.Direction direction
     ) {
-    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-    Jwt jwt = (Jwt) authentication.getPrincipal();
-    Long userId = jwt.getClaim("userId");
+    Long userId = securityUtil.getCurrentUserId();
 
     Pageable pageable = PageRequest.of(page - 1, size, Sort.by(direction, sortBy));
     var result = recipeService.searchRecipes(title, description, region, difficulty, categoryId, userId,pageable);
