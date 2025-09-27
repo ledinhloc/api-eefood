@@ -53,7 +53,7 @@ public class ShoppingController {
   }
 
   @GetMapping("/by-recipe")
-  public ResponseData<List<ShoppingItemDto>> getByRecipe(@RequestParam String userId) {
+  public ResponseData<List<ShoppingItemDto>> getByRecipe() {
     Long userId = securityUtil.getCurrentUserId();
     return new ResponseData<>(HttpStatus.OK.value(), "Success", shoppingListService.getByRecipe(userId));
   }

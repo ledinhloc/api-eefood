@@ -7,6 +7,6 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface ShoppingListIngredientRepository  extends JpaRepository<ShoppingIngredient, Long> {
-  List<ShoppingIngredient> findAllByShoppingListItemUserIdAndIsDeletedFalse(Long userId);
+public interface ShoppingIngredientRepository  extends JpaRepository<ShoppingIngredient, Long> {
+  List<ShoppingIngredient> findAllByShoppingItemUserIdAndIsDeletedFalse(Long userId);
 }
