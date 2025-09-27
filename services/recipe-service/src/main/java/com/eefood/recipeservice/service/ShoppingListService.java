@@ -7,49 +7,97 @@ import com.eefood.recipeservice.model.Recipe;
 import com.eefood.recipeservice.model.RecipeIngredient;
 import com.eefood.recipeservice.model.ShoppingIngredient;
 import com.eefood.recipeservice.model.ShoppingItem;
-import com.eefood.recipeservice.repository.ShoppingListIngredientRepository;
-import com.eefood.recipeservice.repository.ShoppingListItemRepository;
+import com.eefood.recipeservice.repository.RecipeRepository;
+import com.eefood.recipeservice.repository.ShoppingIngredientRepository;
+import com.eefood.recipeservice.repository.ShoppingItemRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
 public class ShoppingListService {
-  private final ShoppingListItemRepository itemRepo;
-  private final ShoppingListIngredientRepository ingredientRepo;
+  private final ShoppingItemRepository itemRepo;
+  private final RecipeRepository recipeRepo;
+  private final ShoppingIngredientRepository ingredientRepo;
   private final ShoppingListMapper mapper;
 
   //them mon an vao shopping list
-  public ShoppingItemDto addRecipe(Long userId, Long recipeId, Integer servings){
-    Recipe recipe = new Recipe();
-    recipe.setId(recipeId);
+  @Transactional
+  public ShoppingItemDto addRecipe(Long userId, Long recipeId, int servings) {
+    Recipe recipe = recipeRepo.findById(recipeId)
+      .orElseThrow(() -> new RuntimeException("Recipe not found"));
 
+    List<ShoppingItem> items = itemRepo.findAllItems(userId, recipeId);
+
+    if(items.size()>1){
+      throw new RuntimeException("Expected 1 ShoppingItem but found more than one item");
+    }
+
+    ShoppingItem currentItem;
+    // item đã tồn tại
+    if (items.size() == 1) {
+      currentItem = updateItemWithNewServings(items.get(0), recipe, servings);
+    }
+    else {
+      currentItem = createNewItem(userId, recipe, servings);
+    }
+
+    return mapper.toDto(currentItem);
+  }
+
+  private ShoppingItem createNewItem(Long userId, Recipe recipe, int servings) {
     ShoppingItem item = ShoppingItem.builder()
       .userId(userId)
       .recipe(recipe)
       .servings(servings)
       .isDeleted(false)
+      .ingredients(new ArrayList<>())
       .build();
 
-    for(RecipeIngredient ri: recipe.getIngredients()){
-      ShoppingIngredient sli = ShoppingIngredient.builder()
-        .shoppingItem(item)
-        .ingredient(ri.getIngredient())
-        .quantity(ri.getQuantity() * servings)
-        .unit(ri.getUnit())
-        .purchased(false)
-        .isDeleted(false)
-        .build();
-      item.getIngredients().add(sli);
-    }
+    recipe.getIngredients().forEach(ri ->
+      item.getIngredients().add(
+        ShoppingIngredient.builder()
+          .shoppingItem(item)
+          .ingredient(ri.getIngredient())
+          .quantity(ri.getQuantity() * servings)
+          .unit(ri.getUnit())
+          .purchased(false)
+          .isDeleted(false)
+          .build()
+      )
+    );
+    return itemRepo.save(item);
+  }
 
-    return mapper.toDto(itemRepo.save(item));
+  private ShoppingItem updateItemWithNewServings(ShoppingItem item, Recipe recipe, int servings) {
+    item.setServings(item.getServings() + servings);
+
+    recipe.getIngredients().forEach(ri -> {
+      ShoppingIngredient existing = item.getIngredients().stream()
+        .filter(si -> si.getIngredient().getId().equals(ri.getIngredient().getId()))
+        .findFirst()
+        .orElse(null);
+
+      if (existing != null) {
+        existing.setQuantity(existing.getQuantity() + ri.getQuantity() * servings);
+      } else {
+        item.getIngredients().add(
+          ShoppingIngredient.builder()
+            .shoppingItem(item)
+            .ingredient(ri.getIngredient())
+            .quantity(ri.getQuantity() * servings)
+            .unit(ri.getUnit())
+            .purchased(false)
+            .isDeleted(false)
+            .build()
+        );
+      }
+    });
+
+    return itemRepo.save(item);
   }
 
   //Xóa mềm món ăn
@@ -93,13 +141,13 @@ public class ShoppingListService {
 
   //get theo recipe
   public List<ShoppingItemDto> getByRecipe(Long userId) {
-    return mapper.toDtoList(itemRepo.findAllByUserIdAndIsDeletedFalse(userId));
+    return mapper.toItemDtoList(itemRepo.findAllByUserIdAndIsDeletedFalse(userId));
   }
 
   //get theo nguyen lieu
   public List<ShoppingIngredientDto> getByIngredient(Long userId) {
     List<ShoppingIngredient> ingredients =
-      ingredientRepo.findAllByShoppingListItemUserIdAndIsDeletedFalse(userId);
+      ingredientRepo.findAllByShoppingItemUserIdAndIsDeletedFalse(userId);
 
     //group theo ingredientId
     Map<Long, ShoppingIngredientDto> grouped = new HashMap<>();

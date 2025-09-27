@@ -16,11 +16,12 @@ public interface ShoppingListMapper {
   @Mapping(source = "recipe.title", target = "recipeTitle")
   ShoppingItemDto toDto(ShoppingItem entity);
 
-  List<ShoppingItemDto> toDtoList(List<ShoppingItem> items);
+  List<ShoppingItemDto> toItemDtoList(List<ShoppingItem> items);
 
   @Mapping(source = "ingredient.id", target = "ingredientId")
   @Mapping(source = "ingredient.name", target = "ingredientName")
+  @Mapping(source = "ingredient.image", target = "image")
   ShoppingIngredientDto toDto(ShoppingIngredient entity);
 
-  List<ShoppingIngredientDto> toDtoList(List<ShoppingIngredient> items);
+  List<ShoppingIngredientDto> toIngredientDtoList(List<ShoppingIngredient> items);
 }
