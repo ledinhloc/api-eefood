@@ -14,4 +14,12 @@ public class SecurityUtil {
     return jwt.getClaim("userId");
   }
 
+  public boolean hasRole(String role) {
+    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+    if (authentication == null) return false;
+
+    return authentication.getAuthorities().stream()
+      .anyMatch(auth -> auth.getAuthority().equals("ROLE_" + role));
+  }
+
 }
