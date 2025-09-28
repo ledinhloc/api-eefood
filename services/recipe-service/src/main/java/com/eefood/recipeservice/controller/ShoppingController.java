@@ -1,5 +1,6 @@
 package com.eefood.recipeservice.controller;
 
+import com.eefood.recipeservice.dto.ShoppingIngredientDto;
 import com.eefood.recipeservice.dto.ShoppingItemDto;
 import com.eefood.recipeservice.dto.response.ResponseData;
 import com.eefood.recipeservice.service.ShoppingListService;
@@ -56,5 +57,11 @@ public class ShoppingController {
   public ResponseData<List<ShoppingItemDto>> getByRecipe() {
     Long userId = securityUtil.getCurrentUserId();
     return new ResponseData<>(HttpStatus.OK.value(), "Success", shoppingListService.getByRecipe(userId));
+  }
+
+  @GetMapping("/by-ingredient")
+  public ResponseData<List<ShoppingIngredientDto>> getByIngredient() {
+    Long userId = securityUtil.getCurrentUserId();
+    return new ResponseData<>(HttpStatus.OK.value(), "Success", shoppingListService.getByIngredient(userId));
   }
 }
