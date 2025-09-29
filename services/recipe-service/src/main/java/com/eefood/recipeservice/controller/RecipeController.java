@@ -52,18 +52,20 @@ public class RecipeController {
   }
 
   @PostMapping
-  public RecipeResponse createRecipe(@RequestBody RecipeRequest request) {
-    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-    String authorId = authentication.getName();
-    return recipeService.createRecipe(request, authorId);
+  public ResponseData<RecipeResponse> createRecipe(@RequestBody RecipeRequest request) {
+    Long authorId = securityUtil.getCurrentUserId();
+    var result = recipeService.createRecipe(request, authorId);
+    return new ResponseData<>(HttpStatus.OK.value(), "Success", result);
   }
 
   @PutMapping("/{id}")
-  public RecipeResponse updateRecipe(@PathVariable Long id,
+  public ResponseData<RecipeResponse> updateRecipe(@PathVariable Long id,
                                      @RequestBody RecipeRequest request) {
     Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
     String authorId = authentication.getName();
-    return recipeService.updateRecipe(id, request, authorId);
+    var result = recipeService.updateRecipe(id, request, authorId);
+    return new ResponseData<>(HttpStatus.OK.value(), "Success", result);
+
   }
 
   @GetMapping("/my")
