@@ -16,6 +16,7 @@ import com.eefood.recipeservice.repository.RecipeRepository;
 import com.eefood.recipeservice.repository.RecipeStepRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -24,7 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.stream.Collectors;
-
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class RecipeService {
@@ -116,7 +117,7 @@ public class RecipeService {
 
   @Transactional
   public RecipeResponse updateRecipe(Long id, RecipeRequest request, String currentUser) {
-    Recipe recipe = recipeRepository.findById(id)
+    Recipe recipe = recipeRepository.findByIdAndIsDeletedFalse(id)
       .orElseThrow(() -> new EntityNotFoundException("Recipe not found"));
 
     recipe.setTitle(request.getTitle());
@@ -132,7 +133,6 @@ public class RecipeService {
     // update categories
     List<Category> categories = categoryRepository.findAllById(request.getCategoryIds());
     recipe.setCategories(new HashSet<>(categories));
-
     /* ========== UPDATE INGREDIENTS ========== */
     List<Long> requestIngredientIds = request.getIngredients().stream()
             .map(RecipeIngredientRequest::getId)
@@ -168,6 +168,12 @@ public class RecipeService {
                 .filter(e -> e.getId().equals(ingReq.getId()))
                 .findFirst()
                 .orElseThrow(() -> new EntityNotFoundException("RecipeIngredient not found"));
+
+        if (Boolean.TRUE.equals(ri.getIsDeleted())) {
+          ri.setIsDeleted(false);
+          ri.setUpdatedBy(currentUser);
+        }
+
         ri.setQuantity(ingReq.getQuantity());
         ri.setUnit(ingReq.getUnit());
         ri.setUpdatedBy(currentUser);
@@ -209,6 +215,13 @@ public class RecipeService {
       } else {
         RecipeStep step = stepRepository.findById(stepReq.getId())
           .orElseThrow(() -> new EntityNotFoundException("Step not found"));
+
+        // khôi phục nếu trước đó bị xóa mềm
+        if (Boolean.TRUE.equals(step.getIsDeleted())) {
+          step.setIsDeleted(false);
+          step.setUpdatedBy(currentUser);
+        }
+
         step.setStepNumber(stepReq.getStepNumber());
         step.setInstruction(stepReq.getInstruction());
         step.setImageUrl(stepReq.getImageUrl());
@@ -218,7 +231,6 @@ public class RecipeService {
         stepRepository.save(step);
       }
     }
-
     return recipeMapper.toResponse(recipe);
   }
 }

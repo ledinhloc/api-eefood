@@ -6,11 +6,15 @@ import com.eefood.recipeservice.dto.request.RecipeStepRequest;
 import com.eefood.recipeservice.dto.response.*;
 import com.eefood.recipeservice.dto.response.StepResponse;
 import com.eefood.recipeservice.model.*;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
+import org.mapstruct.*;
+
+import java.util.List;
+import java.util.Set;
 
 @Mapper(componentModel = "spring")
 public interface RecipeMapper {
+  @Mapping(target = "ingredients", source = "ingredients", qualifiedByName = "filterDeletedIngredients")
+  @Mapping(target = "steps", source = "steps", qualifiedByName = "filterDeletedSteps")
   RecipeResponse toResponse(Recipe recipe);
 
   StepResponse toResponse(RecipeStep step);
@@ -38,4 +42,22 @@ public interface RecipeMapper {
 
   //category
   CategoryResponse toResponse(Category category);
+
+  @Named("filterDeletedIngredients")
+  default List<RecipeIngredientResponse> mapFilteredIngredients(Set<RecipeIngredient> ingredients) {
+    if (ingredients == null) return null;
+    return ingredients.stream()
+            .filter(ri -> !Boolean.TRUE.equals(ri.getIsDeleted()))
+            .map(this::toResponse)
+            .toList();
+  }
+
+  @Named("filterDeletedSteps")
+  default List<StepResponse> mapFilteredSteps(Set<RecipeStep> steps) {
+    if (steps == null) return null;
+    return steps.stream()
+            .filter(step -> !Boolean.TRUE.equals(step.getIsDeleted()))
+            .map(this::toResponse)
+            .toList();
+  }
 }
