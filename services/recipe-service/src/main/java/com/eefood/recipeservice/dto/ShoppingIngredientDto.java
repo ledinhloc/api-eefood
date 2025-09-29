@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -17,4 +19,6 @@ public class ShoppingIngredientDto {
   private Integer quantity;
   private String unit;
   private Boolean purchased;
+
+  private List<Long> shoppingIngredientIds;
 }
