@@ -4,7 +4,10 @@ import com.eefood.recipeservice.dto.request.RecipeIngredientRequest;
 import com.eefood.recipeservice.dto.request.RecipeRequest;
 import com.eefood.recipeservice.dto.request.RecipeStepRequest;
 import com.eefood.recipeservice.dto.response.RecipeResponse;
+import com.eefood.recipeservice.dto.response.ResponseData;
 import com.eefood.recipeservice.enums.Difficulty;
+import com.eefood.recipeservice.enums.ErrorMessage;
+import com.eefood.recipeservice.exception.ExceptionUtil;
 import com.eefood.recipeservice.mapper.RecipeMapper;
 import com.eefood.recipeservice.model.*;
 import com.eefood.recipeservice.repository.CategoryRepository;
@@ -31,6 +34,25 @@ public class RecipeService {
   private final RecipeMapper recipeMapper;
   private final IngredientRepository ingredientRepository;
 
+  public Recipe getEntityRecipe(Long id) {
+    return recipeRepository.findByIdAndIsDeletedFalse(id)
+      .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.RECIPE_NOT_FOUND));
+  }
+
+  public void deleteRecipeById(Long id) {
+    Recipe recipe =
+        recipeRepository
+            .findByIdAndIsDeletedFalse(id)
+            .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.RECIPE_NOT_FOUND));
+
+    recipe.setIsDeleted(true);
+    //xoa step
+    recipe.getSteps().forEach(step -> step.setIsDeleted(true));
+    //xoa ingredient
+    recipe.getIngredients().forEach(ingredient -> ingredient.setIsDeleted(true));
+    recipeRepository.save(recipe);
+  }
+
   @Transactional(readOnly = true)
   public Page<RecipeResponse> searchRecipes(
     String title,
@@ -56,8 +78,8 @@ public class RecipeService {
 
   @Transactional(readOnly = true)
   public RecipeResponse getRecipeById(Long id) {
-    Recipe recipe = recipeRepository.findById(id)
-      .orElseThrow(() -> new EntityNotFoundException("Recipe not found"));
+    Recipe recipe = recipeRepository.findByIdAndIsDeletedFalse(id)
+      .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.RECIPE_NOT_FOUND));
     return recipeMapper.toResponse(recipe);
   }
 
