@@ -146,30 +146,43 @@ public class ShoppingListService {
 
   //get theo nguyen lieu
   public List<ShoppingIngredientDto> getByIngredient(Long userId) {
-    List<ShoppingIngredient> ingredients =
-      ingredientRepo.findAllByShoppingItemUserIdAndIsDeletedFalse(userId);
+    List<ShoppingIngredient> ingredients
+      = ingredientRepo.findAllByShoppingItemUserIdAndIsDeletedFalse(userId);
 
-    //group theo ingredientId
-    Map<Long, ShoppingIngredientDto> grouped = new HashMap<>();
-    for(ShoppingIngredient ing: ingredients){
+    // key : ingredientId + unit + purchased
+    Map<String, ShoppingIngredientDto> grouded = new HashMap<>();
+    for(ShoppingIngredient ing : ingredients){
       if(ing.getIsDeleted()) continue;
-      Long id = ing.getIngredient().getId();
-      grouped.compute(id, (k, v) ->{
+
+      Long ingredientId = ing.getIngredient().getId();
+      String unit = ing.getUnit() == null ? "" : ing.getUnit().trim().toLowerCase();
+      Boolean purchased = ing.getPurchased();
+
+      String key = ingredientId + "||" + unit + "||" + purchased;
+      grouded.compute(key, (k, v) ->{
         if(v == null){
           return ShoppingIngredientDto.builder()
             .id(ing.getId())
-            .ingredientId(id)
+            .ingredientId(ingredientId)
             .ingredientName(ing.getIngredient().getName())
             .quantity(ing.getQuantity())
-            .unit(ing.getUnit())
-            .purchased(ing.getPurchased())
+            .image(ing.getIngredient().getImage())
+            .unit(unit)
+            .purchased(purchased)
+            .shoppingIngredientIds(new ArrayList<>(List.of(ing.getId())))
             .build();
-        }else {
+        }
+        else {
           v.setQuantity(v.getQuantity() + ing.getQuantity());
+          v.getShoppingIngredientIds().add(ing.getId());
           return v;
         }
       });
     }
-    return new ArrayList<>(grouped.values());
+    //sort theo ten nguyen lieu
+    return grouded.values().stream()
+      .sorted(
+        Comparator.comparing(ShoppingIngredientDto::getIngredientName, String.CASE_INSENSITIVE_ORDER)
+      ).toList();
   }
 }
