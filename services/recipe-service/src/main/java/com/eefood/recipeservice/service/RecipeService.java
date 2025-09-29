@@ -62,7 +62,7 @@ public class RecipeService {
   }
 
   @Transactional
-  public RecipeResponse createRecipe(RecipeRequest request, String currentUser) {
+  public RecipeResponse createRecipe(RecipeRequest request, Long currentUser) {
     Recipe recipe = recipeMapper.toEntity(request);
 
     // set categories
@@ -87,6 +87,7 @@ public class RecipeService {
         recipe.addStep(step);
       }
     }
+    recipe.setAuthorId(currentUser);
     Recipe saved = recipeRepository.save(recipe);
     return recipeMapper.toResponse(saved);
   }
@@ -108,7 +109,55 @@ public class RecipeService {
 
     // update categories
     List<Category> categories = categoryRepository.findAllById(request.getCategoryIds());
-//    recipe.setCategories(categories);
+    recipe.setCategories(new HashSet<>(categories));
+
+    /* ========== UPDATE INGREDIENTS ========== */
+    List<Long> requestIngredientIds = request.getIngredients().stream()
+            .map(RecipeIngredientRequest::getId)
+            .filter(Objects::nonNull)
+            .toList();
+
+    // lấy danh sách ingredients hiện có trong recipe
+    Set<RecipeIngredient> existingIngredients = recipe.getIngredients();
+
+    // soft delete ingredient không có trong request
+    for (RecipeIngredient ri : existingIngredients) {
+      if (ri.getId() != null && !requestIngredientIds.contains(ri.getId())) {
+        ri.setIsDeleted(true);
+        ri.setUpdatedBy(currentUser);
+      }
+    }
+
+    // update or create ingredients
+    for (RecipeIngredientRequest ingReq : request.getIngredients()) {
+      if (ingReq.getId() == null) {
+        // thêm mới
+        RecipeIngredient newIng = recipeMapper.toEntity(ingReq);
+        Ingredient ingredient = ingredientRepository.findById(ingReq.getIngredientId())
+                .orElseThrow(() -> new EntityNotFoundException("Ingredient not found with id: " + ingReq.getIngredientId()));
+        newIng.setIngredient(ingredient);
+        newIng.setRecipe(recipe);
+        newIng.setCreatedBy(currentUser);
+        newIng.setUpdatedBy(currentUser);
+        recipe.addIngredient(newIng);
+      } else {
+        // update
+        RecipeIngredient ri = existingIngredients.stream()
+                .filter(e -> e.getId().equals(ingReq.getId()))
+                .findFirst()
+                .orElseThrow(() -> new EntityNotFoundException("RecipeIngredient not found"));
+        ri.setQuantity(ingReq.getQuantity());
+        ri.setUnit(ingReq.getUnit());
+        ri.setUpdatedBy(currentUser);
+
+        // nếu ingredientId thay đổi → update reference
+        if (!ri.getIngredient().getId().equals(ingReq.getIngredientId())) {
+          Ingredient ingredient = ingredientRepository.findById(ingReq.getIngredientId())
+                  .orElseThrow(() -> new EntityNotFoundException("Ingredient not found with id: " + ingReq.getIngredientId()));
+          ri.setIngredient(ingredient);
+        }
+      }
+    }
 
     // update steps
     List<Long> requestStepIds = request.getSteps().stream()
