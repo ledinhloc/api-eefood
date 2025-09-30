@@ -71,7 +71,6 @@ public class RecipeService {
       RecipeSpecification.hasRegion(region),
       RecipeSpecification.hasDifficulty(difficulty),
       RecipeSpecification.hasCategoryId(categoryId),
-      RecipeSpecification.withFetchJoin(),
       RecipeSpecification.hasAuthor(authorId)
     );
     return recipeRepository.findAll(spec, pageable).map(recipeMapper::toResponse);
