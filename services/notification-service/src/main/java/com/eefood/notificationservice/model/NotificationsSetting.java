@@ -1,6 +1,5 @@
 package com.eefood.notificationservice.model;
 
-import com.eefood.notificationservice.enums.NotificationsChannel;
 import com.eefood.notificationservice.enums.NotificationsType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -25,9 +24,6 @@ public class NotificationsSetting extends BaseEntity {
 
     @Enumerated(EnumType.STRING)
     private NotificationsType type;
-
-    @Enumerated(EnumType.STRING)
-    private NotificationsChannel channel;
 
     private boolean enabled;
 }
