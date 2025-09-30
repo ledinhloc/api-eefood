@@ -38,11 +38,6 @@ public class Notifications extends BaseEntity {
     @Column(nullable = false)
     private NotificationsType type;
 
-    // Này để lưu data động (vd: postId, commentId, userId, username,...)
-    @Column(columnDefinition = "jsonb")
-    @JdbcTypeCode(SqlTypes.JSON)
-    private JsonNode data;
-
     @OneToMany(mappedBy = "notification", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<NotificationsRecipient> recipients;
 }
