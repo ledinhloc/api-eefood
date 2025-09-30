@@ -20,7 +20,7 @@ public class NotificationsSetting extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Long userId;
+    private Long userId; // Người sở hữu cài đặt tin nhắn
 
     @Enumerated(EnumType.STRING)
     private NotificationsType type;
