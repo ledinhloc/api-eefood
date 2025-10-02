@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,5 +33,6 @@ public class ShoppingItem extends BaseEntity {
   private Integer servings = 1;
 
   @OneToMany(mappedBy = "shoppingItem", cascade = CascadeType.ALL, orphanRemoval = true)
+  @SQLRestriction("is_deleted = false")
   private List<ShoppingIngredient> ingredients = new ArrayList<>();
 }
