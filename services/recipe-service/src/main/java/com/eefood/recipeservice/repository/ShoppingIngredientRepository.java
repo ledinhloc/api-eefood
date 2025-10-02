@@ -9,4 +9,7 @@ import java.util.List;
 @Repository
 public interface ShoppingIngredientRepository  extends JpaRepository<ShoppingIngredient, Long> {
   List<ShoppingIngredient> findAllByShoppingItemUserIdAndIsDeletedFalse(Long userId);
+
+
+  List<ShoppingIngredient> findAllByIdInAndIsDeletedFalse(List<Long> ingredientIds);
 }
