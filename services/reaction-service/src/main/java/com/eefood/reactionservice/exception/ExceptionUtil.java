@@ -2,7 +2,7 @@ package com.eefood.reactionservice.exception;
 
 import java.util.List;
 
-import org.springdoc.api.ErrorMessage;
+import com.eefood.reactionservice.enums.ErrorMessage;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
