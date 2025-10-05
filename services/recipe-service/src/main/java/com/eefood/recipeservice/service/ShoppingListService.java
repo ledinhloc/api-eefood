@@ -123,10 +123,11 @@ public class ShoppingListService {
     item.setServings(newServings);
 
     for (ShoppingIngredient ing : item.getIngredients()) {
-      int basePerServing = ing.getQuantity() / oldServings;
-      ing.setQuantity(basePerServing * newServings);
+      double basePerServing = (double) ing.getQuantity() / oldServings;
+      ing.setQuantity((int) Math.round(basePerServing * newServings));
     }
 
+    itemRepo.save(item);
     return mapper.toDto(item);
   }
 
@@ -149,7 +150,7 @@ public class ShoppingListService {
 
   //get theo recipe
   public List<ShoppingItemDto> getByRecipe(Long userId) {
-    return mapper.toItemDtoList(itemRepo.findAllByUserIdAndIsDeletedFalse(userId));
+    return mapper.toItemDtoList(itemRepo.findAllActiveByUserIdOrderByRecipeTitle(userId));
   }
 
   //get theo nguyen lieu
