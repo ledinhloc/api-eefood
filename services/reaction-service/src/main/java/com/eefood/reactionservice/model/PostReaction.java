@@ -1,5 +1,6 @@
 package com.eefood.reactionservice.model;
 
+import com.eefood.reactionservice.enums.ReactionType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -31,8 +32,9 @@ public class PostReaction {
   @Column(nullable = false)
   private Long userId;
 
-  @Column(name = "reaction_type", nullable = false)
-  private String reactionType;
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false)
+  private ReactionType reactionType;
 
   @CreatedDate
   @Column(name = "created_at", nullable = false, updatable = false)

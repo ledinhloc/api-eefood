@@ -47,6 +47,10 @@ public class Post extends BaseEntity {
   @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
   private List<Comment> comments = new ArrayList<>();
 
+  //count
+  @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<PostReactionCount> reactionCounts = new ArrayList<>();
+
   public void addFavorite(Favorite favorite) {
     favorites.add(favorite);
     favorite.setPost(this);
