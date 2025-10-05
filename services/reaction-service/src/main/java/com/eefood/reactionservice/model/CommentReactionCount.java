@@ -1,5 +1,6 @@
 package com.eefood.reactionservice.model;
 
+import com.eefood.reactionservice.enums.ReactionType;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -20,8 +21,9 @@ public class CommentReactionCount {
   private Comment comment;
 
   @Id
-  @Column(name = "reaction_type", nullable = false)
-  private String reactionType;
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false)
+  private ReactionType reactionType;
 
   @Column(nullable = false)
   @Builder.Default

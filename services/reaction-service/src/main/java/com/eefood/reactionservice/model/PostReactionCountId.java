@@ -1,5 +1,6 @@
 package com.eefood.reactionservice.model;
 
+import com.eefood.reactionservice.enums.ReactionType;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -13,5 +14,5 @@ import java.io.Serializable;
 @AllArgsConstructor
 public class PostReactionCountId implements Serializable {
   private Long post;
-  private String reactionType;
+  private ReactionType reactionType;
 }
