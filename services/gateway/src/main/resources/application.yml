@@ -18,10 +18,6 @@ spring:
                 - Path=/auth/**
               filters:
                 - RewritePath=/auth/(?<segment>.*), /$\{segment}
-            - id: reaction-service
-              uri: lb://REACTION-SERVICE
-              predicates:
-                - Path=/api/v1/reactions/**
             - id: iam-service
               uri: lb://IAM-SERVICE
               predicates:
@@ -55,6 +51,11 @@ spring:
               uri: lb://RECIPE-SERVICE
               predicates:
                 - Path=/api/v1/shopping/**
+
+            - id: post-reaction-service
+              uri: lb://REACTION-SERVICE
+              predicates:
+                - Path=/api/v1/posts/**
     bus:
       enabled: true
     stream:
