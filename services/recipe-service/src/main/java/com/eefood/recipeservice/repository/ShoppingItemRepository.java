@@ -11,7 +11,15 @@ import java.util.Optional;
 
 @Repository
 public interface ShoppingItemRepository extends JpaRepository<ShoppingItem, Long> {
-  List<ShoppingItem> findAllByUserIdAndIsDeletedFalse(Long userId);
+  @Query("""
+        SELECT s 
+        FROM ShoppingItem s 
+        JOIN FETCH s.recipe r 
+        WHERE s.userId = :userId 
+          AND s.isDeleted = false 
+        ORDER BY r.title ASC
+    """)
+  List<ShoppingItem> findAllActiveByUserIdOrderByRecipeTitle(@Param("userId") Long userId);
   Optional<ShoppingItem> findByIdAndUserIdAndIsDeletedFalse(Long id, Long userId);
 
   @Query(
