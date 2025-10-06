@@ -55,6 +55,10 @@ spring:
               uri: lb://RECIPE-SERVICE
               predicates:
                 - Path=/api/v1/shopping/**
+            - id: notification-service
+              uri: lb://NOTIFICATION-SERVICE
+              predicates:
+                - Path=/api/v1/notifications/**
     bus:
       enabled: true
     stream:
