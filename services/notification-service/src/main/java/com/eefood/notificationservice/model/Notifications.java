@@ -34,6 +34,8 @@ public class Notifications extends BaseEntity {
 
     private String avatarUrl; // Ảnh người tương tác
 
+    private String postImageUrl; // Ảnh ba post
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private NotificationsType type;

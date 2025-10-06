@@ -253,6 +253,103 @@
 									"}"
 								],
 								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "grant_type",
+									"value": "password",
+									"type": "text"
+								},
+								{
+									"key": "client_id",
+									"value": "client_backend",
+									"type": "text"
+								},
+								{
+									"key": "client_secret",
+									"value": "cwWQrCIoC3UU7oGp7HUVIeDjQF3alz5B",
+									"type": "text"
+								},
+								{
+									"key": "username",
+									"value": "anhkhoadevtool21@gmail.com",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "12341234",
+									"type": "text"
+								},
+								{
+									"key": "scope",
+									"value": "openid",
+									"type": "text",
+									"disabled": true
+								},
+								{
+									"key": "email",
+									"value": "loc@gmail.com",
+									"type": "text",
+									"disabled": true
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseurl}}/auth/realms/eefood-realm/protocol/openid-connect/token",
+							"host": [
+								"{{baseurl}}"
+							],
+							"path": [
+								"auth",
+								"realms",
+								"eefood-realm",
+								"protocol",
+								"openid-connect",
+								"token"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "login Copy",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Parse the JSON response body\r",
+									"var jsonData = pm.response.json();\r",
+									"\r",
+									"// Set the access_token in the environment variable if it exists\r",
+									"if (jsonData.access_token) {\r",
+									"    pm.environment.set(\"access_token\", jsonData.access_token);\r",
+									"}"
+								],
+								"type": "text/javascript",
 								"packages": {}
 							}
 						},
@@ -293,12 +390,12 @@
 								},
 								{
 									"key": "username",
-									"value": "ledinhloc7@gmail.com",
+									"value": "anhkhoaxn11@gmail.com",
 									"type": "text"
 								},
 								{
 									"key": "password",
-									"value": "12345678",
+									"value": "12341234",
 									"type": "text"
 								},
 								{
@@ -480,6 +577,331 @@
 					"response": []
 				}
 			]
+		},
+		{
+			"name": "recipe",
+			"item": [
+				{
+					"name": "get recipe",
+					"request": {
+						"method": "GET",
+						"header": []
+					},
+					"response": []
+				},
+				{
+					"name": "get recipe my recipe",
+					"request": {
+						"method": "GET",
+						"header": []
+					},
+					"response": []
+				},
+				{
+					"name": "get ingredient",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseurl}}/api/v1/ingredients",
+							"host": [
+								"{{baseurl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"ingredients"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "create recipe",
+					"request": {
+						"method": "POST",
+						"header": []
+					},
+					"response": []
+				},
+				{
+					"name": "get category",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseurl}}/api/v1/categories?name&page=1&limit=5",
+							"host": [
+								"{{baseurl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"categories"
+							],
+							"query": [
+								{
+									"key": "name",
+									"value": null
+								},
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "5"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update recipe",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"title\": \"Spaghetti Carbonara\",\r\n  \"description\": \"Món pasta ngon tuyệt\",\r\n  \"region\": \"Italy\",\r\n  \"imageUrl\": \"https://example.com/image.jpg\",\r\n  \"videoUrl\": \"https://example.com/video.mp4\",\r\n  \"prepTime\": 15,\r\n  \"cookTime\": 20,\r\n  \"difficulty\": \"MEDIUM\",\r\n  \"categoryIds\": [1, 3],\r\n  \"ingredients\": [\r\n    {\r\n      \"id\": 5,\r\n      \"ingredientId\": 2,\r\n      \"quantity\": \"200\",\r\n      \"unit\": \"grams\"\r\n    },\r\n    {\r\n      \"id\": null,\r\n      \"ingredientId\": 4,\r\n      \"quantity\": \"3\",\r\n      \"unit\": \"eggs\"\r\n    }\r\n  ],\r\n  \"steps\": [\r\n    {\r\n      \"id\": 7,\r\n      \"stepNumber\": 1,\r\n      \"instruction\": \"Boil water and cook pasta.\",\r\n      \"imageUrl\": \"https://example.com/step1.jpg\",\r\n      \"videoUrl\": \"\",\r\n      \"stepTime\": 10\r\n    },\r\n    {\r\n      \"id\": null,\r\n      \"stepNumber\": 2,\r\n      \"instruction\": \"Mix eggs with cheese.\",\r\n      \"imageUrl\": \"\",\r\n      \"videoUrl\": \"https://example.com/step2.mp4\",\r\n      \"stepTime\": 5\r\n    }\r\n  ]\r\n}\r\n",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseurl}}/api/v1/recipes/:id",
+							"host": [
+								"{{baseurl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"recipes",
+								":id"
+							],
+							"variable": [
+								{
+									"key": "id",
+									"value": "66"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "notifications",
+			"item": [
+				{
+					"name": "get user notifications",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseurl}}/api/v1/notifications?page=1&limit=5",
+							"host": [
+								"{{baseurl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"notifications"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "5"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get system notifications",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseurl}}/api/v1/notifications/system?page=1&limit=5",
+							"host": [
+								"{{baseurl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"notifications",
+								"system"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "5"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "create and send notifications",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"title\":\"Cập nhật phần mềm\",\r\n    \"body\":\"Phần mềm đã có bản cập nhật mới. Hãy cập nhật!!!\",\r\n    \"path\":\"/update\",\r\n    \"avatarUrl\":\"\",\r\n    \"postImageUrl\":\"\",\r\n    \"type\":\"SYSTEM\",\r\n    \"userId\":\"\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseurl}}/api/v1/notifications",
+							"host": [
+								"{{baseurl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"notifications"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "mark as read",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"url": {
+							"raw": "{{baseurl}}/api/v1/notifications/:notificationId/read",
+							"host": [
+								"{{baseurl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"notifications",
+								":notificationId",
+								"read"
+							],
+							"variable": [
+								{
+									"key": "notificationId",
+									"value": "12"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "mark all as read",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"url": {
+							"raw": "{{baseurl}}/api/v1/notifications/read-all",
+							"host": [
+								"{{baseurl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"notifications",
+								"read-all"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get unread count",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseurl}}/api/v1/notifications/unread-count",
+							"host": [
+								"{{baseurl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"notifications",
+								"unread-count"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get user settings",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseurl}}/api/v1/notifications/settings",
+							"host": [
+								"{{baseurl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"notifications",
+								"settings"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "update setting",
+					"request": {
+						"method": "PUT",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"COMMENT\": false,\r\n    \"SYSTEM\": false\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseurl}}/api/v1/notifications/settings/update",
+							"host": [
+								"{{baseurl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"notifications",
+								"settings",
+								"update"
+							]
+						}
+					},
+					"response": []
+				}
+			]
 		}
 	],
 	"auth": {
@@ -498,6 +920,7 @@
 			"script": {
 				"type": "text/javascript",
 				"packages": {},
+				"requests": {},
 				"exec": [
 					""
 				]
@@ -508,6 +931,7 @@
 			"script": {
 				"type": "text/javascript",
 				"packages": {},
+				"requests": {},
 				"exec": [
 					""
 				]
@@ -525,8 +949,7 @@
 		},
 		{
 			"key": "baseUrl",
-			"value": "",
-			"type": "default"
+			"value": ""
 		}
 	]
 }

@@ -51,7 +51,10 @@ spring:
               uri: lb://RECIPE-SERVICE
               predicates:
                 - Path=/api/v1/shopping/**
-
+            - id: notification-service
+              uri: lb://NOTIFICATION-SERVICE
+              predicates:
+                - Path=/api/v1/notifications/**
             - id: post-reaction-service
               uri: lb://REACTION-SERVICE
               predicates:
