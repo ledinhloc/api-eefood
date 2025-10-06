@@ -1,4 +1,4 @@
-package com.eefood.recipeservice.enums;
+package com.eefood.reactionservice.enums;
 
 public enum ErrorMessage {
   // Message chung chung
@@ -63,7 +63,10 @@ public enum ErrorMessage {
   //ingre
   INGREDIENT_SHOPPING_NOT_FOUND("Ingredient not found"),
   SHOPPING_ITEM_NOT_FOUND("Shopping Item not found"),
-  SHOPPING_ITEM_MORE("Expected 1 ShoppingItem but found more than one item");
+  SHOPPING_ITEM_MORE("Expected 1 ShoppingItem but found more than one item"),
+
+  //post
+  POST_NOT_FOUND("Post not found");
 
 
   private final String message;
