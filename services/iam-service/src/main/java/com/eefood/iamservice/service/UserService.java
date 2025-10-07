@@ -4,6 +4,7 @@ import com.eefood.iamservice.dto.request.Credential;
 import com.eefood.iamservice.dto.request.UserCreateRequest;
 import com.eefood.iamservice.dto.request.UserCreationParam;
 import com.eefood.iamservice.dto.request.UserUpdateRequest;
+import com.eefood.iamservice.dto.response.UserNotificationResponse;
 import com.eefood.iamservice.dto.response.UserResponse;
 import com.eefood.iamservice.enums.ErrorMessage;
 import com.eefood.iamservice.enums.Role;
@@ -14,6 +15,8 @@ import com.eefood.iamservice.utils.ExceptionUtil;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -179,5 +182,10 @@ public class UserService {
     userResponse.setAccessToken(response.getAccessToken());
     userResponse.setRefreshToken(response.getRefreshToken());
     return userResponse;
+  }
+
+  public List<UserNotificationResponse> getUserForNotifications() {
+    List<User> response = userRepository.findAllByIsDeletedFalse();
+    return response.stream().map(userMapper::toUserNotificationResponse).collect(Collectors.toList());
   }
 }

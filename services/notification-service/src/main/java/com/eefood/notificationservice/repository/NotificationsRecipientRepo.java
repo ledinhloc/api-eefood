@@ -14,14 +14,9 @@ import java.util.Optional;
 
 @Repository
 public interface NotificationsRecipientRepo extends JpaRepository<NotificationsRecipient, Long>{
-    @Query("""
-    SELECT nr FROM NotificationsRecipient nr
-    JOIN FETCH nr.notification n
-    WHERE n.isDeleted = false
-      AND (nr.userId = :userId)
-    ORDER BY n.createdAt DESC""")
-    Page<NotificationsRecipient> findUserNotifications(Long userId, Pageable pageable);
-    Optional<NotificationsRecipient> findByUserIdAndNotificationId(Long userId, Long notificationId);
+    Page<NotificationsRecipient> findByUserIdAndIsDeletedFalse(Long userId, Pageable pageable);
+    Optional<NotificationsRecipient> findByUserIdAndNotificationIdAndIsDeletedFalse(Long userId, Long notificationId);
     List<NotificationsRecipient> findByUserIdAndIsReadFalseAndIsDeletedFalse(Long userId);
+    List<NotificationsRecipient> findByUserIdAndIsDeletedFalse(Long userId);
     Long countByUserIdAndIsReadFalseAndIsDeletedFalse(Long userId);
 }

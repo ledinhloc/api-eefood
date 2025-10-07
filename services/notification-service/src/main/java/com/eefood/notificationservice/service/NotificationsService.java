@@ -1,5 +1,6 @@
 package com.eefood.notificationservice.service;
 import com.eefood.notificationservice.dto.request.NotificationRequest;
+import com.eefood.notificationservice.dto.request.UserNotificationResquest;
 import com.eefood.notificationservice.dto.response.NotificationResponse;
 import com.eefood.notificationservice.enums.ErrorMessage;
 import com.eefood.notificationservice.enums.NotificationsType;
@@ -10,6 +11,7 @@ import com.eefood.notificationservice.model.NotificationsSetting;
 import com.eefood.notificationservice.repository.NotificationsRecipientRepo;
 import com.eefood.notificationservice.repository.NotificationsRepository;
 import com.eefood.notificationservice.repository.NotificationsSettingRepository;
+import com.eefood.notificationservice.repository.httpclient.IamClient;
 import com.eefood.notificationservice.utils.ExceptionUtil;
 import com.eefood.notificationservice.utils.SecurityUtil;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 
 @Slf4j
@@ -37,15 +40,17 @@ public class NotificationsService {
     private final SimpMessagingTemplate messagingTemplate;
     private final SecurityUtil securityUtil;
     private final NotificationsRecipientRepo notificationsRecipientRepo;
+    private final IamClient iamClient;
 
     // Giống push notification
+    @Transactional
     public void handleNotificationIncome(NotificationRequest request) {
+
+        boolean hasUserId = request.getUserId() != null && !request.getUserId().isBlank();
         Long userId = null;
         NotificationsType type = NotificationsType.valueOf(request.getType());;
 
-
-
-        if(request.getUserId()!= null && !request.getUserId().isBlank()) {
+        if(hasUserId) {
             userId = Long.parseLong(request.getUserId());
             Optional<NotificationsSetting> settingOpt =
                     notificationsSettingRepository.findByUserIdAndType(userId, type);
@@ -65,21 +70,35 @@ public class NotificationsService {
                 .type(type)
                 .build();
 
-        if(userId != null) {
+        if(hasUserId) {
             NotificationsRecipient recipient = NotificationsRecipient.builder()
                     .userId(userId)
                     .notification(notification)
                     .isRead(false)
                     .build();
             notification.setRecipients(List.of(recipient));
-        }
-
-        notificationsRepository.save(notification);
-
-        // Gửi qua WebSocket
-        if (userId != null) {
+            notificationsRepository.save(notification);
             sendNotificationViaWebSocket(request, userId);
-        } else {
+        }
+        else {
+            var response = iamClient.getAllUserNotifications();
+
+            List<UserNotificationResquest> users = response.getData();
+
+            if(users.isEmpty()) {
+                throw ExceptionUtil.forbidden(ErrorMessage.USER_NOT_EXISTED);
+            }
+
+            List<NotificationsRecipient> recipients = users.stream()
+                    .map(u -> NotificationsRecipient.builder()
+                            .userId(u.getId())
+                            .notification(notification)
+                            .isRead(false)
+                            .isDeleted(false)
+                            .build())
+                    .collect(Collectors.toList());
+            notification.setRecipients(recipients);
+            notificationsRepository.save(notification);
             sendBroadcastNotification(request);
         }
     }
@@ -90,24 +109,8 @@ public class NotificationsService {
         Pageable pageable = PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "createdAt"));
 
         Page<NotificationsRecipient> recipientPage = notificationsRecipientRepo
-                .findUserNotifications(currentUserId, pageable);
-        return recipientPage.map(n -> {
-
-            NotificationResponse resp = notificationsMapper.toResponse(n);
-            Optional<NotificationsRecipient> rOpt = notificationsRecipientRepo.findByUserIdAndNotificationId(currentUserId, n.getId());
-            boolean isRead = rOpt.map(NotificationsRecipient::isRead).orElse(false);
-            resp.setRead(isRead);
-            return resp;
-        });
-    }
-
-    @Transactional(readOnly = true)
-    public Page<NotificationResponse> getSystemNotifications(int page, int size) {
-        Long currentUserId = securityUtil.getCurrentUserId();
-        Pageable pageable = PageRequest.of(page - 1, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-
-        Page<Notifications> notifications = notificationsRepository.findSystemNotificationsForUser(NotificationsType.SYSTEM, currentUserId, pageable);
-        return notifications.map(notificationsMapper::toResponse);
+                .findByUserIdAndIsDeletedFalse(currentUserId, pageable);
+        return  recipientPage.map(notificationsMapper::toResponse);
     }
 
     private void sendNotificationViaWebSocket(NotificationRequest request, Long userId) {
@@ -150,9 +153,8 @@ public class NotificationsService {
     public void markAsRead(Long notificationId) {
         Long currentUserId = securityUtil.getCurrentUserId();
         Optional<NotificationsRecipient> recipient = notificationsRecipientRepo
-                .findByUserIdAndNotificationId(currentUserId, notificationId);
+                .findByUserIdAndNotificationIdAndIsDeletedFalse(currentUserId, notificationId);
         if (recipient.isPresent() ) {
-
             NotificationsRecipient notificationsRecipient = recipient.get();
             if(!notificationsRecipient.isRead()) {
                 notificationsRecipient.setRead(true);
@@ -161,19 +163,8 @@ public class NotificationsService {
             }
         }
         else {
-            // Chưa có bản ghi, tạo mới bản ghi NotificationRecipient
-            Notifications notification = notificationsRepository.findById(notificationId)
-                    .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.NOTIFICATION_NOT_FOUND));
-
-            NotificationsRecipient newRecipient = NotificationsRecipient.builder()
-                    .userId(currentUserId)
-                    .notification(notification)
-                    .isRead(true)
-                    .readAt(LocalDateTime.now())
-                    .build();
-            notificationsRecipientRepo.save(newRecipient);
+            throw ExceptionUtil.forbidden(ErrorMessage.NOTIFICATION_NOT_FOUND);
         }
-
     }
 
     @Transactional
@@ -188,27 +179,50 @@ public class NotificationsService {
         });
 
         notificationsRecipientRepo.saveAll(unreadNotifications);
-
-        List<Notifications> unreadSystemNotifications =
-                notificationsRepository.findUnreadSystemNotificationsForUser(NotificationsType.SYSTEM, currentUserId);
-
-        if (!unreadSystemNotifications.isEmpty()) {
-            List<NotificationsRecipient> created = unreadSystemNotifications.stream().map(n -> {
-                NotificationsRecipient r = NotificationsRecipient.builder()
-                        .userId(currentUserId)
-                        .notification(n)
-                        .isRead(true)
-                        .readAt(LocalDateTime.now())
-                        .build();
-                return r;
-            }).toList();
-
-            notificationsRecipientRepo.saveAll(created);
-        }
     }
 
     public Long getUnreadCount() {
         Long currentUserId = securityUtil.getCurrentUserId();
         return notificationsRecipientRepo.countByUserIdAndIsReadFalseAndIsDeletedFalse(currentUserId);
+    }
+
+    @Transactional
+    public void softDeleteNotification(Long notificationId) {
+        Long currentUserId = securityUtil.getCurrentUserId();
+
+        Optional<NotificationsRecipient> recipientOpt =
+                notificationsRecipientRepo.findByUserIdAndNotificationIdAndIsDeletedFalse(currentUserId, notificationId);
+
+        if (recipientOpt.isEmpty()) {
+            throw ExceptionUtil.notFound(ErrorMessage.NOTIFICATION_NOT_FOUND);
+        }
+
+        NotificationsRecipient recipient = recipientOpt.get();
+
+        if (!recipient.getIsDeleted()) {
+            recipient.setIsDeleted(true);
+            notificationsRecipientRepo.save(recipient);
+            log.info("Soft deleted notification {} for user {}", notificationId, currentUserId);
+        }
+    }
+
+    @Transactional
+    public void softDeleteAllNotifications() {
+        Long currentUserId = securityUtil.getCurrentUserId();
+
+        List<NotificationsRecipient> recipients =
+                notificationsRecipientRepo.findByUserIdAndIsDeletedFalse(currentUserId);
+
+        if (recipients.isEmpty()) {
+            log.info("No notifications to delete for user {}", currentUserId);
+            return;
+        }
+
+        recipients.forEach(recipient -> {
+            recipient.setIsDeleted(true);
+        });
+
+        notificationsRecipientRepo.saveAll(recipients);
+        log.info("Soft deleted {} notifications for user {}", recipients.size(), currentUserId);
     }
 }
