@@ -13,26 +13,4 @@ import java.util.List;
 
 @Repository
 public interface NotificationsRepository extends JpaRepository<Notifications, Long>{
-
-    @Query("""
-    SELECT n FROM Notifications n WHERE n.isDeleted = false AND n.type = :type
-    AND NOT EXISTS (
-        SELECT nr FROM NotificationsRecipient nr
-        WHERE nr.notification = n
-          AND nr.userId = :userId
-          AND nr.isDeleted = true
-    )
-    ORDER BY n.createdAt DESC
-    """)
-    Page<Notifications> findSystemNotificationsForUser(NotificationsType type, Long userId, Pageable pageable);
-
-    @Query("""
-    SELECT n FROM Notifications n WHERE n.isDeleted = false AND n.type = :type
-    AND NOT EXISTS (
-        SELECT nr FROM NotificationsRecipient nr
-        WHERE nr.notification = n
-          AND nr.userId = :userId
-          AND (nr.isRead = true OR nr.isDeleted = true)) ORDER BY n.createdAt DESC
-    """)
-    List<Notifications> findUnreadSystemNotificationsForUser(NotificationsType type, Long userId);
 }
