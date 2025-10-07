@@ -5,6 +5,7 @@ public enum SuccessMessage {
     UPDATE_SETTINGS_SUCCESS("Notification settings updated"),
     MARK_ALL_AS_READ("Notification marked all as read"),
     SEND_NOTIFICATION_SUCCESS("Sent notification successfully"),
+    DELETE_NOTIFICATION_SUCCESS("Delete notification successfully"),
     GET_SUCCESS_MESSAGE("get success message");
     private final String message;
 

@@ -37,15 +37,6 @@ public class NotificationsController {
         return new ResponseData<>(HttpStatus.OK.value(), SuccessMessage.GET_SUCCESS_MESSAGE.getMessage(),notificationResponses);
     }
 
-    @GetMapping("/system")
-    public ResponseData<Page<NotificationResponse>> getSystemNotifications(
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "5") int limit)
-    {
-        Page<NotificationResponse> notificationResponses = notificationsService.getSystemNotifications(page, limit);
-        return new ResponseData<>(HttpStatus.OK.value(), SuccessMessage.GET_SUCCESS_MESSAGE.getMessage(),notificationResponses);
-    }
-
     @PutMapping("/{notificationId}/read")
     public ResponseData<Void> markAsReadNotification(@PathVariable("notificationId") Long notificationId) {
         notificationsService.markAsRead(notificationId);
@@ -74,6 +65,18 @@ public class NotificationsController {
     public ResponseData<List<NotificationSettingResponse>> updateMultiSettings(@RequestBody Map<NotificationsType, Boolean> settings) {
         List<NotificationSettingResponse> updatedSettings = notificationsSettingService.updateMultipleNotificationSettings(settings);
         return new ResponseData<>(HttpStatus.OK.value(), SuccessMessage.UPDATE_SETTINGS_SUCCESS.getMessage(), updatedSettings);
+    }
+    
+    @DeleteMapping("/{notificationId}")
+    public ResponseData<Void> deleteNotification(@PathVariable("notificationId") Long notificationId) {
+        notificationsService.softDeleteNotification(notificationId);
+        return new ResponseData<>(HttpStatus.OK.value(), SuccessMessage.DELETE_NOTIFICATION_SUCCESS.getMessage());
+    }
+
+    @DeleteMapping("/delete-all")
+    public ResponseData<Void> deleteAllNotifications() {
+        notificationsService.softDeleteAllNotifications();
+        return new ResponseData<>(HttpStatus.OK.value(), SuccessMessage.DELETE_NOTIFICATION_SUCCESS.getMessage());
     }
 
 }
