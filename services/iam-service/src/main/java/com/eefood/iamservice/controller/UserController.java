@@ -4,6 +4,7 @@ import com.eefood.iamservice.dto.request.AdminUpdateRequest;
 import com.eefood.iamservice.dto.request.UserCreateRequest;
 import com.eefood.iamservice.dto.request.UserUpdateRequest;
 import com.eefood.iamservice.dto.response.ResponseData;
+import com.eefood.iamservice.dto.response.UserNotificationResponse;
 import com.eefood.iamservice.dto.response.UserResponse;
 import com.eefood.iamservice.enums.SuccessMessage;
 import com.eefood.iamservice.service.UserService;
@@ -12,6 +13,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -54,5 +57,10 @@ public class UserController {
     userService.softDeleteUser(id);
     return new ResponseData<>(
         HttpStatus.OK.value(), SuccessMessage.DELETE_USER_SUCCESS.getMessage(), null);
+  }
+
+  @GetMapping("/all")
+  public ResponseData<List<UserNotificationResponse>> getAllUsers() {
+    return new ResponseData<>(HttpStatus.OK.value(), "Success", userService.getUserForNotifications());
   }
 }
