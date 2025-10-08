@@ -1,9 +1,10 @@
 {
 	"info": {
-		"_postman_id": "1abccf05-6101-4ba8-af22-6a320c4210ea",
-		"name": "ee-food",
+		"_postman_id": "805042ee-8912-4cb9-95c2-e4df73320651",
+		"name": "ee-food- 8/10",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "41180819"
+		"_exporter_id": "38517569",
+		"_collection_link": "https://cccc33-6500.postman.co/workspace/cccc-Workspace~b7eba50b-fc24-4522-a812-60dffdca8e13/collection/38517569-805042ee-8912-4cb9-95c2-e4df73320651?action=share&source=collection_link&creator=38517569"
 	},
 	"item": [
 		{
@@ -238,198 +239,6 @@
 			"name": "auth",
 			"item": [
 				{
-					"name": "login",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Parse the JSON response body\r",
-									"var jsonData = pm.response.json();\r",
-									"\r",
-									"// Set the access_token in the environment variable if it exists\r",
-									"if (jsonData.access_token) {\r",
-									"    pm.environment.set(\"access_token\", jsonData.access_token);\r",
-									"}"
-								],
-								"type": "text/javascript",
-								"packages": {},
-								"requests": {}
-							}
-						},
-						{
-							"listen": "prerequest",
-							"script": {
-								"exec": [
-									""
-								],
-								"type": "text/javascript",
-								"packages": {},
-								"requests": {}
-							}
-						}
-					],
-					"request": {
-						"auth": {
-							"type": "noauth"
-						},
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "urlencoded",
-							"urlencoded": [
-								{
-									"key": "grant_type",
-									"value": "password",
-									"type": "text"
-								},
-								{
-									"key": "client_id",
-									"value": "client_backend",
-									"type": "text"
-								},
-								{
-									"key": "client_secret",
-									"value": "cwWQrCIoC3UU7oGp7HUVIeDjQF3alz5B",
-									"type": "text"
-								},
-								{
-									"key": "username",
-									"value": "anhkhoadevtool21@gmail.com",
-									"type": "text"
-								},
-								{
-									"key": "password",
-									"value": "12341234",
-									"type": "text"
-								},
-								{
-									"key": "scope",
-									"value": "openid",
-									"type": "text",
-									"disabled": true
-								},
-								{
-									"key": "email",
-									"value": "loc@gmail.com",
-									"type": "text",
-									"disabled": true
-								}
-							]
-						},
-						"url": {
-							"raw": "{{baseurl}}/auth/realms/eefood-realm/protocol/openid-connect/token",
-							"host": [
-								"{{baseurl}}"
-							],
-							"path": [
-								"auth",
-								"realms",
-								"eefood-realm",
-								"protocol",
-								"openid-connect",
-								"token"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "login Copy",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Parse the JSON response body\r",
-									"var jsonData = pm.response.json();\r",
-									"\r",
-									"// Set the access_token in the environment variable if it exists\r",
-									"if (jsonData.access_token) {\r",
-									"    pm.environment.set(\"access_token\", jsonData.access_token);\r",
-									"}"
-								],
-								"type": "text/javascript",
-								"packages": {}
-							}
-						},
-						{
-							"listen": "prerequest",
-							"script": {
-								"exec": [
-									""
-								],
-								"type": "text/javascript",
-								"packages": {}
-							}
-						}
-					],
-					"request": {
-						"auth": {
-							"type": "noauth"
-						},
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "urlencoded",
-							"urlencoded": [
-								{
-									"key": "grant_type",
-									"value": "password",
-									"type": "text"
-								},
-								{
-									"key": "client_id",
-									"value": "client_backend",
-									"type": "text"
-								},
-								{
-									"key": "client_secret",
-									"value": "MCKrWc2Ru5WE1TQodq0EKxliT5xe0wqD",
-									"type": "text"
-								},
-								{
-									"key": "username",
-									"value": "anhkhoaxn11@gmail.com",
-									"type": "text"
-								},
-								{
-									"key": "password",
-									"value": "12341234",
-									"type": "text"
-								},
-								{
-									"key": "scope",
-									"value": "openid",
-									"type": "text",
-									"disabled": true
-								},
-								{
-									"key": "email",
-									"value": "loc@gmail.com",
-									"type": "text",
-									"disabled": true
-								}
-							]
-						},
-						"url": {
-							"raw": "{{baseurl}}/auth/realms/eefood-realm/protocol/openid-connect/token",
-							"host": [
-								"{{baseurl}}"
-							],
-							"path": [
-								"auth",
-								"realms",
-								"eefood-realm",
-								"protocol",
-								"openid-connect",
-								"token"
-							]
-						}
-					},
-					"response": []
-				},
-				{
 					"name": "register user",
 					"request": {
 						"method": "POST",
@@ -582,22 +391,6 @@
 			"name": "recipe",
 			"item": [
 				{
-					"name": "get recipe",
-					"request": {
-						"method": "GET",
-						"header": []
-					},
-					"response": []
-				},
-				{
-					"name": "get recipe my recipe",
-					"request": {
-						"method": "GET",
-						"header": []
-					},
-					"response": []
-				},
-				{
 					"name": "get ingredient",
 					"request": {
 						"method": "GET",
@@ -613,14 +406,6 @@
 								"ingredients"
 							]
 						}
-					},
-					"response": []
-				},
-				{
-					"name": "create recipe",
-					"request": {
-						"method": "POST",
-						"header": []
 					},
 					"response": []
 				},
