@@ -2,6 +2,7 @@ package com.eefood.iamservice.mapper;
 
 import com.eefood.iamservice.dto.request.UserCreateRequest;
 import com.eefood.iamservice.dto.request.UserUpdateRequest;
+import com.eefood.iamservice.dto.response.UserInfo;
 import com.eefood.iamservice.dto.response.UserNotificationResponse;
 import com.eefood.iamservice.dto.response.UserResponse;
 import com.eefood.iamservice.model.User;
@@ -20,4 +21,5 @@ public interface UserMapper {
   void updateUserFromRequest(UserUpdateRequest request, @MappingTarget User user);
 
   UserNotificationResponse toUserNotificationResponse(User user);
+  UserInfo toResponse(User user);
 }

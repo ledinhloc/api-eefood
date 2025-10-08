@@ -119,24 +119,26 @@ services:
     command:
       - "start-dev"
 
-#  redis:
-#    image: redis:latest
-#    container_name: redis-server
-#    restart: always
-#    ports:
-#      - "6379:6379"
-#    #    command: [ "redis-server", "--requirepass", "12345678" ]
-#    networks:
-#      - microservices-net
-#
-#  redisinsight:
-#    image: redis/redisinsight:latest
-#    container_name: redis-ui
-#    restart: always
-#    ports:
-#      - "5540:5540"
-#    depends_on:
-#      - redis
+  redis:
+    image: redis:latest
+    container_name: redis-server
+    restart: always
+    ports:
+      - "6379:6379"
+    #    command: [ "redis-server", "--requirepass", "12345678" ]
+    networks:
+      - microservices-net
+
+  redisinsight:
+    image: redis/redisinsight:latest
+    container_name: redis-ui
+    restart: always
+    ports:
+      - "5540:5540"
+    depends_on:
+      - redis
+    networks:
+      - microservices-net
 
 #  loki:
 #    container_name: loki

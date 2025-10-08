@@ -8,6 +8,14 @@ server:
         http-only: true
 
 spring:
+#  redis
+  cache:
+    type: redis
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
   application:
     name: iam-service
   config:
