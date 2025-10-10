@@ -16,6 +16,7 @@ public interface RecipeMapper {
 //  @Mapping(target = "ingredients", source = "ingredients", qualifiedByName = "filterDeletedIngredients")
 //  @Mapping(target = "steps", source = "steps", qualifiedByName = "filterDeletedSteps")
   RecipeResponse toResponse(Recipe recipe);
+  RecipeDetailResponse toDetailResponse(Recipe recipe);
 
   StepResponse toResponse(RecipeStep step);
 
