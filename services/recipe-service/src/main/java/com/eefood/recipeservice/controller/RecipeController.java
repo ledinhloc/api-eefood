@@ -1,6 +1,7 @@
 package com.eefood.recipeservice.controller;
 
 import com.eefood.recipeservice.dto.request.RecipeRequest;
+import com.eefood.recipeservice.dto.response.RecipeDetailResponse;
 import com.eefood.recipeservice.dto.response.RecipeResponse;
 import com.eefood.recipeservice.dto.response.ResponseData;
 import com.eefood.recipeservice.enums.Difficulty;
@@ -34,6 +35,11 @@ public class RecipeController {
   private final SecurityUtil securityUtil;
 
   private final RecipeService recipeService;
+
+  @GetMapping("/detail/{id}")
+  public ResponseData<RecipeDetailResponse> getRecipeDetail(@PathVariable Long id) {
+    return new ResponseData<>(HttpStatus.OK.value(), "Success", recipeService.getRecipeDetail(id));
+  }
 
   @DeleteMapping("/{id}")
   public ResponseData<Void> deleteRecipe(@PathVariable Long id) {
