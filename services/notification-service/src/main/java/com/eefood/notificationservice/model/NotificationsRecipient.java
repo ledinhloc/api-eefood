@@ -1,5 +1,6 @@
 package com.eefood.notificationservice.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
@@ -29,6 +30,7 @@ public class NotificationsRecipient extends BaseEntity {
     @JoinColumn(name = "notification_id", nullable = false)
     private Notifications notification;
 
+    @JsonProperty("isRead")
     private boolean isRead = false;
 
     private LocalDateTime readAt;
