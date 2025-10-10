@@ -30,6 +30,10 @@ spring:
               uri: lb://NOTIFICATION-SERVICE
               predicates:
                 - Path=/api/v1/notification/**
+            - id: notification-websocket
+              uri: lb://NOTIFICATION-SERVICE
+              predicates:
+                - Path=/ws/**
 
             - id: recipe-service
               uri: lb://RECIPE-SERVICE

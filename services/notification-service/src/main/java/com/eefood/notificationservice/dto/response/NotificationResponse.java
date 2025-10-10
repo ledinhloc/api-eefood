@@ -8,8 +8,8 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class NotificationResponse {
-    private String id;
-    private String notificationId;
+    private Long id;
+    private Long notificationId;
     private String title;
     private String body;
     private String type;
@@ -18,4 +18,5 @@ public class NotificationResponse {
     private String postImageUrl;
     boolean isRead;
     private LocalDateTime readAt;
+    private LocalDateTime createdAt;
 }

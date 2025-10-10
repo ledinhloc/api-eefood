@@ -24,6 +24,7 @@ public interface NotificationsMapper {
     @Mapping(target = "type", source = "notification.type")
     @Mapping(target = "id" ,source = "id")
     @Mapping(target = "notificationId", source = "notification.id")
+    @Mapping(target = "isRead", source = "read")
     NotificationResponse toResponse(NotificationsRecipient recipient);
 
     Notifications toNotification(NotificationRequest notificationRequest);
