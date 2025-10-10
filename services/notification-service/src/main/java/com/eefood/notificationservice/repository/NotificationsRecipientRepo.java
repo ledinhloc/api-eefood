@@ -15,7 +15,7 @@ import java.util.Optional;
 @Repository
 public interface NotificationsRecipientRepo extends JpaRepository<NotificationsRecipient, Long>{
     Page<NotificationsRecipient> findByUserIdAndIsDeletedFalse(Long userId, Pageable pageable);
-    Optional<NotificationsRecipient> findByUserIdAndNotificationIdAndIsDeletedFalse(Long userId, Long notificationId);
+    Optional<NotificationsRecipient> findByUserIdAndIdAndIsDeletedFalse(Long userId, Long notificationId);
     List<NotificationsRecipient> findByUserIdAndIsReadFalseAndIsDeletedFalse(Long userId);
     List<NotificationsRecipient> findByUserIdAndIsDeletedFalse(Long userId);
     Long countByUserIdAndIsReadFalseAndIsDeletedFalse(Long userId);

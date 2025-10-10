@@ -84,6 +84,7 @@ management:
 logging:
   level:
     root: INFO
+    org.springframework.security: DEBUG
     # Log feign chi tiết
     feign: DEBUG
     feign.client: DEBUG
