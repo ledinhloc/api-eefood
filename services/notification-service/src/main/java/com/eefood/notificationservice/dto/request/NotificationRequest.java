@@ -16,5 +16,5 @@ public class NotificationRequest {
     String avatarUrl;
     String postImageUrl;
     String type;
-    String userId;
+    Long userId;
 }

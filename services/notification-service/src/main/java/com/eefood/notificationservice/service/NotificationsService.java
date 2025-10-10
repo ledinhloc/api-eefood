@@ -46,12 +46,12 @@ public class NotificationsService {
     @Transactional
     public void handleNotificationIncome(NotificationRequest request) {
 
-        boolean hasUserId = request.getUserId() != null && !request.getUserId().isBlank();
+        boolean hasUserId = request.getUserId() != null;
         Long userId = null;
         NotificationsType type = NotificationsType.valueOf(request.getType());;
 
         if(hasUserId) {
-            userId = Long.parseLong(request.getUserId());
+            userId = request.getUserId();
             Optional<NotificationsSetting> settingOpt =
                     notificationsSettingRepository.findByUserIdAndType(userId, type);
 
@@ -152,8 +152,10 @@ public class NotificationsService {
     @Transactional
     public void markAsRead(Long notificationId) {
         Long currentUserId = securityUtil.getCurrentUserId();
+        log.info("Marking notification {} as read", notificationId);
+        log.info("Current user: {}", currentUserId);
         Optional<NotificationsRecipient> recipient = notificationsRecipientRepo
-                .findByUserIdAndNotificationIdAndIsDeletedFalse(currentUserId, notificationId);
+                .findByUserIdAndIdAndIsDeletedFalse(currentUserId, notificationId);
         if (recipient.isPresent() ) {
             NotificationsRecipient notificationsRecipient = recipient.get();
             if(!notificationsRecipient.isRead()) {
@@ -191,7 +193,7 @@ public class NotificationsService {
         Long currentUserId = securityUtil.getCurrentUserId();
 
         Optional<NotificationsRecipient> recipientOpt =
-                notificationsRecipientRepo.findByUserIdAndNotificationIdAndIsDeletedFalse(currentUserId, notificationId);
+                notificationsRecipientRepo.findByUserIdAndIdAndIsDeletedFalse(currentUserId, notificationId);
 
         if (recipientOpt.isEmpty()) {
             throw ExceptionUtil.notFound(ErrorMessage.NOTIFICATION_NOT_FOUND);
