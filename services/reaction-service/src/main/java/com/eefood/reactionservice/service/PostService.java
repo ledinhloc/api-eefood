@@ -43,7 +43,10 @@ public class PostService {
 
     return posts.map(post -> {
       PostResponse response = postMapper.toResponse(post);
-      response.setUser(userInfoMap.get(post.getUserId())); // gán user info
+      UserInfo userInfo = userInfoMap.get(post.getUserId());
+      response.setUsername(userInfo.getUsername());
+      response.setEmail(userInfo.getEmail());
+      response.setAvatarUrl(userInfo.getAvatarUrl());
       return response;
     });
   }
@@ -57,7 +60,9 @@ public class PostService {
     PostResponse response = postMapper.toResponse(post);
 
     UserInfo userInfo = iamClient.getUserInfo(post.getUserId()).getData();
-    response.setUser(userInfo);
+    response.setUsername(userInfo.getUsername());
+    response.setEmail(userInfo.getEmail());
+    response.setAvatarUrl(userInfo.getAvatarUrl());
 
     return response;
   }
