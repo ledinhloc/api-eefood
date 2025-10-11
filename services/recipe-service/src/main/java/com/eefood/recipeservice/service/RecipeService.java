@@ -3,8 +3,10 @@ package com.eefood.recipeservice.service;
 import com.eefood.recipeservice.dto.request.RecipeIngredientRequest;
 import com.eefood.recipeservice.dto.request.RecipeRequest;
 import com.eefood.recipeservice.dto.request.RecipeStepRequest;
+import com.eefood.recipeservice.dto.response.RecipeDetailResponse;
 import com.eefood.recipeservice.dto.response.RecipeResponse;
 import com.eefood.recipeservice.dto.response.ResponseData;
+import com.eefood.recipeservice.dto.response.UserInfo;
 import com.eefood.recipeservice.enums.Difficulty;
 import com.eefood.recipeservice.enums.ErrorMessage;
 import com.eefood.recipeservice.exception.ExceptionUtil;
@@ -14,6 +16,7 @@ import com.eefood.recipeservice.repository.CategoryRepository;
 import com.eefood.recipeservice.repository.IngredientRepository;
 import com.eefood.recipeservice.repository.RecipeRepository;
 import com.eefood.recipeservice.repository.RecipeStepRepository;
+import com.eefood.recipeservice.repository.httpclient.IamClient;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -34,6 +37,7 @@ public class RecipeService {
   private final CategoryRepository categoryRepository;
   private final RecipeMapper recipeMapper;
   private final IngredientRepository ingredientRepository;
+  private final IamClient iamClient;
 
   public Recipe getEntityRecipe(Long id) {
     return recipeRepository.findByIdAndIsDeletedFalse(id)
@@ -81,6 +85,20 @@ public class RecipeService {
     Recipe recipe = recipeRepository.findByIdAndIsDeletedFalse(id)
       .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.RECIPE_NOT_FOUND));
     return recipeMapper.toResponse(recipe);
+  }
+
+  public RecipeDetailResponse getRecipeDetail(Long id) {
+    Recipe recipe = recipeRepository.findByIdAndIsDeletedFalse(id)
+      .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.RECIPE_NOT_FOUND));
+    RecipeDetailResponse recipeResponse = recipeMapper.toDetailResponse(recipe);
+
+    UserInfo userInfo = iamClient.getUserInfo(recipe.getAuthorId()).getData();
+    recipeResponse.setUserId(userInfo.getId());
+    recipeResponse.setUsername(userInfo.getUsername());
+    recipeResponse.setEmail(userInfo.getEmail());
+    recipeResponse.setAvatarUrl(userInfo.getAvatarUrl());
+
+    return recipeResponse;
   }
 
   @Transactional
