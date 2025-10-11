@@ -19,6 +19,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         registry.addEndpoint("/ws")
                 .setAllowedOriginPatterns("*") // Cho phép mọi domain connect (có thể set cụ thể)
                 .addInterceptors(webSocketAuthInterceptor)
+                .setHandshakeHandler(new CustomHandshakeHandler())
                 .withSockJS(); // Hỗ trợ fallback SockJS (trường hợp trình duyệt ko hỗ trợ WS)
     }
 
