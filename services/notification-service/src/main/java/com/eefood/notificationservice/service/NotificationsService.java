@@ -57,7 +57,7 @@ public class NotificationsService {
 
             if (settingOpt.isPresent() && !settingOpt.get().isEnabled()) {
                 log.info("User {} disabled notification type {}", userId, request.getType());
-                throw ExceptionUtil.forbidden(ErrorMessage.NOTIFICATION_DISABLE_TYPE);
+                return;
             }
         }
 
