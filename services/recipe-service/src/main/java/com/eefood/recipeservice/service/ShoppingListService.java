@@ -111,6 +111,7 @@ public class ShoppingListService {
             .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.SHOPPING_ITEM_NOT_FOUND));
     item.setIsDeleted(true);
     item.getIngredients().forEach(i -> i.setIsDeleted(true));
+    itemRepo.save(item);
   }
 
   // Thay đổi khẩu phần (update số lượng nguyên liệu theo servings mới)
