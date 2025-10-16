@@ -28,6 +28,6 @@ public interface CollectionMapper {
           .imageUrl(post.getImageUrl())
           .build();
       })
-      .collect(Collectors.toList());
+      .toList();
   }
 }
