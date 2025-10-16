@@ -1,24 +1,22 @@
 package com.eefood.reactionservice.model;
-import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.experimental.SuperBuilder;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import jakarta.persistence.*;
+import lombok.*;
+import lombok.experimental.SuperBuilder;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
-@Table(name = "favorite")
+@Table(name = "collection")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @EntityListeners(AuditingEntityListener.class)
 @SuperBuilder
-public class Favorite {
+public class Collection extends BaseEntity {
 
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -27,13 +25,11 @@ public class Favorite {
   @Column(nullable = false)
   private Long userId;
 
-  private String tag;
+  @Column(nullable = false)
+  private String name; // tên danh mục, ví dụ "Món yêu thích", "Healthy"
 
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "post_id", nullable = false)
-  private Post post;
+  private String coverImageUrl;
 
-  @CreatedDate
-  @Column(name = "created_at", nullable = false, updatable = false)
-  private LocalDateTime createdAt;
+  @OneToMany(mappedBy = "collection", cascade = CascadeType.ALL, orphanRemoval = true)
+  private List<CollectionPost> collectionPosts = new ArrayList<>();
 }
