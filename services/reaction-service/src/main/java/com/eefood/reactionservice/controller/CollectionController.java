@@ -1,6 +1,4 @@
 package com.eefood.reactionservice.controller;
-
-
 import com.eefood.reactionservice.dto.response.CollectionResponse;
 import com.eefood.reactionservice.dto.response.ResponseData;
 import com.eefood.reactionservice.service.CollectionService;
@@ -28,8 +26,8 @@ public class CollectionController {
   @PutMapping("/{id}")
   public ResponseData<CollectionResponse> update(
     @PathVariable Long id,
-    @RequestParam String name,
-    @RequestParam String coverImageUrl) {
+    @RequestParam(required = false) String name,
+    @RequestParam(required = false) String coverImageUrl) {
     return new ResponseData<>(HttpStatus.OK.value(), "Update Success", service.update(id, name, coverImageUrl));
   }
 
@@ -51,13 +49,15 @@ public class CollectionController {
   }
 
   @PostMapping("/{collectionId}/posts/{postId}")
-  public ResponseData<Void> addPost(@PathVariable Long collectionId, @PathVariable Long postId) {
+  public ResponseData<Void> addPost(@PathVariable Long collectionId,
+                                    @PathVariable Long postId) {
     service.addPost(collectionId, postId);
     return new ResponseData<>(HttpStatus.OK.value(), "Add Post Success");
   }
 
   @DeleteMapping("/{collectionId}/posts/{postId}")
-  public ResponseData<Void> removePost(@PathVariable Long collectionId, @PathVariable Long postId) {
+  public ResponseData<Void> removePost(@PathVariable Long collectionId,
+                                       @PathVariable Long postId) {
     service.removePost(collectionId, postId);
     return new ResponseData<>(HttpStatus.OK.value(), "Remove Post Success");
   }

@@ -9,4 +9,6 @@ import java.util.List;
 @Repository
 public interface CollectionRepository extends JpaRepository<Collection, Long> {
   List<Collection> findAllByUserIdAndIsDeletedFalse(Long userId);
+  boolean existsByUserIdAndNameIgnoreCaseAndIsDeletedFalse(Long userId, String name);
+
 }

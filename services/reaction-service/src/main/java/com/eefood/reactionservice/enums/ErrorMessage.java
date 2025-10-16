@@ -71,6 +71,8 @@ public enum ErrorMessage {
   //post - collection
   COLLECTION_NOT_FOUND("Collection not found"),
   ALREADY_EXISTS("Post already exists in collection"),
+  DUPLICATE_COLLECTION_NAME("Collection name already exists for this user"),
+  ALREADY_DELETED("Already deleted"),
   INVALID_REQUEST("Invalid request data");
 
 
