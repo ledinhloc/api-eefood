@@ -29,7 +29,22 @@ VALUES
     (NOW(), NOW(), 'tuananh', 'tuananh', false, 10, NULL, 'Bánh cuốn này ăn với nước mắm tỏi ớt là chuẩn.', 9),
     (NOW(), NOW(), 'minhtri', 'minhtri', false, 6, NULL, 'Chả giò vàng đều đẹp ghê.', 6),
     (NOW(), NOW(), 'kimthao', 'kimthao', false, 9, NULL, 'Cơm tấm lúc nào cũng ngon.', 2);
+-- =============================
+-- Bảng comment image
+-- =============================
+INSERT INTO comment_images (comment_id, image_url)
+VALUES
+    (1, 'https://cdn.example.com/comments/1/img1.jpg'),
+    (1, 'https://cdn.example.com/comments/1/img2.jpg'),
+    (3, 'https://cdn.example.com/comments/3/img1.jpg');
 
+-- =============================
+--  Bảng comment_videos
+-- =============================
+INSERT INTO comment_videos (comment_id, video_url)
+VALUES
+    (2, 'https://cdn.example.com/comments/2/video1.mp4'),
+    (5, 'https://cdn.example.com/comments/5/video1.mp4');
 -- =============================
 --  Bảng comment_reaction
 -- =============================

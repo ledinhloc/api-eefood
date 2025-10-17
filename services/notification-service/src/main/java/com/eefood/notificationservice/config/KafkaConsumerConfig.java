@@ -2,6 +2,8 @@ package com.eefood.notificationservice.config;
 
 import java.util.HashMap;
 import java.util.Map;
+
+import com.eefood.notificationservice.dto.request.NotificationRequest;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,8 +21,8 @@ public class KafkaConsumerConfig {
   private String bootstrapServers;
 
   @Bean
-  public ConsumerFactory<String, Object> consumerFactory() {
-    JsonDeserializer<Object> deserializer = new JsonDeserializer<>(Object.class);
+  public ConsumerFactory<String, NotificationRequest> consumerFactory() {
+    JsonDeserializer<NotificationRequest> deserializer = new JsonDeserializer<>(NotificationRequest.class);
     deserializer.addTrustedPackages("*");
     deserializer.ignoreTypeHeaders(); // bỏ qua __TypeId__ từ producer
 
@@ -34,8 +36,8 @@ public class KafkaConsumerConfig {
   }
 
   @Bean
-  public ConcurrentKafkaListenerContainerFactory<String, Object> kafkaListenerContainerFactory() {
-    ConcurrentKafkaListenerContainerFactory<String, Object> factory =
+  public ConcurrentKafkaListenerContainerFactory<String, NotificationRequest> kafkaListenerContainerFactory() {
+    ConcurrentKafkaListenerContainerFactory<String, NotificationRequest> factory =
         new ConcurrentKafkaListenerContainerFactory<>();
     factory.setConsumerFactory(consumerFactory());
     return factory;
