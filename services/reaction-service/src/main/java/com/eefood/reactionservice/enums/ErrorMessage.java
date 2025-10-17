@@ -66,7 +66,10 @@ public enum ErrorMessage {
   SHOPPING_ITEM_MORE("Expected 1 ShoppingItem but found more than one item"),
 
   //post
-  POST_NOT_FOUND("Post not found");
+  POST_NOT_FOUND("Post not found"),
+  //Comment
+  LIMIT_REPLIES("Replies are limited to 3 levels"),
+  PARENT_COMMENT_NOT_FOUND("Parent comment not found");
 
 
   private final String message;

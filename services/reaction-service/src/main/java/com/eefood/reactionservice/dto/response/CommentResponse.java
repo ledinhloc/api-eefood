@@ -16,8 +16,16 @@ import java.util.Map;
 public class CommentResponse {
   private Long id;
   private Long userId;
+  private Long parentId;
   private String content;
   private LocalDateTime createdAt;
   private List<CommentResponse> replies;
   private Map<String, Long> reactionCounts;
+  private Integer replyCount;
+  private List<String> images;
+  private List<String> videos;
+
+  private String username;
+  private String email;
+  private String avatarUrl;
 }
