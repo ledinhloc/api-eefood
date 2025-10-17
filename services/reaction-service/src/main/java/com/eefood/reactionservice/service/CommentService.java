@@ -11,6 +11,7 @@ import com.eefood.reactionservice.model.Post;
 import com.eefood.reactionservice.repository.CommentRepository;
 import com.eefood.reactionservice.repository.PostRepository;
 import com.eefood.reactionservice.repository.httpclient.IamClient;
+import com.eefood.reactionservice.util.NotificationUtils;
 import com.eefood.reactionservice.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -32,6 +33,7 @@ public class CommentService {
     private final CommentMapper commentMapper;
     private final IamClient iamClient;
     private final SecurityUtil securityUtil;
+    private final NotificationUtils notificationUtils;
 
     // Hàm tạo comment
     @Transactional
@@ -71,6 +73,18 @@ public class CommentService {
         resp.setUsername(userInfo.getUsername());
         resp.setEmail(userInfo.getEmail());
         resp.setAvatarUrl(userInfo.getAvatarUrl());
+
+        if (!currentUserId.equals(post.getUserId())) {
+            notificationUtils.sendCommentNotification(
+                    post.getUserId(),
+                    userInfo.getUsername(),
+                    resp.getContent(),
+                    userInfo.getAvatarUrl(),
+                    "/posts/" + post.getId(),
+                    post.getImageUrl()
+            );
+        }
+
         return resp;
     }
 

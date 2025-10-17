@@ -231,204 +231,90 @@
 						}
 					},
 					"response": []
+				},
+				{
+					"name": "getUserInfo",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseurl}}/api/v1/users/1",
+							"host": [
+								"{{baseurl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"users",
+								"1"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "getUserInfoBatch",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseurl}}/api/v1/users/batch",
+							"host": [
+								"{{baseurl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"users",
+								"batch"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "deleteCacheUserInfo",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseurl}}/api/v1/users/cache-user-info",
+							"host": [
+								"{{baseurl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"users",
+								"cache-user-info"
+							]
+						}
+					},
+					"response": []
 				}
 			]
 		},
 		{
 			"name": "auth",
 			"item": [
-				{
-					"name": "login",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Parse the JSON response body\r",
-									"var jsonData = pm.response.json();\r",
-									"\r",
-									"// Set the access_token in the environment variable if it exists\r",
-									"if (jsonData.access_token) {\r",
-									"    pm.environment.set(\"access_token\", jsonData.access_token);\r",
-									"}"
-								],
-								"type": "text/javascript",
-								"packages": {},
-								"requests": {}
-							}
-						},
-						{
-							"listen": "prerequest",
-							"script": {
-								"exec": [
-									""
-								],
-								"type": "text/javascript",
-								"packages": {},
-								"requests": {}
-							}
-						}
-					],
-					"request": {
-						"auth": {
-							"type": "noauth"
-						},
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "urlencoded",
-							"urlencoded": [
-								{
-									"key": "grant_type",
-									"value": "password",
-									"type": "text"
-								},
-								{
-									"key": "client_id",
-									"value": "client_backend",
-									"type": "text"
-								},
-								{
-									"key": "client_secret",
-									"value": "cwWQrCIoC3UU7oGp7HUVIeDjQF3alz5B",
-									"type": "text"
-								},
-								{
-									"key": "username",
-									"value": "anhkhoadevtool21@gmail.com",
-									"type": "text"
-								},
-								{
-									"key": "password",
-									"value": "12341234",
-									"type": "text"
-								},
-								{
-									"key": "scope",
-									"value": "openid",
-									"type": "text",
-									"disabled": true
-								},
-								{
-									"key": "email",
-									"value": "loc@gmail.com",
-									"type": "text",
-									"disabled": true
-								}
-							]
-						},
-						"url": {
-							"raw": "{{baseurl}}/auth/realms/eefood-realm/protocol/openid-connect/token",
-							"host": [
-								"{{baseurl}}"
-							],
-							"path": [
-								"auth",
-								"realms",
-								"eefood-realm",
-								"protocol",
-								"openid-connect",
-								"token"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "login Copy",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Parse the JSON response body\r",
-									"var jsonData = pm.response.json();\r",
-									"\r",
-									"// Set the access_token in the environment variable if it exists\r",
-									"if (jsonData.access_token) {\r",
-									"    pm.environment.set(\"access_token\", jsonData.access_token);\r",
-									"}"
-								],
-								"type": "text/javascript",
-								"packages": {}
-							}
-						},
-						{
-							"listen": "prerequest",
-							"script": {
-								"exec": [
-									""
-								],
-								"type": "text/javascript",
-								"packages": {}
-							}
-						}
-					],
-					"request": {
-						"auth": {
-							"type": "noauth"
-						},
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "urlencoded",
-							"urlencoded": [
-								{
-									"key": "grant_type",
-									"value": "password",
-									"type": "text"
-								},
-								{
-									"key": "client_id",
-									"value": "client_backend",
-									"type": "text"
-								},
-								{
-									"key": "client_secret",
-									"value": "MCKrWc2Ru5WE1TQodq0EKxliT5xe0wqD",
-									"type": "text"
-								},
-								{
-									"key": "username",
-									"value": "anhkhoaxn11@gmail.com",
-									"type": "text"
-								},
-								{
-									"key": "password",
-									"value": "12341234",
-									"type": "text"
-								},
-								{
-									"key": "scope",
-									"value": "openid",
-									"type": "text",
-									"disabled": true
-								},
-								{
-									"key": "email",
-									"value": "loc@gmail.com",
-									"type": "text",
-									"disabled": true
-								}
-							]
-						},
-						"url": {
-							"raw": "{{baseurl}}/auth/realms/eefood-realm/protocol/openid-connect/token",
-							"host": [
-								"{{baseurl}}"
-							],
-							"path": [
-								"auth",
-								"realms",
-								"eefood-realm",
-								"protocol",
-								"openid-connect",
-								"token"
-							]
-						}
-					},
-					"response": []
-				},
 				{
 					"name": "register user",
 					"request": {
@@ -575,6 +461,192 @@
 						}
 					},
 					"response": []
+				},
+				{
+					"name": "Refresh token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Parse the JSON response body\r",
+									"var jsonData = pm.response.json();\r",
+									"\r",
+									"// Set the access_token in the environment variable if it exists\r",
+									"if (jsonData.access_token) {\r",
+									"    pm.environment.set(\"access_token\", jsonData.access_token);\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"refreshToken\": \"eyJhbGciOiJIUzUxMiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICI3NTNiYzVjMy1iYWM4LTRkNGUtOGQ0Yy02MmY1ZGI1YWViODYifQ.eyJleHAiOjE3NTc1MDY4ODQsImlhdCI6MTc1NzUwNTA4NCwianRpIjoiYzVmZjU5YTAtMTFiMS0zM2ZkLTI5ZDQtYzNhM2UzNTU0M2Y4IiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDo5MDk4L3JlYWxtcy9lZWZvb2QtcmVhbG0iLCJhdWQiOiJodHRwOi8vbG9jYWxob3N0OjkwOTgvcmVhbG1zL2VlZm9vZC1yZWFsbSIsInN1YiI6ImM0ZjNmN2JmLWM0ZmItNDQxZS05NDI1LTk2MjViOWU4YjU5NiIsInR5cCI6IlJlZnJlc2giLCJhenAiOiJjbGllbnRfYmFja2VuZCIsInNpZCI6ImVlMTNmYTNmLTE2OGYtNGM1ZC05N2E0LTAxMTMwYTdjM2Q5MyIsInNjb3BlIjoic2VydmljZV9hY2NvdW50IHByb2ZpbGUgYWNyIHdlYi1vcmlnaW5zIGVtYWlsIHJvbGVzIGJhc2ljIn0.nmzvMBxxYu6PaUp7kzJFXdsnebm920a57GG3yWnLRLbk95lvtyRKu5QwH5TznkMDmzGBjHmLIN-tlV0yhf6KLw\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseurl}}/api/v1/auth/refresh",
+							"host": [
+								"{{baseurl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"refresh"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "login app",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Parse the JSON response body\r",
+									"var jsonData = pm.response.json();\r",
+									"\r",
+									"// Set the access_token in the environment variable if it exists\r",
+									"if (jsonData.data.accessToken) {\r",
+									"    pm.environment.set(\"access_token\", jsonData.data.accessToken);\r",
+									"}\r",
+									"\r",
+									"if (jsonData.data.refreshToken) {\r",
+									"    pm.environment.set(\"refresh_token\", jsonData.data.refreshToken);\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {},
+								"requests": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"email\": \"ledinhloc7@gmail.com\",\r\n    \"password\": \"12345678\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseurl}}/api/v1/auth/login",
+							"host": [
+								"{{baseurl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "logout app",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Parse the JSON response body\r",
+									"var jsonData = pm.response.json();\r",
+									"\r",
+									"// Set the access_token in the environment variable if it exists\r",
+									"if (jsonData.access_token) {\r",
+									"    pm.environment.set(\"access_token\", jsonData.access_token);\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"refreshToken\": \"eyJhbGciOiJIUzUxMiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICI3NTNiYzVjMy1iYWM4LTRkNGUtOGQ0Yy02MmY1ZGI1YWViODYifQ.eyJleHAiOjE3NTc1MDY4ODQsImlhdCI6MTc1NzUwNTA4NCwianRpIjoiYzVmZjU5YTAtMTFiMS0zM2ZkLTI5ZDQtYzNhM2UzNTU0M2Y4IiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDo5MDk4L3JlYWxtcy9lZWZvb2QtcmVhbG0iLCJhdWQiOiJodHRwOi8vbG9jYWxob3N0OjkwOTgvcmVhbG1zL2VlZm9vZC1yZWFsbSIsInN1YiI6ImM0ZjNmN2JmLWM0ZmItNDQxZS05NDI1LTk2MjViOWU4YjU5NiIsInR5cCI6IlJlZnJlc2giLCJhenAiOiJjbGllbnRfYmFja2VuZCIsInNpZCI6ImVlMTNmYTNmLTE2OGYtNGM1ZC05N2E0LTAxMTMwYTdjM2Q5MyIsInNjb3BlIjoic2VydmljZV9hY2NvdW50IHByb2ZpbGUgYWNyIHdlYi1vcmlnaW5zIGVtYWlsIHJvbGVzIGJhc2ljIn0.nmzvMBxxYu6PaUp7kzJFXdsnebm920a57GG3yWnLRLbk95lvtyRKu5QwH5TznkMDmzGBjHmLIN-tlV0yhf6KLw\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseurl}}/api/v1/auth/logout",
+							"host": [
+								"{{baseurl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"logout"
+							]
+						}
+					},
+					"response": []
 				}
 			]
 		},
@@ -598,6 +670,26 @@
 					"response": []
 				},
 				{
+					"name": "get recipe by id",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseurl}}/api/v1/recipes/5",
+							"host": [
+								"{{baseurl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"recipes",
+								"5"
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "get ingredient",
 					"request": {
 						"method": "GET",
@@ -617,10 +709,87 @@
 					"response": []
 				},
 				{
+					"name": "get recipe detail",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseurl}}/api/v1/recipes/detail/5",
+							"host": [
+								"{{baseurl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"recipes",
+								"detail",
+								"5"
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "create recipe",
 					"request": {
 						"method": "POST",
 						"header": []
+					},
+					"response": []
+				},
+				{
+					"name": "search recipe",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseurl}}/api/v1/recipes",
+							"host": [
+								"{{baseurl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"recipes"
+							],
+							"query": [
+								{
+									"key": "title",
+									"value": "Gỏi",
+									"disabled": true
+								},
+								{
+									"key": "description",
+									"value": "Bánh",
+									"disabled": true
+								},
+								{
+									"key": "region",
+									"value": "Hà Nội",
+									"disabled": true
+								},
+								{
+									"key": "difficulty",
+									"value": "MEDIUM",
+									"disabled": true
+								},
+								{
+									"key": "categoryId",
+									"value": "6",
+									"disabled": true
+								},
+								{
+									"key": "page",
+									"value": "1",
+									"disabled": true
+								},
+								{
+									"key": "size",
+									"value": "4",
+									"disabled": true
+								}
+							]
+						}
 					},
 					"response": []
 				},
@@ -733,7 +902,7 @@
 						"header": [],
 						"body": {
 							"mode": "raw",
-							"raw": "{\r\n    \"title\":\"Cập nhật phần mềm\",\r\n    \"body\":\"Phần mềm đã có bản cập nhật mới. Hãy cập nhật!!!\",\r\n    \"path\":\"/update\",\r\n    \"avatarUrl\":\"\",\r\n    \"postImageUrl\":\"\",\r\n    \"type\":\"SYSTEM\",\r\n    \"userId\":\"\"\r\n}",
+							"raw": "{\r\n    \"title\":\"Bày tỏ cảm xúc\",\r\n    \"body\":\"Khoa đã thả haha bài viết của bạn\",\r\n    \"path\":\"/post\",\r\n    \"avatarUrl\":\"https://thumbs.dreamstime.com/b/modern-circle-avatar-modern-circle-avatar-character-face-head-portrait-cool-creative-user-profiles-flat-graphic-vector-300714146.jpg\",\r\n    \"postImageUrl\":\"https://tse3.mm.bing.net/th/id/OIP.GP5m218V_kxw3KiVOKyfWAHaEK?pid=Api&P=0&h=220\",\r\n    \"type\":\"REACTION\",\r\n    \"userId\":\"23\"\r\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -1131,7 +1300,482 @@
 		},
 		{
 			"name": "post",
-			"item": []
+			"item": [
+				{
+					"name": "search post",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseurl}}/api/v1/posts?size=5",
+							"host": [
+								"{{baseurl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"posts"
+							],
+							"query": [
+								{
+									"key": "title",
+									"value": "Gỏi",
+									"disabled": true
+								},
+								{
+									"key": "userId",
+									"value": "Bánh",
+									"disabled": true
+								},
+								{
+									"key": "page",
+									"value": "1",
+									"disabled": true
+								},
+								{
+									"key": "size",
+									"value": "5"
+								},
+								{
+									"key": "sortBy",
+									"value": "",
+									"disabled": true
+								},
+								{
+									"key": "sortDirection",
+									"value": "",
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get by id",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseurl}}/api/v1/posts/1",
+							"host": [
+								"{{baseurl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"posts",
+								"1"
+							],
+							"query": [
+								{
+									"key": "title",
+									"value": "Gỏi",
+									"disabled": true
+								},
+								{
+									"key": "userId",
+									"value": "Bánh",
+									"disabled": true
+								},
+								{
+									"key": "page",
+									"value": "1",
+									"disabled": true
+								},
+								{
+									"key": "size",
+									"value": "4",
+									"disabled": true
+								},
+								{
+									"key": "sortBy",
+									"value": null,
+									"disabled": true
+								},
+								{
+									"key": "sortDirection",
+									"value": null,
+									"disabled": true
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "keycloak",
+			"item": [
+				{
+					"name": "Refresh token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Parse the JSON response body\r",
+									"var jsonData = pm.response.json();\r",
+									"\r",
+									"// Set the access_token in the environment variable if it exists\r",
+									"if (jsonData.access_token) {\r",
+									"    pm.environment.set(\"access_token\", jsonData.access_token);\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "grant_type",
+									"value": "refresh_token",
+									"type": "text"
+								},
+								{
+									"key": "client_id",
+									"value": "client_backend",
+									"type": "text"
+								},
+								{
+									"key": "client_secret",
+									"value": "TurN2PytrHC3zQJtLgKQ9jBONAY6Km7m",
+									"type": "text"
+								},
+								{
+									"key": "refresh_token",
+									"value": "{{refresh_token\n}}",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:9098/realms/eefood-realm/protocol/openid-connect/token",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "9098",
+							"path": [
+								"realms",
+								"eefood-realm",
+								"protocol",
+								"openid-connect",
+								"token"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "logout",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Parse the JSON response body\r",
+									"var jsonData = pm.response.json();\r",
+									"\r",
+									"// Set the access_token in the environment variable if it exists\r",
+									"if (jsonData.access_token) {\r",
+									"    pm.environment.set(\"access_token\", jsonData.access_token);\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "grant_type",
+									"value": "password",
+									"type": "text",
+									"disabled": true
+								},
+								{
+									"key": "client_id",
+									"value": "client_backend",
+									"type": "text"
+								},
+								{
+									"key": "client_secret",
+									"value": "TurN2PytrHC3zQJtLgKQ9jBONAY6Km7m",
+									"type": "text"
+								},
+								{
+									"key": "username",
+									"value": "admin1@gmail.com",
+									"type": "text",
+									"disabled": true
+								},
+								{
+									"key": "password",
+									"value": "12345678",
+									"type": "text",
+									"disabled": true
+								},
+								{
+									"key": "scope",
+									"value": "openid",
+									"type": "text",
+									"disabled": true
+								},
+								{
+									"key": "refresh_token",
+									"value": "eyJhbGciOiJIUzUxMiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICI3NTNiYzVjMy1iYWM4LTRkNGUtOGQ0Yy02MmY1ZGI1YWViODYifQ.eyJleHAiOjE3NTY4MTE1MjQsImlhdCI6MTc1NjgwOTcyNCwianRpIjoiZjZhZWE1ZDctYzFjMC0xZjU2LWRhNjQtYzdiZDRiNjE1ZjJiIiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDo5MDk4L3JlYWxtcy9lZWZvb2QtcmVhbG0iLCJhdWQiOiJodHRwOi8vbG9jYWxob3N0OjkwOTgvcmVhbG1zL2VlZm9vZC1yZWFsbSIsInN1YiI6ImM0ZjNmN2JmLWM0ZmItNDQxZS05NDI1LTk2MjViOWU4YjU5NiIsInR5cCI6IlJlZnJlc2giLCJhenAiOiJjbGllbnRfYmFja2VuZCIsInNpZCI6IjkxZDZiNmNkLTNkZDgtNGYzYS04NGU2LWRkMjdlYmI1ZTc5NiIsInNjb3BlIjoic2VydmljZV9hY2NvdW50IHByb2ZpbGUgYWNyIHdlYi1vcmlnaW5zIGVtYWlsIHJvbGVzIGJhc2ljIn0.Q-H3V4j8j0eiSPPvVsauLudp_u6-zAmeUdx8k5vUpNFl9apaNvk5PGxNC1vTt0fUvUVH5azJmlb8z6PkTB3oAg",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "http://localhost:9098/realms/eefood-realm/protocol/openid-connect/logout",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "9098",
+							"path": [
+								"realms",
+								"eefood-realm",
+								"protocol",
+								"openid-connect",
+								"logout"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Parse the JSON response body\r",
+									"var jsonData = pm.response.json();\r",
+									"\r",
+									"// Set the access_token in the environment variable if it exists\r",
+									"if (jsonData.access_token) {\r",
+									"    pm.environment.set(\"access_token\", jsonData.access_token);\r",
+									"}"
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									""
+								],
+								"type": "text/javascript",
+								"packages": {}
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{
+									"key": "grant_type",
+									"value": "password",
+									"type": "text"
+								},
+								{
+									"key": "client_id",
+									"value": "client_backend",
+									"type": "text"
+								},
+								{
+									"key": "client_secret",
+									"value": "TurN2PytrHC3zQJtLgKQ9jBONAY6Km7m",
+									"type": "text"
+								},
+								{
+									"key": "username",
+									"value": "akhoa2109@gmail.com",
+									"type": "text"
+								},
+								{
+									"key": "password",
+									"value": "12345678",
+									"type": "text"
+								},
+								{
+									"key": "scope",
+									"value": "openid",
+									"type": "text",
+									"disabled": true
+								},
+								{
+									"key": "email",
+									"value": "loc@gmail.com",
+									"type": "text",
+									"disabled": true
+								}
+							]
+						},
+						"url": {
+							"raw": "{{baseurl}}/auth/realms/eefood-realm/protocol/openid-connect/token",
+							"host": [
+								"{{baseurl}}"
+							],
+							"path": [
+								"auth",
+								"realms",
+								"eefood-realm",
+								"protocol",
+								"openid-connect",
+								"token"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "comment",
+			"item": [
+				{
+					"name": "create comment",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"content\": \"Đỉnh đấy\",\r\n    \"parentId\": null,\r\n    \"postId\": 10,\r\n    \"images\": [],\r\n    \"videos\": []\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseurl}}/api/v1/comments",
+							"host": [
+								"{{baseurl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"comments"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get parent comment",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseurl}}/api/v1/comments/post/2?page=1&limit=5",
+							"host": [
+								"{{baseurl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"comments",
+								"post",
+								"2"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "5"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get reply comment",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseurl}}/api/v1/comments/1/replies?page=1&limit=5",
+							"host": [
+								"{{baseurl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"comments",
+								"1",
+								"replies"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "5"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
 		}
 	],
 	"auth": {
