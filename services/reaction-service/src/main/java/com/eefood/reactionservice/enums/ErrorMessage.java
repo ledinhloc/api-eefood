@@ -66,7 +66,14 @@ public enum ErrorMessage {
   SHOPPING_ITEM_MORE("Expected 1 ShoppingItem but found more than one item"),
 
   //post
-  POST_NOT_FOUND("Post not found");
+  POST_NOT_FOUND("Post not found"),
+
+  //post - collection
+  COLLECTION_NOT_FOUND("Collection not found"),
+  ALREADY_EXISTS("Post already exists in collection"),
+  DUPLICATE_COLLECTION_NAME("Collection name already exists for this user"),
+  ALREADY_DELETED("Already deleted"),
+  INVALID_REQUEST("Invalid request data");
 
 
   private final String message;
