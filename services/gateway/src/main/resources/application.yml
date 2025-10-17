@@ -67,6 +67,11 @@ spring:
               uri: lb://REACTION-SERVICE
               predicates:
                 - Path=/api/v1/post-reactions/**
+
+            - id: post-collection
+              uri: lb://REACTION-SERVICE
+              predicates:
+                - Path=/api/v1/collections/**
     bus:
       enabled: true
     stream:
