@@ -76,22 +76,6 @@ VALUES
     (8, 'LIKE', 1);
 
 -- =============================
--- Bảng favorite
--- =============================
-INSERT INTO favorite (user_id, tag, post_id, created_at)
-VALUES
-    (1, 'bún bò', 1, NOW()),
-    (2, 'phở', 3, NOW()),
-    (3, 'cơm tấm', 2, NOW()),
-    (4, 'bánh mì', 4, NOW()),
-    (5, 'chả giò', 6, NOW()),
-    (6, 'bánh xèo', 7, NOW()),
-    (7, 'cao lầu', 8, NOW()),
-    (8, 'xôi', 10, NOW()),
-    (9, 'bánh cuốn', 9, NOW()),
-    (10, 'gỏi cuốn', 5, NOW());
-
--- =============================
 -- Bảng post_reaction
 -- =============================
 INSERT INTO post_reaction (post_id, user_id, reaction_type, created_at)
@@ -123,7 +107,7 @@ VALUES
     (9, 'LIKE', 1);
 
 -- =============================
---  Bảng share
+-- Bảng share
 -- =============================
 INSERT INTO share (post_id, user_id, platform, created_at)
 VALUES
@@ -137,3 +121,35 @@ VALUES
     (8, 9, 'Facebook', NOW()),
     (9, 10, 'Instagram', NOW()),
     (10, 3, 'Zalo', NOW());
+
+-- =============================
+-- 10 collections cho user_id = 1
+-- =============================
+INSERT INTO collection (user_id, name, cover_image_url)
+VALUES
+    (1, 'Món yêu thích', 'https://cdn.monngonviet.vn/bunbohue.jpg'),
+    (1, 'Bữa sáng ngon', 'https://cdn.monngonviet.vn/banhmi.jpg'),
+    (1, 'Đồ ăn healthy', 'https://cdn.monngonviet.vn/goicuon.jpg'),
+    (1, 'Ẩm thực miền Trung', 'https://cdn.monngonviet.vn/banhxeo.jpg'),
+    (1, 'Ẩm thực miền Bắc', 'https://cdn.monngonviet.vn/phobo.jpg'),
+    (1, 'Ẩm thực miền Nam', 'https://cdn.monngonviet.vn/comtam.jpg'),
+    (1, 'Món nước yêu thích', 'https://cdn.monngonviet.vn/soixeo.jpg'),
+    (1, 'Món chay thanh đạm', 'https://cdn.monngonviet.vn/goicuon.jpg'),
+    (1, 'Tráng miệng nhẹ nhàng', 'https://cdn.monngonviet.vn/banhcuon.jpg'),
+    (1, 'Món ăn đặc sản', 'https://cdn.monngonviet.vn/caolau.jpg');
+
+-- Insert 6 posts into Collection 1
+INSERT INTO collection_post (collection_id, post_id, created_at) VALUES
+   (1, 1, NOW()),
+   (1, 2, NOW()),
+   (1, 3, NOW()),
+   (1, 4, NOW()),
+   (1, 5, NOW()),
+   (1, 6, NOW());
+
+-- Insert 6 posts into Collection 2
+INSERT INTO collection_post (collection_id, post_id, created_at) VALUES
+    (2, 7, NOW()),
+    (2, 8, NOW()),
+    (2, 9, NOW()),
+    (2, 10, NOW());
