@@ -156,6 +156,4 @@ public class CollectionService {
       throw ExceptionUtil.forbidden(ErrorMessage.ACCESS_DENIED);
     }
   }
-
-
 }
