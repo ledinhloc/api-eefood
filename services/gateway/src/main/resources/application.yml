@@ -67,7 +67,10 @@ spring:
               uri: lb://REACTION-SERVICE
               predicates:
                 - Path=/api/v1/post-reactions/**
-
+            - id: post-comment-service
+              uri: lb://REACTION-SERVICE
+              predicates:
+                - Path=/api/v1/comments/**
             - id: post-collection
               uri: lb://REACTION-SERVICE
               predicates:
