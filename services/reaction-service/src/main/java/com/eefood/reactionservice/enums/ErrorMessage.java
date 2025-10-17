@@ -71,6 +71,13 @@ public enum ErrorMessage {
   LIMIT_REPLIES("Replies are limited to 3 levels"),
   PARENT_COMMENT_NOT_FOUND("Parent comment not found");
 
+  //post - collection
+  COLLECTION_NOT_FOUND("Collection not found"),
+  ALREADY_EXISTS("Post already exists in collection"),
+  DUPLICATE_COLLECTION_NAME("Collection name already exists for this user"),
+  ALREADY_DELETED("Already deleted"),
+  INVALID_REQUEST("Invalid request data");
+
 
   private final String message;
 
