@@ -35,6 +35,41 @@ public class CommentService {
     private final SecurityUtil securityUtil;
     private final NotificationUtils notificationUtils;
 
+    @Transactional
+    public CommentResponse updateCommentContent(Long commentId, String newContent) {
+        Long userId = securityUtil.getCurrentUserId();
+
+        Comment comment = commentRepository.findByIdAndIsDeletedFalse(commentId)
+                .orElseThrow(() -> new RuntimeException("Comment not found or deleted"));
+
+        // Chỉ chủ sở hữu mới được chỉnh sửa
+        if (!comment.getUserId().equals(userId) && !securityUtil.hasRole("ADMIN")) {
+            throw new RuntimeException("Permission denied: Cannot edit others' comments");
+        }
+
+        // Không cho chỉnh sửa ảnh/video
+        comment.setContent(newContent);
+
+        Comment updatedComment = commentRepository.save(comment);
+        return commentMapper.toResponse(updatedComment);
+    }
+
+    @Transactional
+    public void softDeleteComment(Long commentId) {
+        Long userId = securityUtil.getCurrentUserId();
+
+        Comment comment = commentRepository.findByIdAndIsDeletedFalse(commentId)
+                .orElseThrow(() -> new RuntimeException("Comment not found or deleted"));
+
+        // Chỉ chủ sở hữu hoặc admin mới được xóa
+        if (!comment.getUserId().equals(userId) && !securityUtil.hasRole("ADMIN")) {
+            throw new RuntimeException("Permission denied: Cannot delete others' comments");
+        }
+
+        comment.setIsDeleted(true);
+        commentRepository.save(comment);
+    }
+
     // Hàm tạo comment
     @Transactional
     public CommentResponse addComment(CommentRequest request) {
