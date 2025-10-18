@@ -29,8 +29,7 @@ public class PostReactionService {
 
 
   public PostReactionResponse reactToPost(PostReactionRequest request, Long userId) {
-    Long reactorId = securityUtil.getCurrentUserId();
-    UserInfo userInfo = iamClient.getUserInfo(reactorId).getData();
+    UserInfo userInfo = iamClient.getUserInfo(userId).getData();
     Post post =
         postRepository
             .findById(request.getPostId())
@@ -53,6 +52,7 @@ public class PostReactionService {
                   userInfo.getUsername(),
                   exitingReaction.getReactionType(),
                   userInfo.getAvatarUrl(),
+                  true,
                   "/posts/" + post.getId(),
                   post.getImageUrl());
         }
@@ -74,6 +74,7 @@ public class PostReactionService {
               userInfo.getUsername(),
               exitingReaction.getReactionType(),
               userInfo.getAvatarUrl(),
+              true,
               "/posts/" + post.getId(),
               post.getImageUrl());
     }

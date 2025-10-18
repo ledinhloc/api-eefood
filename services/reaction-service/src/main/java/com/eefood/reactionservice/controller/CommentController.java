@@ -12,11 +12,29 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/v1/comments")
 @RequiredArgsConstructor
 public class CommentController {
     private final CommentService commentService;
+
+    @PutMapping("/{commentId}")
+    public ResponseData<CommentResponse> updateComment(
+            @PathVariable Long commentId,
+            @RequestBody Map<String, String> body) {
+
+        String newContent = body.get("content");
+        CommentResponse updated = commentService.updateCommentContent(commentId, newContent);
+        return new ResponseData<>(HttpStatus.OK.value(), "Comment updated successfully", updated);
+    }
+
+    @DeleteMapping("/{commentId}")
+    public ResponseData<Void> deleteComment(@PathVariable Long commentId) {
+        commentService.softDeleteComment(commentId);
+        return new ResponseData<>(HttpStatus.OK.value(), "Comment deleted successfully");
+    }
 
     @PostMapping("")
     public ResponseData<CommentResponse> createComment(@RequestBody CommentRequest commentRequest) {
