@@ -1,6 +1,8 @@
 package com.eefood.reactionservice.service;
 
 import com.eefood.reactionservice.dto.response.CollectionResponse;
+import com.eefood.reactionservice.dto.response.ResponseData;
+import com.eefood.reactionservice.dto.response.UserInfo;
 import com.eefood.reactionservice.enums.ErrorMessage;
 import com.eefood.reactionservice.exception.ExceptionUtil;
 import com.eefood.reactionservice.model.Collection;
@@ -9,13 +11,15 @@ import com.eefood.reactionservice.model.Post;
 import com.eefood.reactionservice.repository.CollectionPostRepository;
 import com.eefood.reactionservice.repository.CollectionRepository;
 import com.eefood.reactionservice.repository.PostRepository;
+import com.eefood.reactionservice.repository.httpclient.IamClient;
 import com.eefood.reactionservice.util.SecurityUtil;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
+import java.util.stream.Collectors;
+import com.eefood.reactionservice.dto.response.PostCollectionResponse;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +30,7 @@ public class CollectionService {
   private final PostRepository postRepo;
   private final CollectionMapper mapper;
   private final SecurityUtil securityUtil;
+  private final IamClient iamClient;
 
   public CollectionResponse  create(Long userId, String name){
     if (userId == null || name == null || name.isBlank()) {
@@ -88,18 +93,108 @@ public class CollectionService {
   public List<CollectionResponse> getByUser(Long userId) {
     if (userId == null) throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
     List<Collection> collections = collectionRepo.findAllByUserIdAndIsDeletedFalse(userId);
-    return collections.stream()
+    if (collections.isEmpty()) return List.of();
+
+    //mapper sang dto
+    List<CollectionResponse> responses = collections.stream()
       .map(mapper::toDto)
       .toList();
+
+    // SẮP XẾP CÁC POST TRONG MỖI COLLECTION
+    for (CollectionResponse col : responses) {
+      if (col.getPosts() != null) {
+        col.getPosts().sort((a, b) -> {
+          // Ưu tiên createdAt (mới nhất trước)
+          int cmp = b.getCreatedAt().compareTo(a.getCreatedAt());
+          if (cmp != 0) return cmp;
+          // Nếu trùng -> sắp theo title (A-Z)
+          String t1 = Optional.ofNullable(a.getTitle()).orElse("");
+          String t2 = Optional.ofNullable(b.getTitle()).orElse("");
+          return t1.compareToIgnoreCase(t2);
+        });
+      }
+    }
+
+    // sort theo thoi gian cap nhat
+    responses.sort((a, b) -> b.getUpdatedAt().compareTo(a.getUpdatedAt()));
+
+    //lay danh sach userId trong post
+    Set<Long> userIds = responses.stream()
+      .flatMap(c -> c.getPosts().stream())
+      .map(PostCollectionResponse::getUserId)
+      .filter(Objects::nonNull)
+      .collect(Collectors.toSet());
+
+    if (userIds.isEmpty()) return responses;
+    //gọi iam lay thong tin user
+    ResponseData<List<UserInfo>> iamResponse = iamClient.getUserInfoBatch(new ArrayList<>(userIds));
+    if (iamResponse == null || iamResponse.getData() == null)
+      return responses;
+
+    //map user theo Id
+    Map<Long, UserInfo> userInfoMap = iamResponse.getData().stream()
+      .collect(Collectors.toMap(UserInfo::getId, u -> u));
+
+    //merge thong tin user vao response
+    for (CollectionResponse col : responses) {
+      for (PostCollectionResponse post : col.getPosts()) {
+        UserInfo info = userInfoMap.get(post.getUserId());
+        if (info != null) {
+          post.setUsername(info.getUsername());
+          post.setEmail(info.getEmail());
+          post.setAvatarUrl(info.getAvatarUrl());
+        }
+      }
+    }
+
+    return responses;
   }
 
   /** Get single collection by ID */
   public CollectionResponse getById(Long id){
-    Collection collection = collectionRepo.findById(id)
+    if (id == null)
+      throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
+    //tim collection
+    Collection collection = collectionRepo.findByIdAndIsDeletedFalse(id)
       .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.COLLECTION_NOT_FOUND));
 
     validateOwner(collection);
-    return mapper.toDto(collection);
+    CollectionResponse response = mapper.toDto(collection);
+    //Nếu collection không có post thì return luôn
+    if (response.getPosts() == null || response.getPosts().isEmpty()) {
+      return response;
+    }
+    // Lấy danh sách userId trong các bài post
+    Set<Long> userIds = response.getPosts().stream()
+      .map(PostCollectionResponse::getUserId)
+      .filter(Objects::nonNull)
+      .collect(Collectors.toSet());
+
+    if (userIds.isEmpty()) {
+      return response;
+    }
+    //Gọi IAM để lấy thông tin user
+    ResponseData<List<UserInfo>> iamResponse =
+      iamClient.getUserInfoBatch(new ArrayList<>(userIds));
+
+    if (iamResponse == null || iamResponse.getData() == null) {
+      return response;
+    }
+    // Map userId → UserInfo
+    Map<Long, UserInfo> userInfoMap = iamResponse.getData().stream()
+      .collect(Collectors.toMap(UserInfo::getId, u -> u));
+
+    // Merge thông tin user vào từng post
+    for (PostCollectionResponse post : response.getPosts()) {
+      UserInfo info = userInfoMap.get(post.getUserId());
+      if (info != null) {
+        post.setUsername(info.getUsername());
+        post.setEmail(info.getEmail());
+        post.setAvatarUrl(info.getAvatarUrl());
+      }
+    }
+
+    return response;
   }
 
   public void addPost(Long collectionId, Long postId){
@@ -132,7 +227,7 @@ public class CollectionService {
    * => Nếu không còn post, cover = null.
    */
   public void removePost(Long collectionId, Long postId) {
-    Collection collection = collectionRepo.findById(collectionId)
+    Collection collection = collectionRepo.findByIdAndIsDeletedFalse(collectionId)
       .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.COLLECTION_NOT_FOUND));
     validateOwner(collection);
 
