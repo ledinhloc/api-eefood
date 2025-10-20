@@ -8,7 +8,6 @@ import com.eefood.reactionservice.model.*;
 import com.eefood.reactionservice.repository.CommentReactionCountRepository;
 import com.eefood.reactionservice.repository.CommentReactionRepository;
 import com.eefood.reactionservice.repository.CommentRepository;
-import com.eefood.reactionservice.repository.PostRepository;
 import com.eefood.reactionservice.repository.httpclient.IamClient;
 import com.eefood.reactionservice.util.NotificationUtils;
 import com.eefood.reactionservice.util.SecurityUtil;
@@ -62,7 +61,7 @@ public class CommentReactionService {
             // Gửi notification (không gửi cho chính mình)
             if (!userId.equals(comment.getUserId())) {
                 notificationUtils.sendReactionNotification(
-                        userId,
+                        comment.getUserId(),
                         userInfo.getUsername(),
                         request.getReactionType(),
                         userInfo.getAvatarUrl(),
@@ -86,7 +85,7 @@ public class CommentReactionService {
 
         if (!userId.equals(comment.getUserId())) {
             notificationUtils.sendReactionNotification(
-                    userId,
+                    comment.getUserId(),
                     userInfo.getUsername(),
                     request.getReactionType(),
                     userInfo.getAvatarUrl(),

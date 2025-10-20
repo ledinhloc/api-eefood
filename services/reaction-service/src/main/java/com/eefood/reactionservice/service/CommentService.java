@@ -35,6 +35,11 @@ public class CommentService {
     private final SecurityUtil securityUtil;
     private final NotificationUtils notificationUtils;
 
+    public CommentResponse getCommentById(Long commentId) {
+        Comment comment = commentRepository.findById(commentId).orElse(null);
+        return commentMapper.toResponse(comment);
+    }
+
     @Transactional
     public CommentResponse updateCommentContent(Long commentId, String newContent) {
         Long userId = securityUtil.getCurrentUserId();
