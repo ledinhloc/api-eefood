@@ -20,6 +20,11 @@ import java.util.Map;
 public class CommentController {
     private final CommentService commentService;
 
+    @GetMapping("/{commentId}")
+    public ResponseData<CommentResponse> getCommentById(@PathVariable Long commentId) {
+        return new ResponseData<>(HttpStatus.OK.value(), "Success", commentService.getCommentById(commentId));
+    }
+
     @PutMapping("/{commentId}")
     public ResponseData<CommentResponse> updateComment(
             @PathVariable Long commentId,

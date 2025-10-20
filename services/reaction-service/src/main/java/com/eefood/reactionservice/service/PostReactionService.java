@@ -48,7 +48,7 @@ public class PostReactionService {
         exitingReaction.setReactionType(request.getReactionType());
         if (!userId.equals(post.getUserId())) {
           notificationUtils.sendReactionNotification(
-                  userId,
+                  post.getUserId(),
                   userInfo.getUsername(),
                   exitingReaction.getReactionType(),
                   userInfo.getAvatarUrl(),
@@ -70,7 +70,7 @@ public class PostReactionService {
 
     if (!userId.equals(post.getUserId())) {
       notificationUtils.sendReactionNotification(
-              userId,
+              post.getUserId(),
               userInfo.getUsername(),
               exitingReaction.getReactionType(),
               userInfo.getAvatarUrl(),
