@@ -29,8 +29,7 @@ public class PostReactionService {
 
 
   public PostReactionResponse reactToPost(PostReactionRequest request, Long userId) {
-    Long reactorId = securityUtil.getCurrentUserId();
-    UserInfo userInfo = iamClient.getUserInfo(reactorId).getData();
+    UserInfo userInfo = iamClient.getUserInfo(userId).getData();
     Post post =
         postRepository
             .findById(request.getPostId())
@@ -49,10 +48,11 @@ public class PostReactionService {
         exitingReaction.setReactionType(request.getReactionType());
         if (!userId.equals(post.getUserId())) {
           notificationUtils.sendReactionNotification(
-                  userId,
+                  post.getUserId(),
                   userInfo.getUsername(),
                   exitingReaction.getReactionType(),
                   userInfo.getAvatarUrl(),
+                  true,
                   "/posts/" + post.getId(),
                   post.getImageUrl());
         }
@@ -70,10 +70,11 @@ public class PostReactionService {
 
     if (!userId.equals(post.getUserId())) {
       notificationUtils.sendReactionNotification(
-              userId,
+              post.getUserId(),
               userInfo.getUsername(),
               exitingReaction.getReactionType(),
               userInfo.getAvatarUrl(),
+              true,
               "/posts/" + post.getId(),
               post.getImageUrl());
     }
