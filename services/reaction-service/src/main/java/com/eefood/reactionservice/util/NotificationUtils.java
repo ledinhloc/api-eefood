@@ -40,6 +40,7 @@ public class NotificationUtils {
                                          String reactorName,
                                          ReactionType reactionType,
                                          String avatarUrl,
+                                         boolean isPost,
                                          String postPath,
                                          String postImageUrl) {
         String reactionText = switch (reactionType) {
@@ -50,8 +51,10 @@ public class NotificationUtils {
             case ANGRY -> "phẫn nộ";
         };
 
+        String type = isPost ? "bài viết" : "bình luận";
+        String title = String.format(reactorName + " đã " + reactionText + " %s của bạn", type);
         NotificationRequest notification = NotificationRequest.builder()
-                .title(reactorName + " đã " + reactionText + " bài viết của bạn")
+                .title(title)
                 .body("Nhấn vào đây để xem chi tiết bài viết")
                 .path(postPath)
                 .avatarUrl(avatarUrl)
