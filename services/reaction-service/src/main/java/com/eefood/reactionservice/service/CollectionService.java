@@ -100,23 +100,6 @@ public class CollectionService {
       .map(mapper::toDto)
       .toList();
 
-    // SẮP XẾP CÁC POST TRONG MỖI COLLECTION
-    for (CollectionResponse col : responses) {
-      if (col.getPosts() != null) {
-        col.getPosts().sort((a, b) -> {
-          // Ưu tiên createdAt (mới nhất trước)
-          int cmp = b.getCreatedAt().compareTo(a.getCreatedAt());
-          if (cmp != 0) return cmp;
-          // Nếu trùng -> sắp theo title (A-Z)
-          String t1 = Optional.ofNullable(a.getTitle()).orElse("");
-          String t2 = Optional.ofNullable(b.getTitle()).orElse("");
-          return t1.compareToIgnoreCase(t2);
-        });
-      }
-    }
-
-    // sort theo thoi gian cap nhat
-    responses.sort((a, b) -> b.getUpdatedAt().compareTo(a.getUpdatedAt()));
 
     //lay danh sach userId trong post
     Set<Long> userIds = responses.stream()
