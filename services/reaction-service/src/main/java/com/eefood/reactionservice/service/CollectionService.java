@@ -1,5 +1,6 @@
 package com.eefood.reactionservice.service;
 
+import com.eefood.reactionservice.dto.request.PostCollectionsRequest;
 import com.eefood.reactionservice.dto.response.CollectionResponse;
 import com.eefood.reactionservice.dto.response.ResponseData;
 import com.eefood.reactionservice.dto.response.UserInfo;
@@ -31,6 +32,72 @@ public class CollectionService {
   private final CollectionMapper mapper;
   private final SecurityUtil securityUtil;
   private final IamClient iamClient;
+
+  @Transactional
+  public List<CollectionResponse> updatePostCollections(PostCollectionsRequest request) {
+    Long postId = request.getPostId();
+    List<Long> collectionIds = request.getCollectionIds();
+
+    //validate
+    if (postId == null || collectionIds == null)
+      throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
+
+    Post post = postRepo.findByIdAndIsDeletedFalse(postId);
+    if (post == null) {
+      throw ExceptionUtil.notFound(ErrorMessage.POST_NOT_FOUND);
+    }
+
+    //Lấy userId
+    Long currentUserId = securityUtil.getCurrentUserId();
+
+    Set<Long> oldIds = collectionPostRepo.findCollectionIdsByPostIdAndUserId(postId, currentUserId);
+    Set<Long> newIds = new HashSet<>(request.getCollectionIds());
+
+    // Tìm các collection cần thêm hoặc xóa
+    Set<Long> toAdd = newIds.stream()
+      .filter(id -> !oldIds.contains(id))
+        .collect(Collectors.toSet());
+    Set<Long> toRemove = oldIds.stream()
+      .filter(id -> !newIds.contains(id))
+        .collect(Collectors.toSet());
+
+    //Kiểm tra toàn bộ quyền trước khi xóa
+    if (!toRemove.isEmpty()) {
+      List<Collection> toRemoveCollections = collectionRepo.findAllByIdInAndIsDeletedFalse(toRemove);
+
+      // Nếu thiếu collection nào => lỗi
+      if (toRemoveCollections.size() != toRemove.size()) {
+        throw ExceptionUtil.notFound(ErrorMessage.COLLECTION_NOT_FOUND);
+      }
+
+      // Nếu có bất kỳ collection nào không thuộc user hiện tại => lỗi -> rollback
+      boolean hasUnauthorized = toRemoveCollections.stream()
+        .anyMatch(c -> !c.getUserId().equals(currentUserId));
+
+      if (hasUnauthorized) {
+        throw ExceptionUtil.forbidden(ErrorMessage.ACCESS_DENIED);
+      }
+      collectionPostRepo.deleteByPostIdAndCollectionIdIn(postId, toRemove);
+    }
+    //xu ly them
+    for(Long id: toAdd){
+      Collection collection = collectionRepo.findByIdAndIsDeletedFalse(id)
+        .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.COLLECTION_NOT_FOUND));
+
+      //kiem tra quyen
+      if(!collection.getUserId().equals(currentUserId)){
+        throw ExceptionUtil.forbidden(ErrorMessage.ACCESS_DENIED);
+      }
+      //luu post collection
+      collectionPostRepo.save(CollectionPost.builder()
+          .post(post)
+          .collection(collection)
+        .build());
+    }
+    // Trả về toàn bộ collection của user
+    return getByUser(currentUserId);
+  }
+
 
   public CollectionResponse  create(Long userId, String name){
     if (userId == null || name == null || name.isBlank()) {
@@ -100,6 +167,24 @@ public class CollectionService {
       .map(mapper::toDto)
       .toList();
 
+//    // Sort posts in each collection
+//    for (CollectionResponse col : responses) {
+//      List<PostCollectionResponse> posts = col.getPosts();
+//      if (posts != null && !posts.isEmpty()) {
+//        posts.sort(Comparator
+//          .comparing(PostCollectionResponse::getCreatedAt,
+//            Comparator.nullsLast(Comparator.reverseOrder()))
+//          .thenComparing(p -> Optional.ofNullable(p.getTitle()).orElse(""),
+//            String.CASE_INSENSITIVE_ORDER)
+//        );
+//      }
+//    }
+//
+//    // Sort collections by updated time
+//    responses.sort(Comparator.comparing(
+//      CollectionResponse::getUpdatedAt,
+//      Comparator.nullsLast(Comparator.reverseOrder())
+//    ));
 
     //lay danh sach userId trong post
     Set<Long> userIds = responses.stream()

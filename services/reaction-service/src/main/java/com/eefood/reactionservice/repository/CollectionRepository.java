@@ -6,11 +6,12 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Repository
 public interface CollectionRepository extends JpaRepository<Collection, Long> {
   List<Collection> findAllByUserIdAndIsDeletedFalse(Long userId);
   boolean existsByUserIdAndNameIgnoreCaseAndIsDeletedFalse(Long userId, String name);
   Optional<Collection> findByIdAndIsDeletedFalse(Long id);
-
+  List<Collection> findAllByIdInAndIsDeletedFalse(Set<Long> toRemove);
 }
