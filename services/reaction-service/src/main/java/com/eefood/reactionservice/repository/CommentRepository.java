@@ -14,6 +14,8 @@ import java.util.Optional;
 
 @Repository
 public interface CommentRepository extends JpaRepository<Comment, Long>, JpaSpecificationExecutor<Comment> {
+    List<Comment> findByParentIdAndIsDeletedFalse(Long id);
+
     Optional<Comment> findByIdAndIsDeletedFalse(Long id);
 
     Page<Comment> findByPostIdAndParentIsNullAndIsDeletedFalse(Long postId, Pageable pageable);
