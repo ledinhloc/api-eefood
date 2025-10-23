@@ -71,8 +71,19 @@ public class CommentService {
             throw new RuntimeException("Permission denied: Cannot delete others' comments");
         }
 
-        comment.setIsDeleted(true);
+        // Đệ quy xóa mềm
+        recursiveSoftDeleteComment(comment);
+
         commentRepository.save(comment);
+    }
+
+    private void recursiveSoftDeleteComment(Comment comment) {
+        comment.setIsDeleted(true);
+
+        List<Comment> children = commentRepository.findByParentIdAndIsDeletedFalse(comment.getId());
+        for(Comment child : children) {
+            recursiveSoftDeleteComment(child);
+        }
     }
 
     // Hàm tạo comment
