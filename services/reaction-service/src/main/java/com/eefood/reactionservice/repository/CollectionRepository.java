@@ -14,4 +14,5 @@ public interface CollectionRepository extends JpaRepository<Collection, Long> {
   boolean existsByUserIdAndNameIgnoreCaseAndIsDeletedFalse(Long userId, String name);
   Optional<Collection> findByIdAndIsDeletedFalse(Long id);
   List<Collection> findAllByIdInAndIsDeletedFalse(Set<Long> toRemove);
+  List<Collection> findAllByUserIdAndIsDeletedFalseOrderByIdDesc(Long userId);
 }
