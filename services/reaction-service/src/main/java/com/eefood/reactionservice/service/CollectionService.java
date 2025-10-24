@@ -78,6 +78,12 @@ public class CollectionService {
         throw ExceptionUtil.forbidden(ErrorMessage.ACCESS_DENIED);
       }
       collectionPostRepo.deleteByPostIdAndCollectionIdIn(postId, toRemove);
+      // Cập nhật lại cover cho từng collection bị xóa post
+      for (Collection col : toRemoveCollections) {
+        Post lastPost = collectionPostRepo.findLastPostByCollectionId(col.getId()).orElse(null);
+        col.setCoverImageUrl(lastPost != null ? lastPost.getImageUrl() : null);
+        collectionRepo.save(col);
+      }
     }
     //xu ly them
     for(Long id: toAdd){
@@ -93,6 +99,10 @@ public class CollectionService {
           .post(post)
           .collection(collection)
         .build());
+
+      // Cập nhật cover = ảnh bài mới nhất
+      collection.setCoverImageUrl(post.getImageUrl());
+      collectionRepo.save(collection);
     }
     // Trả về toàn bộ collection của user
     return getByUser(currentUserId);
@@ -140,7 +150,8 @@ public class CollectionService {
     if (coverImageUrl != null && !coverImageUrl.isBlank())
       collection.setCoverImageUrl(coverImageUrl.trim());
 
-    return mapper.toDto(collectionRepo.save(collection));
+    collectionRepo.save(collection);
+    return getById(id);
   }
 
   public void delete(Long id) {
