@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 public interface PostMapper {
   @Mapping(target = "reactionCounts", source = "reactions", qualifiedByName = "mapReactionCounts")
   @Mapping(target = "totalShares", expression = "java((long) post.getShares().size())")
-  @Mapping(target = "comments", expression = "java(mapComments(post.getComments()))")
+//  @Mapping(target = "comments", expression = "java(mapComments(post.getComments()))")
   PostResponse toResponse(Post post);
 //  Post toEntity(PostResponse postResponse);
 

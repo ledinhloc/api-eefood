@@ -8,6 +8,10 @@ public class PostSpecification {
     throw new UnsupportedOperationException("Utility class");
   }
 
+  public static Specification<Post> isNotDeleted() {
+    return (root, query, cb) -> cb.isFalse(root.get("isDeleted"));
+  }
+
   public static Specification<Post> hasTitleLike(String title) {
     return (root, query, cb) ->{
       if(title == null || title.isBlank()) return null;
@@ -35,5 +39,4 @@ public class PostSpecification {
       return cb.equal(root.get("recipeId"), recipeId);
     };
   }
-
 }
