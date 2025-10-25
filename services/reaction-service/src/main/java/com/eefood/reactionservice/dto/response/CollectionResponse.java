@@ -14,6 +14,6 @@ public class CollectionResponse {
   private Long id;
   private String name;
   private String coverImageUrl;
-  private LocalDateTime createdAt;
-  private List<PostResponse> posts;
+  private LocalDateTime updatedAt;
+  private List<PostCollectionResponse> posts;
 }
