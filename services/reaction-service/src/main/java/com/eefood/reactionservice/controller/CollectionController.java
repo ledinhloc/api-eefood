@@ -1,4 +1,5 @@
 package com.eefood.reactionservice.controller;
+import com.eefood.reactionservice.dto.request.PostCollectionsRequest;
 import com.eefood.reactionservice.dto.response.CollectionResponse;
 import com.eefood.reactionservice.dto.response.ResponseData;
 import com.eefood.reactionservice.service.CollectionService;
@@ -16,6 +17,14 @@ import java.util.List;
 public class CollectionController {
   private final CollectionService service;
   private final SecurityUtil securityUtils;
+
+  @PutMapping("/posts")
+  public ResponseData<List<CollectionResponse>> updatePostCollections(
+    @RequestBody PostCollectionsRequest request) {
+
+    List<CollectionResponse> result = service.updatePostCollections(request);
+    return new ResponseData<>(HttpStatus.OK.value(), "Update Collections Success", result);
+  }
 
   @PostMapping
   public ResponseData<CollectionResponse> create(@RequestParam String name) {
