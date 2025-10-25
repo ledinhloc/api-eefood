@@ -14,13 +14,15 @@ import java.util.Optional;
 
 @Repository
 public interface CommentRepository extends JpaRepository<Comment, Long>, JpaSpecificationExecutor<Comment> {
+    List<Comment> findByParentIdAndIsDeletedFalse(Long id);
+
     Optional<Comment> findByIdAndIsDeletedFalse(Long id);
 
     Page<Comment> findByPostIdAndParentIsNullAndIsDeletedFalse(Long postId, Pageable pageable);
 
-    Page<Comment> findByParentId(Long parentId, Pageable pageable);
+    Page<Comment> findByParentIdAndIsDeletedFalse(Long parentId, Pageable pageable);
 
-    List<Comment> findByParentIdIn(List<Long> parentIds);
+    List<Comment> findByParentIdInAndIsDeletedFalse(List<Long> parentIds);
 
     @Query("SELECT COUNT(c) FROM Comment c WHERE c.parent.id = :parentId")
     int countByParentId(@Param("parentId") Long parentId);

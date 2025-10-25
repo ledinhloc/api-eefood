@@ -12,6 +12,10 @@ import com.eefood.reactionservice.repository.httpclient.IamClient;
 import com.eefood.reactionservice.util.NotificationUtils;
 import com.eefood.reactionservice.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -108,12 +112,37 @@ public class CommentReactionService {
                 });
     }
 
-    // Lấy danh sách reaction theo comment
-    public List<CommentReactionResponse> getReactionsByComment(Long commentId) {
-        return commentReactionRepository.findAll().stream()
-                .filter(r -> r.getComment().getId().equals(commentId))
-                .map(commentReactionMapper::toResponse)
+    // Lấy danh sách reaction theo comment và user
+    public List<CommentReactionResponse> getUserReactionsByComment(Long commentId) {
+        Long userId = securityUtil.getCurrentUserId();
+        commentRepository.findById(commentId).orElseThrow(() -> new RuntimeException("Comment not found"));
+        return commentReactionRepository.findAllByCommentIdAndUserId(commentId, userId)
+                .stream().map(commentReactionMapper::toResponse)
                 .collect(Collectors.toList());
+    }
+
+    // Lấy danh sách reaction theo comment
+    public Page<CommentReactionResponse> getReactionsByComment(Long commentId, Pageable pageable) {
+        // Kiểm tra comment tồn tại
+        commentRepository.findById(commentId)
+                .orElseThrow(() -> new RuntimeException("Comment not found"));
+
+        // Truy vấn phân trang reaction theo comment
+        Page<CommentReaction> reactionPage = commentReactionRepository.findByCommentId(commentId, pageable);
+
+        // Map sang DTO
+        return reactionPage.map(r -> {
+            UserInfo author = iamClient.getUserInfo(r.getUserId()).getData();
+            return CommentReactionResponse.builder()
+                    .id(r.getId())
+                    .userId(r.getUserId())
+                    .reactionType(r.getReactionType())
+                    .commentId(r.getComment().getId())
+                    .avatarUrl(author.getAvatarUrl())
+                    .username(author.getUsername())
+                    .createdAt(r.getCreatedAt())
+                    .build();
+        });
     }
 
     // Lấy thống kê reaction theo từng loại
