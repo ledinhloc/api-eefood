@@ -25,11 +25,11 @@ public class Recipe extends BaseEntity {
   private Long authorId;
 
   @Column(nullable = false)
-  private String title;
+  private String title;//lọc theo
 
-  private String description;
+  private String description;//lọc theo
 
-  private String region;
+  private String region;//lọc theo
 
   private String imageUrl;
 
@@ -41,7 +41,7 @@ public class Recipe extends BaseEntity {
 
   @Enumerated(EnumType.STRING)
   @Column(length = 7)
-  private Difficulty difficulty;
+  private Difficulty difficulty;//lọc theo
 
   @ManyToMany
   @JoinTable(

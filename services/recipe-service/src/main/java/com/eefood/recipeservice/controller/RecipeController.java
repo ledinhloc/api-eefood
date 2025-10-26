@@ -8,6 +8,7 @@ import com.eefood.recipeservice.enums.Difficulty;
 import com.eefood.recipeservice.enums.ErrorMessage;
 import com.eefood.recipeservice.enums.SuccessMessage;
 import com.eefood.recipeservice.model.Recipe;
+import com.eefood.recipeservice.service.RecipeSearchService;
 import com.eefood.recipeservice.service.RecipeService;
 import com.eefood.recipeservice.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +36,18 @@ public class RecipeController {
   private final SecurityUtil securityUtil;
 
   private final RecipeService recipeService;
+  private final RecipeSearchService recipeSearchService;
+
+
+  @GetMapping("/search-ids")
+  public ResponseData<List<Long>> searchRecipeIds(
+    @RequestParam(required = false) String keyword,
+    @RequestParam(required = false) String region,
+    @RequestParam(required = false) String difficulty
+  ){
+    List<Long> ids = recipeSearchService.searchRecipeIds(keyword, region, difficulty);
+    return new ResponseData<>(HttpStatus.OK.value(), "Success", ids);
+  }
 
   @GetMapping("/detail/{id}")
   public ResponseData<RecipeDetailResponse> getRecipeDetail(@PathVariable Long id) {
