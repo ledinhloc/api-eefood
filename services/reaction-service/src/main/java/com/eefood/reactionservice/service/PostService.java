@@ -65,35 +65,6 @@ public class PostService {
       return response;
     });
   }
-
-//  public Page<PostResponse> getAllPosts(String title, Long userId, Pageable pageable) {
-//
-//    Specification<Post> spec = Specification
-//      .where(PostSpecification.hasTitleLike(title))
-//      .and(PostSpecification.hasUserId(userId));
-//
-//    Page<Post> posts = postRepo.findAll(spec, pageable);
-//
-//    List<Long> userIds = posts.stream()
-//      .map(Post::getUserId)
-//      .distinct()
-//      .collect(Collectors.toList());
-//
-//    List<UserInfo> userInfos = iamClient.getUserInfoBatch(userIds).getData();
-//
-//    Map<Long, UserInfo> userInfoMap = userInfos.stream()
-//      .collect(Collectors.toMap(UserInfo::getId, u -> u));
-//
-//    return posts.map(post -> {
-//      PostResponse response = postMapper.toResponse(post);
-//      UserInfo userInfo = userInfoMap.get(post.getUserId());
-//      response.setUsername(userInfo.getUsername());
-//      response.setEmail(userInfo.getEmail());
-//      response.setAvatarUrl(userInfo.getAvatarUrl());
-//      return response;
-//    });
-//  }
-
   public PostResponse getPostById(Long id) {
     Post post = postRepo.findByIdAndIsDeletedFalse(id);
     if (post == null) {

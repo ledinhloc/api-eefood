@@ -7,6 +7,10 @@ server:
         same-site: strict
         http-only: true
 
+elasticsearch:
+  url: ${ELASTICSEARCH_URL}
+  api-key: ${ELASTICSEARCH_API_KEY}
+
 spring:
   application:
     name: recipe-service
