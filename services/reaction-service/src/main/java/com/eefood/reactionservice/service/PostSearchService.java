@@ -16,15 +16,15 @@ import java.util.stream.Collectors;
 public class PostSearchService {
   private final ElasticsearchClient client;
 
-  public List<Long> searchPostIds(String keyword) {
+  public List<Long> searchPostIdsByContent(String keyword) {
     if (keyword == null || keyword.isBlank()) return List.of();
 
     try {
       SearchResponse<PostDocument> response = client.search(s -> s
           .index("posts")
           .query(q -> q
-            .multiMatch(m -> m
-              .fields("title^2", "content")
+            .match(m -> m
+              .field("content")
               .query(keyword)
             )
           ),

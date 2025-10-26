@@ -3,9 +3,25 @@ package com.eefood.reactionservice.service;
 import com.eefood.reactionservice.model.Post;
 import org.springframework.data.jpa.domain.Specification;
 
+import java.util.List;
+
 public class PostSpecification {
   public PostSpecification() {
     throw new UnsupportedOperationException("Utility class");
+  }
+
+  public static Specification<Post> hasRecipeIds(List<Long> recipeIds) {
+    return (root, query, cb) -> {
+      if (recipeIds == null || recipeIds.isEmpty()) return cb.conjunction();
+      return root.get("recipeId").in(recipeIds);
+    };
+  }
+
+  public static Specification<Post> hasPostIds(List<Long> postIds) {
+    return (root, query, cb) -> {
+      if (postIds == null || postIds.isEmpty()) return cb.conjunction();
+      return root.get("id").in(postIds);
+    };
   }
 
   public static Specification<Post> isNotDeleted() {
