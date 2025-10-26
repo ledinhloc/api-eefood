@@ -38,7 +38,6 @@ public class RecipeController {
   private final RecipeService recipeService;
   private final RecipeSearchService recipeSearchService;
 
-
   @GetMapping("/search-ids")
   public ResponseData<List<Long>> searchRecipeIds(
     @RequestParam(required = false) String keyword,
