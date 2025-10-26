@@ -71,8 +71,19 @@ public class CommentService {
             throw new RuntimeException("Permission denied: Cannot delete others' comments");
         }
 
-        comment.setIsDeleted(true);
+        // Đệ quy xóa mềm
+        recursiveSoftDeleteComment(comment);
+
         commentRepository.save(comment);
+    }
+
+    private void recursiveSoftDeleteComment(Comment comment) {
+        comment.setIsDeleted(true);
+
+        List<Comment> children = commentRepository.findByParentIdAndIsDeletedFalse(comment.getId());
+        for(Comment child : children) {
+            recursiveSoftDeleteComment(child);
+        }
     }
 
     // Hàm tạo comment
@@ -136,13 +147,13 @@ public class CommentService {
         // Lấy tất cả replies cấp 2
         List<Comment> level2 = rootIds.isEmpty()
                 ? List.of()
-                : commentRepository.findByParentIdIn(rootIds);
+                : commentRepository.findByParentIdInAndIsDeletedFalse(rootIds);
 
         // Lấy tất cả replies cấp 3 cho comment cấp 2
         List<Long> level2Ids = level2.stream().map(Comment::getId).toList();
         List<Comment> level3 = level2Ids.isEmpty()
                 ? List.of()
-                : commentRepository.findByParentIdIn(level2Ids);
+                : commentRepository.findByParentIdInAndIsDeletedFalse(level2Ids);
 
         // Gom nhóm theo parentId
         Map<Long, List<Comment>> groupLevel2 = level2.stream()
@@ -196,11 +207,11 @@ public class CommentService {
 
     // Lấy danh sách reply comment --> Khi nhấn “xem phản hồi” (các cấp còn lại)
     public Page<CommentResponse> getCommentReplies(Long commentId, Pageable pageable) {
-        Page<Comment> replies = commentRepository.findByParentId(commentId, pageable);
+        Page<Comment> replies = commentRepository.findByParentIdAndIsDeletedFalse(commentId, pageable);
         List<Long> replyIds = replies.getContent().stream().map(Comment::getId).toList();
 
         // Lấy thêm 1 cấp con (cấp 3)
-        List<Comment> subReplies = replyIds.isEmpty() ? List.of() : commentRepository.findByParentIdIn(replyIds);
+        List<Comment> subReplies = replyIds.isEmpty() ? List.of() : commentRepository.findByParentIdInAndIsDeletedFalse(replyIds);
         Map<Long, List<Comment>> groupByParent = subReplies.stream()
                 .collect(Collectors.groupingBy(c -> c.getParent().getId()));
 

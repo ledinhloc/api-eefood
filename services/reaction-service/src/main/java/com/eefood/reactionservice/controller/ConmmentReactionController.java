@@ -6,6 +6,10 @@ import com.eefood.reactionservice.dto.response.ResponseData;
 import com.eefood.reactionservice.enums.ReactionType;
 import com.eefood.reactionservice.service.CommentReactionService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -32,7 +36,22 @@ public class ConmmentReactionController {
 
     @GetMapping("/{commentId}")
     public ResponseData<List<CommentReactionResponse>> getReaction(@PathVariable Long commentId) {
-        return new ResponseData<>(HttpStatus.OK.value(), "Get Success", commentReactionService.getReactionsByComment(commentId));
+        return new ResponseData<>(HttpStatus.OK.value(), "Get Success", commentReactionService.getUserReactionsByComment(commentId));
+    }
+
+    @GetMapping("/{commentId}/list")
+    public ResponseData<Page<CommentReactionResponse>> getReaction(
+            @PathVariable Long commentId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int limit,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "DESC") Sort.Direction sortDirection) {
+        Pageable pageable = PageRequest.of(page-1, limit, Sort.by(sortDirection, sortBy));
+        return new ResponseData<>(
+                HttpStatus.OK.value(),
+                "Get Success",
+                commentReactionService.getReactionsByComment(commentId, pageable)
+        );
     }
 
     @GetMapping("/{commentId}/counts")
