@@ -37,12 +37,11 @@ public class PostService {
     String difficulty,
     Pageable pageable) {
     List<Long> recipeIds = List.of();
-
+    //kiem tra loc
     boolean hasRecipeFilter =
       (keyword != null && !keyword.isBlank()) ||
         (region != null && !region.isBlank()) ||
         (difficulty != null && !difficulty.isBlank());
-
 
     // chỉ gọi sang recipe-service khi có tiêu chí lọc
     if (hasRecipeFilter) {
@@ -63,11 +62,19 @@ public class PostService {
     }
 
     // Kết hợp điều kiện
-    Specification<Post> spec =
-      PostSpecification.isNotDeleted()
-        .and(PostSpecification.hasUserId(userId))
-        .and(PostSpecification.hasRecipeIds(recipeIds))
-        .and(PostSpecification.hasPostIds(postIdsFromES));
+    Specification<Post> spec = PostSpecification.isNotDeleted()
+      .and(PostSpecification.hasUserId(userId));
+
+    if (!recipeIds.isEmpty() && !postIdsFromES.isEmpty()) {
+      spec = spec.and(
+        PostSpecification.hasRecipeIds(recipeIds)
+          .or(PostSpecification.hasPostIds(postIdsFromES))
+      );
+    } else if (!recipeIds.isEmpty()) {
+      spec = spec.and(PostSpecification.hasRecipeIds(recipeIds));
+    } else if (!postIdsFromES.isEmpty()) {
+      spec = spec.and(PostSpecification.hasPostIds(postIdsFromES));
+    }
 
     Page<Post> posts = postRepo.findAll(spec, pageable);
     return mapToPostResponse(posts);
