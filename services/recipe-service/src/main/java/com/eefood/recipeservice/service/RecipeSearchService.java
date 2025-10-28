@@ -44,11 +44,12 @@ public class RecipeSearchService {
                 )
               );
             }
+            //so sanh chinh xac
             if (difficulty != null && !difficulty.isBlank()) {
               b.must(m -> m
-                .match(mq -> mq
-                  .field("difficulty")
-                  .query(difficulty)
+                .term(t -> t
+                  .field("difficulty.keyword")
+                  .value(difficulty)
                 )
               );
             }
