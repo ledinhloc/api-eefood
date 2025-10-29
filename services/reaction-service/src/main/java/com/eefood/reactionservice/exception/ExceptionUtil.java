@@ -23,6 +23,10 @@ public class ExceptionUtil {
     return new ResponseStatusException(HttpStatus.FORBIDDEN, errorMessage.getMessage());
   }
 
+  public static ResponseStatusException conflict(ErrorMessage errorMessage) {
+    return new ResponseStatusException(HttpStatus.CONFLICT, errorMessage.getMessage());
+  }
+
   public static ResponseStatusException with(
       HttpStatus status, ErrorMessage errorMessage, List<String> details) {
     return new ResponseStatusException(
