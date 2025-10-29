@@ -4,6 +4,7 @@ import com.eefood.reactionservice.dto.response.CommentResponse;
 import com.eefood.reactionservice.dto.response.PostResponse;
 import com.eefood.reactionservice.model.Comment;
 import com.eefood.reactionservice.model.Post;
+import com.eefood.reactionservice.model.PostDocument;
 import com.eefood.reactionservice.model.PostReaction;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -15,9 +16,15 @@ import java.util.stream.Collectors;
 
 @Mapper(componentModel = "spring")
 public interface PostMapper {
+  //els
+  PostDocument toDocument(Post post);
+
   @Mapping(target = "reactionCounts", source = "reactions", qualifiedByName = "mapReactionCounts")
-  @Mapping(target = "totalShares", expression = "java((long) post.getShares().size())")
-  @Mapping(target = "comments", expression = "java(mapComments(post.getComments()))")
+  @Mapping(
+    target = "totalShares",
+    expression = "java(post.getShares() != null ? (long) post.getShares().size() : 0L)"
+  )
+//  @Mapping(target = "comments", expression = "java(mapComments(post.getComments()))")
   PostResponse toResponse(Post post);
 //  Post toEntity(PostResponse postResponse);
 

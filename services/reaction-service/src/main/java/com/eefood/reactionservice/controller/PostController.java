@@ -1,6 +1,7 @@
 package com.eefood.reactionservice.controller;
 
 
+import com.eefood.reactionservice.dto.request.PostCreateRequest;
 import com.eefood.reactionservice.dto.response.PostResponse;
 import com.eefood.reactionservice.dto.response.ResponseData;
 import com.eefood.reactionservice.service.PostService;
@@ -18,17 +19,37 @@ import org.springframework.web.bind.annotation.*;
 public class PostController {
   private final PostService postService;
 
+  @PostMapping
+  public ResponseData<PostResponse> createPost(@RequestBody PostCreateRequest request) {
+    PostResponse post = postService.createPost(request);
+    return new ResponseData<>(HttpStatus.CREATED.value(), "Post created successfully", post);
+  }
+
+  @PutMapping("/{id}")
+  public ResponseData<PostResponse> updatePost(@PathVariable Long id, @RequestParam String content) {
+    PostResponse post = postService.updatePost(id, content);
+    return new ResponseData<>(HttpStatus.OK.value(), "Post updated successfully", post);
+  }
+
+  @DeleteMapping("/{id}")
+  public ResponseData<Void> deletePost(@PathVariable Long id) {
+    postService.deletePost(id);
+    return new ResponseData<>(HttpStatus.OK.value(), "Post deleted successfully");
+  }
+
   @GetMapping
   public ResponseData<Page<PostResponse>> getAllPosts(
-    @RequestParam(required = false) String title,
+    @RequestParam(required = false) String keyword,
     @RequestParam(required = false) Long userId,
+    @RequestParam(required = false) String region,
+    @RequestParam(required = false) String difficulty,
     @RequestParam(defaultValue = "1") int page,
     @RequestParam(defaultValue = "10") int size,
     @RequestParam(defaultValue = "createdAt") String sortBy,
     @RequestParam(defaultValue = "DESC")Sort.Direction sortDirection
     ) {
     Pageable pageable = PageRequest.of(page-1, size, Sort.by(sortDirection, sortBy));
-    Page<PostResponse> result = postService.getAllPosts(title, userId, pageable);
+    Page<PostResponse> result = postService.getAllPosts(keyword, userId, region, difficulty, pageable);
     return new ResponseData<>(HttpStatus.OK.value(), "Success", result);
   }
 
