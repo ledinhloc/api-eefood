@@ -15,4 +15,5 @@ public interface PostRepository extends JpaRepository<Post, Long>, JpaSpecificat
   Post findByIdAndIsDeletedFalse(Long id);
 
   Page<Post> findByIdInAndIsDeletedFalse(List<Long> ids, Pageable pageable);
+  boolean existsByRecipeIdAndIsDeletedFalse(Long recipeId);
 }

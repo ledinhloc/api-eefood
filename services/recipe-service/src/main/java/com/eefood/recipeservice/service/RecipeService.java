@@ -3,10 +3,7 @@ package com.eefood.recipeservice.service;
 import com.eefood.recipeservice.dto.request.RecipeIngredientRequest;
 import com.eefood.recipeservice.dto.request.RecipeRequest;
 import com.eefood.recipeservice.dto.request.RecipeStepRequest;
-import com.eefood.recipeservice.dto.response.RecipeDetailResponse;
-import com.eefood.recipeservice.dto.response.RecipeResponse;
-import com.eefood.recipeservice.dto.response.ResponseData;
-import com.eefood.recipeservice.dto.response.UserInfo;
+import com.eefood.recipeservice.dto.response.*;
 import com.eefood.recipeservice.enums.Difficulty;
 import com.eefood.recipeservice.enums.ErrorMessage;
 import com.eefood.recipeservice.exception.ExceptionUtil;
@@ -88,6 +85,13 @@ public class RecipeService {
     Recipe recipe = recipeRepository.findByIdAndIsDeletedFalse(id)
       .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.RECIPE_NOT_FOUND));
     return recipeMapper.toResponse(recipe);
+  }
+
+  @Transactional(readOnly = true)
+  public RecipeSummaryResponse getRecipeSummaryById(Long id) {
+    Recipe recipe = recipeRepository.findByIdAndIsDeletedFalse(id)
+      .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.RECIPE_NOT_FOUND));
+    return recipeMapper.toSummaryResponse(recipe);
   }
 
   public RecipeDetailResponse getRecipeDetail(Long id) {
