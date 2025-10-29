@@ -1,6 +1,8 @@
 package com.eefood.reactionservice.service;
 
+import com.eefood.reactionservice.dto.request.PostCreateRequest;
 import com.eefood.reactionservice.dto.response.PostResponse;
+import com.eefood.reactionservice.dto.response.RecipeSummaryResponse;
 import com.eefood.reactionservice.dto.response.ResponseData;
 import com.eefood.reactionservice.dto.response.UserInfo;
 import com.eefood.reactionservice.enums.ErrorMessage;
@@ -9,6 +11,7 @@ import com.eefood.reactionservice.model.Post;
 import com.eefood.reactionservice.repository.PostRepository;
 import com.eefood.reactionservice.repository.httpclient.IamClient;
 import com.eefood.reactionservice.repository.httpclient.RecipeClient;
+import com.eefood.reactionservice.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -29,6 +32,68 @@ public class PostService {
   private final IamClient iamClient;
   private final PostSearchService postSearchService;
   private final RecipeClient recipeClient;
+  private final SecurityUtil securityUtil;
+
+  public PostResponse createPost(PostCreateRequest request) {
+    Long currentUserId = securityUtil.getCurrentUserId();
+
+    // Kiểm tra xem recipe này đã có post chưa bị xóa chưa
+    boolean exists = postRepo.existsByRecipeIdAndIsDeletedFalse(request.getRecipeId());
+    if (exists) {
+      throw ExceptionUtil.conflict(ErrorMessage.ALREADY_EXISTS);
+    }
+
+    // Lấy thông tin recipe từ Recipe Service
+    ResponseData<RecipeSummaryResponse> recipeResponse = recipeClient.getRecipeSummary(request.getRecipeId());
+    RecipeSummaryResponse recipe = recipeResponse.getData();
+
+    if (recipe == null) {
+      throw ExceptionUtil.notFound(ErrorMessage.RECIPE_NOT_FOUND);
+    }
+
+    Post post = Post.builder()
+      .userId(currentUserId)
+      .recipeId(request.getRecipeId())
+      .content(request.getContent())
+      .title(recipe.getTitle())
+      .imageUrl(recipe.getImageUrl())
+      .build();
+
+    postRepo.save(post);
+    return postMapper.toResponse(post);
+  }
+
+  public PostResponse updatePost(Long id, String content) {
+    Post post = postRepo.findByIdAndIsDeletedFalse(id);
+    if (post == null) {
+      throw ExceptionUtil.notFound(ErrorMessage.POST_NOT_FOUND);
+    }
+
+    Long currentUserId = securityUtil.getCurrentUserId();
+    if (!post.getUserId().equals(currentUserId)) {
+      throw ExceptionUtil.forbidden(ErrorMessage.ACCESS_DENIED);
+    }
+
+    post.setContent(content);
+    postRepo.save(post);
+    return postMapper.toResponse(post);
+  }
+
+  public void deletePost(Long id) {
+    Post post = postRepo.findByIdAndIsDeletedFalse(id);
+    if (post == null) {
+      throw ExceptionUtil.notFound(ErrorMessage.POST_NOT_FOUND);
+    }
+
+    Long currentUserId = securityUtil.getCurrentUserId();
+    boolean isAdmin = securityUtil.hasRole("ADMIN");
+    if (!isAdmin && !post.getUserId().equals(currentUserId)) {
+      throw ExceptionUtil.forbidden(ErrorMessage.ACCESS_DENIED);
+    }
+
+    post.setIsDeleted(true);
+    postRepo.save(post);
+  }
 
   public Page<PostResponse> getAllPosts(
     String keyword,
