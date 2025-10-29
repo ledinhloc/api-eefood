@@ -3,6 +3,7 @@ package com.eefood.recipeservice.controller;
 import com.eefood.recipeservice.dto.request.RecipeRequest;
 import com.eefood.recipeservice.dto.response.RecipeDetailResponse;
 import com.eefood.recipeservice.dto.response.RecipeResponse;
+import com.eefood.recipeservice.dto.response.RecipeSummaryResponse;
 import com.eefood.recipeservice.dto.response.ResponseData;
 import com.eefood.recipeservice.enums.Difficulty;
 import com.eefood.recipeservice.enums.ErrorMessage;
@@ -37,6 +38,11 @@ public class RecipeController {
 
   private final RecipeService recipeService;
   private final RecipeSearchService recipeSearchService;
+
+  @GetMapping("/summary/{id}")
+  public ResponseData<RecipeSummaryResponse> getRecipeSummary(@PathVariable Long id) {
+    return new ResponseData<>(HttpStatus.OK.value(), "Get success", recipeService.getRecipeSummaryById(id));
+  }
 
   @GetMapping("/search-ids")
   public ResponseData<List<Long>> searchRecipeIds(
