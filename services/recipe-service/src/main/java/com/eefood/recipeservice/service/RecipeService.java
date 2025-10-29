@@ -38,6 +38,7 @@ public class RecipeService {
   private final RecipeMapper recipeMapper;
   private final IngredientRepository ingredientRepository;
   private final IamClient iamClient;
+  private final RecipeIndexer recipeIndexer;
 
   public Recipe getEntityRecipe(Long id) {
     return recipeRepository.findByIdAndIsDeletedFalse(id)
@@ -56,6 +57,8 @@ public class RecipeService {
     //xoa ingredient
     recipe.getIngredients().forEach(ingredient -> ingredient.setIsDeleted(true));
     recipeRepository.save(recipe);
+    //delete els
+    recipeIndexer.deleteRecipe(id);
   }
 
   @Transactional(readOnly = true)
@@ -129,6 +132,8 @@ public class RecipeService {
     }
     recipe.setAuthorId(currentUser);
     Recipe saved = recipeRepository.save(recipe);
+    //luu els
+    recipeIndexer.saveOrUpdateRecipe(saved);
     return recipeMapper.toResponse(saved);
   }
 
@@ -248,6 +253,7 @@ public class RecipeService {
         stepRepository.save(step);
       }
     }
+    recipeIndexer.saveOrUpdateRecipe(recipe);
     return recipeMapper.toResponse(recipe);
   }
 }
