@@ -27,7 +27,7 @@ public class PostResponse {
 
   private Long totalShares;
   private Map<String, Long> reactionCounts; // ví dụ: {"LIKE": 10, "LOVE": 3}
-  private List<CommentResponse> comments;
+//  private List<CommentResponse> comments;
 
   private String username;
   private String email;

@@ -20,15 +20,17 @@ public class PostController {
 
   @GetMapping
   public ResponseData<Page<PostResponse>> getAllPosts(
-    @RequestParam(required = false) String title,
+    @RequestParam(required = false) String keyword,
     @RequestParam(required = false) Long userId,
+    @RequestParam(required = false) String region,
+    @RequestParam(required = false) String difficulty,
     @RequestParam(defaultValue = "1") int page,
     @RequestParam(defaultValue = "10") int size,
     @RequestParam(defaultValue = "createdAt") String sortBy,
     @RequestParam(defaultValue = "DESC")Sort.Direction sortDirection
     ) {
     Pageable pageable = PageRequest.of(page-1, size, Sort.by(sortDirection, sortBy));
-    Page<PostResponse> result = postService.getAllPosts(title, userId, pageable);
+    Page<PostResponse> result = postService.getAllPosts(keyword, userId, region, difficulty, pageable);
     return new ResponseData<>(HttpStatus.OK.value(), "Success", result);
   }
 

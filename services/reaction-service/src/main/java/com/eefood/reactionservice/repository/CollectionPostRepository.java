@@ -51,4 +51,8 @@ public interface CollectionPostRepository extends JpaRepository<CollectionPost, 
     @Param("userId") Long userId
   );
 
+  @Query("SELECT cp FROM CollectionPost cp WHERE cp.collection.id = :collectionId ORDER BY cp.id DESC")
+  List<CollectionPost> findAllByCollectionIdOrderByIdDesc(@Param("collectionId") Long collectionId);
+
+
 }
