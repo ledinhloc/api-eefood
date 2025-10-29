@@ -3,16 +3,16 @@
 -- =============================
 INSERT INTO post (created_at, updated_at, created_by, updated_by, is_deleted, user_id, recipe_id, title, content, image_url)
 VALUES
-    (NOW(), NOW(), 'hoanganh', 'hoanganh', false, 1, 101, 'Bún bò Huế', 'Tô bún bò cay nồng chuẩn vị miền Trung', 'https://cdn.monngonviet.vn/bunbohue.jpg'),
-    (NOW(), NOW(), 'ngocmai', 'ngocmai', false, 2, 102, 'Cơm tấm Sài Gòn', 'Sườn nướng, bì, chả trứng thơm ngon', 'https://cdn.monngonviet.vn/comtam.jpg'),
-    (NOW(), NOW(), 'phuonglinh', 'phuonglinh', false, 3, 103, 'Phở bò Hà Nội', 'Nước dùng trong, thơm mùi quế hồi', 'https://cdn.monngonviet.vn/phobo.jpg'),
-    (NOW(), NOW(), 'quanghuy', 'quanghuy', false, 4, 104, 'Bánh mì trứng ốp la', 'Bữa sáng nhanh gọn nhưng đủ chất', 'https://cdn.monngonviet.vn/banhmi.jpg'),
-    (NOW(), NOW(), 'lananh', 'lananh', false, 5, 105, 'Gỏi cuốn tôm thịt', 'Món ăn nhẹ, thanh mát, ít dầu mỡ', 'https://cdn.monngonviet.vn/goicuon.jpg'),
-    (NOW(), NOW(), 'minhtri', 'minhtri', false, 6, 106, 'Chả giò miền Nam', 'Giòn rụm, nhân thịt băm thơm phức', 'https://cdn.monngonviet.vn/chagio.jpg'),
-    (NOW(), NOW(), 'hoangphuc', 'hoangphuc', false, 7, 107, 'Bánh xèo tôm thịt', 'Vỏ vàng giòn, ăn cùng rau sống và nước mắm chua ngọt', 'https://cdn.monngonviet.vn/banhxeo.jpg'),
-    (NOW(), NOW(), 'thanhha', 'thanhha', false, 8, 108, 'Cao lầu Hội An', 'Mì vàng dai, thịt xá xíu đậm vị', 'https://cdn.monngonviet.vn/caolau.jpg'),
-    (NOW(), NOW(), 'kimthao', 'kimthao', false, 9, 109, 'Bánh cuốn Thanh Trì', 'Bột gạo mỏng mịn, nhân thịt mộc nhĩ', 'https://cdn.monngonviet.vn/banhcuon.jpg'),
-    (NOW(), NOW(), 'tuananh', 'tuananh', false, 10, 110, 'Xôi xéo Hà Nội', 'Xôi nếp vàng ươm, thơm hành phi', 'https://cdn.monngonviet.vn/soixeo.jpg');
+    (NOW(), NOW(), 'hoanganh', 'hoanganh', false, 1, 7, 'Bún bò Huế', 'Tô bún bò cay nồng chuẩn vị miền Trung', 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQq6UpPrSe9eYszz1gC0GUFxGepOZvX5hKkIw&s'),
+    (NOW(), NOW(), 'ngocmai', 'ngocmai', false, 2, 5, 'Cơm tấm Sài Gòn', 'Sườn nướng, bì, chả trứng thơm ngon', 'https://file.hstatic.net/1000394081/article/com-tam_e03b4325c9914def9d66619930a73432.jpg'),
+    (NOW(), NOW(), 'phuonglinh', 'phuonglinh', false, 3, 1, 'Phở bò Hà Nội', 'Nước dùng trong, thơm mùi quế hồi', 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ5ffKuq9DTyRpBOg8ZGP01aszcSZcJ9fQXDw&s'),
+    (NOW(), NOW(), 'quanghuy', 'quanghuy', false, 4, 2, 'Bánh mì trứng ốp la', 'Bữa sáng nhanh gọn nhưng đủ chất', 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR_BEyGNxXtr_7w8z-sVo0SushqWzwSvB6xiQ&s'),
+    (NOW(), NOW(), 'lananh', 'lananh', false, 5, 3, 'Gỏi cuốn tôm thịt', 'Món ăn nhẹ, thanh mát, ít dầu mỡ', 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT5kk3PGeI2UfstwOYq5tb15E1Bbsn53I6v_Q&s'),
+    (NOW(), NOW(), 'minhtri', 'minhtri', false, 6, 8, 'Chả giò miền Nam', 'Giòn rụm, nhân thịt băm thơm phức', 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTZt5emkGhgPt-K26Cq2oqT0HC0B4jtCm7xVQ&s'),
+    (NOW(), NOW(), 'hoangphuc', 'hoangphuc', false, 7, 9, 'Bánh xèo tôm thịt', 'Vỏ vàng giòn, ăn cùng rau sống và nước mắm chua ngọt', 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTQ2xosMlmOO05CRIspcYSrhvll2HTwnRYBYw&s'),
+    (NOW(), NOW(), 'thanhha', 'thanhha', false, 8, 10, 'Cao lầu Hội An', 'Mì vàng dai, thịt xá xíu đậm vị', 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQNsIEhWInFKJj4j9XcMgtvL9LNYCWv_kIkLQ&s'),
+    (NOW(), NOW(), 'kimthao', 'kimthao', false, 9, 11, 'Bánh cuốn Thanh Trì', 'Bột gạo mỏng mịn, nhân thịt mộc nhĩ', 'https://static.vinwonders.com/production/banh-cuon-thanh-tri-banner.jpeg'),
+    (NOW(), NOW(), 'tuananh', 'tuananh', false, 10, 12, 'Xôi xéo Hà Nội', 'Xôi nếp vàng ươm, thơm hành phi', 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTLXHCgHafFLTjysi9B5c1qDkgbYs_ef_qGvw&s');
 
 -- =============================
 -- Bảng comment
@@ -34,17 +34,17 @@ VALUES
 -- =============================
 INSERT INTO comment_images (comment_id, image_url)
 VALUES
-    (1, 'https://cdn.example.com/comments/1/img1.jpg'),
-    (1, 'https://cdn.example.com/comments/1/img2.jpg'),
-    (3, 'https://cdn.example.com/comments/3/img1.jpg');
+    (1, 'https://png.pngtree.com/png-vector/20220608/ourlarge/pngtree-yummy-smile-emoji-with-tongue-lick-mouth-png-image_4915077.png'),
+    (1, 'https://cdn2.fptshop.com.vn/unsafe/1920x0/filters:format(webp):quality(75)/2023_10_26_638339206554757767_bun-bo-01.jpeg'),
+    (3, 'https://cdn2.fptshop.com.vn/unsafe/1920x0/filters:format(webp):quality(75)/2023_10_26_638339206554757767_bun-bo-01.jpeg');
 
 -- =============================
 --  Bảng comment_videos
 -- =============================
 INSERT INTO comment_videos (comment_id, video_url)
 VALUES
-    (2, 'https://cdn.example.com/comments/2/video1.mp4'),
-    (5, 'https://cdn.example.com/comments/5/video1.mp4');
+    (2, 'https://res.cloudinary.com/dlkvdusla/video/upload/v1744332430/tewv0bgqobiugi2uhbir.mp4'),
+    (5, 'https://res.cloudinary.com/dlkvdusla/video/upload/v1744332434/emsynvy2eexlokqdnj3c.mp4');
 -- =============================
 --  Bảng comment_reaction
 -- =============================
