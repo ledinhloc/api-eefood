@@ -2,6 +2,7 @@ package com.eefood.reactionservice.controller;
 
 
 import com.eefood.reactionservice.dto.request.PostCreateRequest;
+import com.eefood.reactionservice.dto.response.PostPublishResponse;
 import com.eefood.reactionservice.dto.response.PostResponse;
 import com.eefood.reactionservice.dto.response.ResponseData;
 import com.eefood.reactionservice.service.PostService;
@@ -13,21 +14,31 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/v1/posts")
 @RequiredArgsConstructor
 public class PostController {
   private final PostService postService;
 
+  @GetMapping("/user")
+  public ResponseData<List<PostPublishResponse>> getPostsPublishByUser() {
+    List<PostPublishResponse> result = postService.getPostsPublishByUser();
+    return new ResponseData<>(HttpStatus.OK.value(), "Success", result);
+  }
+
   @PostMapping
-  public ResponseData<PostResponse> createPost(@RequestBody PostCreateRequest request) {
-    PostResponse post = postService.createPost(request);
+  public ResponseData<PostPublishResponse> createPost(@RequestBody PostCreateRequest request) {
+    PostPublishResponse post = postService.createPost(request);
     return new ResponseData<>(HttpStatus.CREATED.value(), "Post created successfully", post);
   }
 
   @PutMapping("/{id}")
-  public ResponseData<PostResponse> updatePost(@PathVariable Long id, @RequestParam String content) {
-    PostResponse post = postService.updatePost(id, content);
+  public ResponseData<PostPublishResponse> updatePost(@PathVariable Long id,  @RequestBody Map<String, String> requestBody) {
+    String content = requestBody.get("content");
+    PostPublishResponse post = postService.updatePost(id, content);
     return new ResponseData<>(HttpStatus.OK.value(), "Post updated successfully", post);
   }
 
