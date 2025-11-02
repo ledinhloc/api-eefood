@@ -2,14 +2,14 @@
 -- vì PostgreSQL không cho DROP DATABASE khi đang có kết nối active
 SELECT pg_terminate_backend(pg_stat_activity.pid)
 FROM pg_stat_activity
-WHERE pg_stat_activity.datname = 'reaction_service'
+WHERE pg_stat_activity.datname = 'recipe_service'
   AND pid <> pg_backend_pid();
 
 -- Xóa database nếu tồn tại
-DROP DATABASE IF EXISTS reaction_service;
+DROP DATABASE IF EXISTS recipe_service;
 
 -- Tạo database mới với encoding UTF8
-CREATE DATABASE reaction_service
+CREATE DATABASE recipe_service
     WITH
     OWNER = postgres
     ENCODING = 'UTF8'

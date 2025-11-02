@@ -1,10 +1,7 @@
 package com.eefood.reactionservice.service;
 
 import com.eefood.reactionservice.dto.request.PostCreateRequest;
-import com.eefood.reactionservice.dto.response.PostResponse;
-import com.eefood.reactionservice.dto.response.RecipeSummaryResponse;
-import com.eefood.reactionservice.dto.response.ResponseData;
-import com.eefood.reactionservice.dto.response.UserInfo;
+import com.eefood.reactionservice.dto.response.*;
 import com.eefood.reactionservice.enums.ErrorMessage;
 import com.eefood.reactionservice.exception.ExceptionUtil;
 import com.eefood.reactionservice.model.Post;
@@ -21,6 +18,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -34,16 +32,68 @@ public class PostService {
   private final RecipeClient recipeClient;
   private final SecurityUtil securityUtil;
 
-  public PostResponse createPost(PostCreateRequest request) {
+  public List<PostPublishResponse> getPostsPublishByUser() {
+    Long userId = securityUtil.getCurrentUserId();
+    List<Post> posts = postRepo.findAllByUserIdAndIsDeletedFalse(userId);
+
+    if (posts.isEmpty()) return List.of();
+
+    // Lấy danh sách recipeId
+    List<Long> recipeIds = posts.stream()
+      .map(Post::getRecipeId)
+      .distinct()
+      .toList();
+
+    // Gọi sang recipe-service để lấy thông tin tóm tắt
+    Map<Long, RecipeSummaryResponse> recipeMap = recipeIds.isEmpty()
+      ? Map.of()
+      : recipeIds.stream()
+      .map(id -> {
+        try {
+          ResponseData<RecipeSummaryResponse> res = recipeClient.getRecipeSummary(id);
+          return Map.entry(id, res.getData());
+        } catch (Exception e) {
+          log.error("Failed to get recipe summary for recipeId={}: {}", id, e.getMessage());
+          return null;
+        }
+      })
+      .filter(Objects::nonNull)
+      .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+
+    // Map sang response DTO
+    return posts.stream().map(post -> {
+      RecipeSummaryResponse recipe = recipeMap.get(post.getRecipeId());
+
+      long countReaction = post.getReactions() != null ? post.getReactions().size() : 0;
+      long countComment = post.getComments() != null ? post.getComments().size() : 0;
+
+      return PostPublishResponse.builder()
+        .id(post.getId())
+        .recipeId(post.getRecipeId())
+        .userId(post.getUserId())
+        .title(post.getTitle())
+        .content(post.getContent())
+        .imageUrl(post.getImageUrl())
+        .createdAt(post.getCreatedAt())
+        .countReaction(countReaction)
+        .countComment(countComment)
+        .difficulty(recipe != null && recipe.getDifficulty() != null ? recipe.getDifficulty().name() : null)
+        .location(recipe != null ? recipe.getRegion() : null)
+        .prepTime(recipe != null && recipe.getPrepTime() != null ? recipe.getPrepTime().toString() : null)
+        .cookTime(recipe != null && recipe.getCookTime() != null ? recipe.getCookTime().toString() : null)
+        .build();
+    }).collect(Collectors.toList());
+  }
+
+
+  public PostPublishResponse createPost(PostCreateRequest request) {
     Long currentUserId = securityUtil.getCurrentUserId();
 
-    // Kiểm tra xem recipe này đã có post chưa bị xóa chưa
     boolean exists = postRepo.existsByRecipeIdAndIsDeletedFalse(request.getRecipeId());
     if (exists) {
       throw ExceptionUtil.conflict(ErrorMessage.ALREADY_EXISTS);
     }
 
-    // Lấy thông tin recipe từ Recipe Service
     ResponseData<RecipeSummaryResponse> recipeResponse = recipeClient.getRecipeSummary(request.getRecipeId());
     RecipeSummaryResponse recipe = recipeResponse.getData();
 
@@ -60,10 +110,26 @@ public class PostService {
       .build();
 
     postRepo.save(post);
-    return postMapper.toResponse(post);
+
+    // Tạo response giống như trong getPostsPublishByUser()
+    return PostPublishResponse.builder()
+      .id(post.getId())
+      .recipeId(post.getRecipeId())
+      .userId(post.getUserId())
+      .title(post.getTitle())
+      .content(post.getContent())
+      .imageUrl(post.getImageUrl())
+      .createdAt(post.getCreatedAt())
+      .countReaction(0L)
+      .countComment(0L)
+      .difficulty(recipe.getDifficulty() != null ? recipe.getDifficulty().name() : null)
+      .location(recipe.getRegion())
+      .prepTime(recipe.getPrepTime() != null ? recipe.getPrepTime().toString() : null)
+      .cookTime(recipe.getCookTime() != null ? recipe.getCookTime().toString() : null)
+      .build();
   }
 
-  public PostResponse updatePost(Long id, String content) {
+  public PostPublishResponse updatePost(Long id, String content) {
     Post post = postRepo.findByIdAndIsDeletedFalse(id);
     if (post == null) {
       throw ExceptionUtil.notFound(ErrorMessage.POST_NOT_FOUND);
@@ -76,7 +142,28 @@ public class PostService {
 
     post.setContent(content);
     postRepo.save(post);
-    return postMapper.toResponse(post);
+
+    ResponseData<RecipeSummaryResponse> recipeResponse = recipeClient.getRecipeSummary(post.getRecipeId());
+    RecipeSummaryResponse recipe = recipeResponse.getData();
+
+    long countReaction = post.getReactions() != null ? post.getReactions().size() : 0;
+    long countComment = post.getComments() != null ? post.getComments().size() : 0;
+
+    return PostPublishResponse.builder()
+      .id(post.getId())
+      .recipeId(post.getRecipeId())
+      .userId(post.getUserId())
+      .title(post.getTitle())
+      .content(post.getContent())
+      .imageUrl(post.getImageUrl())
+      .createdAt(post.getCreatedAt())
+      .countReaction(countReaction)
+      .countComment(countComment)
+      .difficulty(recipe != null && recipe.getDifficulty() != null ? recipe.getDifficulty().name() : null)
+      .location(recipe != null ? recipe.getRegion() : null)
+      .prepTime(recipe != null && recipe.getPrepTime() != null ? recipe.getPrepTime().toString() : null)
+      .cookTime(recipe != null && recipe.getCookTime() != null ? recipe.getCookTime().toString() : null)
+      .build();
   }
 
   public void deletePost(Long id) {
