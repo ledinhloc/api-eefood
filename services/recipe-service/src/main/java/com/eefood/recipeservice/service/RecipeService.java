@@ -99,11 +99,30 @@ public class RecipeService {
       .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.RECIPE_NOT_FOUND));
     RecipeDetailResponse recipeResponse = recipeMapper.toDetailResponse(recipe);
 
+    // --- Lấy thông tin user ---
     UserInfo userInfo = iamClient.getUserInfo(recipe.getAuthorId()).getData();
     recipeResponse.setUserId(userInfo.getId());
     recipeResponse.setUsername(userInfo.getUsername());
     recipeResponse.setEmail(userInfo.getEmail());
     recipeResponse.setAvatarUrl(userInfo.getAvatarUrl());
+
+    // --- Sắp xếp steps theo stepNumber ---
+    if (recipeResponse.getSteps() != null) {
+      recipeResponse.setSteps(
+        recipeResponse.getSteps().stream()
+          .sorted(Comparator.comparingInt(StepResponse::getStepNumber))
+          .toList()
+      );
+    }
+
+    // --- Sắp xếp ingredients theo id ---
+    if (recipeResponse.getIngredients() != null) {
+      recipeResponse.setIngredients(
+        recipeResponse.getIngredients().stream()
+          .sorted(Comparator.comparingLong(RecipeIngredientResponse::getId))
+          .toList()
+      );
+    }
 
     return recipeResponse;
   }
