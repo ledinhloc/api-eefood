@@ -58,11 +58,36 @@ CREATE TABLE post
     updated_by VARCHAR(255)                            NOT NULL,
     is_deleted BOOLEAN                                 NOT NULL,
     user_id    BIGINT                                  NOT NULL,
-    recipe_id  BIGINT,
-    title      VARCHAR(255),
-    content    VARCHAR(255),
-    image_url  VARCHAR(255),
+
+    -- ====== thông tin recipe ======
+    recipe_id     BIGINT,
+    title         VARCHAR(255),
+    description   VARCHAR(500),
+    region        VARCHAR(255),
+    image_url     VARCHAR(500),
+    prep_time     INTEGER,
+    cook_time     INTEGER,
+    difficulty    VARCHAR(7),
+
+    -- ====== thông tin post ======
+    content       TEXT,
+
     CONSTRAINT pk_post PRIMARY KEY (id)
+);
+
+-- Bảng categories & ingredient keywords cho recipe trong post
+CREATE TABLE post_recipe_categories
+(
+    post_id  BIGINT NOT NULL,
+    category VARCHAR(255),
+    CONSTRAINT fk_post_recipe_categories_on_post FOREIGN KEY (post_id) REFERENCES post (id) ON DELETE CASCADE
+);
+
+CREATE TABLE post_recipe_ingredient_keywords
+(
+    post_id           BIGINT NOT NULL,
+    ingredient_keyword VARCHAR(255),
+    CONSTRAINT fk_post_recipe_ingredient_keywords_on_post FOREIGN KEY (post_id) REFERENCES post (id) ON DELETE CASCADE
 );
 
 CREATE TABLE post_reaction

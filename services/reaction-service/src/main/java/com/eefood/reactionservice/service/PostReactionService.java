@@ -2,8 +2,8 @@ package com.eefood.reactionservice.service;
 
 import com.eefood.reactionservice.dto.request.PostReactionRequest;
 import com.eefood.reactionservice.dto.response.PostReactionResponse;
-import com.eefood.reactionservice.dto.response.PostResponse;
 import com.eefood.reactionservice.dto.response.UserInfo;
+import com.eefood.reactionservice.mapper.PostReactionMapper;
 import com.eefood.reactionservice.model.Post;
 import com.eefood.reactionservice.model.PostReaction;
 import com.eefood.reactionservice.repository.PostReactionRepository;
