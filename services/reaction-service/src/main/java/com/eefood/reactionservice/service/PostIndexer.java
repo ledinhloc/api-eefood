@@ -1,13 +1,16 @@
 package com.eefood.reactionservice.service;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import com.eefood.reactionservice.mapper.PostMapper;
 import com.eefood.reactionservice.model.Post;
 import com.eefood.reactionservice.model.PostDocument;
 import com.eefood.reactionservice.repository.PostRepository;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.util.List;
@@ -15,13 +18,14 @@ import java.util.List;
 @Component
 @RequiredArgsConstructor
 @Slf4j
-public class PostIndexer implements CommandLineRunner {
+public class PostIndexer implements CommandLineRunner{
 
   private final PostRepository postRepo;
   private final ElasticsearchClient client;
   private final PostMapper postMapper;
 
   @Override
+  @Transactional(readOnly = true)
   public void run(String... args) throws Exception {
     indexAllPosts();
   }
@@ -47,6 +51,7 @@ public class PostIndexer implements CommandLineRunner {
   /**
    * Khi tao hoac update post
    */
+  @Transactional(readOnly = true)
   public void saveOrUpdatePost(Post post){
     try{
       PostDocument doc = postMapper.toDocument(post);

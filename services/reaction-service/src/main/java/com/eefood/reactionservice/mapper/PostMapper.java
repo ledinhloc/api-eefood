@@ -1,4 +1,4 @@
-package com.eefood.reactionservice.service;
+package com.eefood.reactionservice.mapper;
 
 import com.eefood.reactionservice.dto.response.CommentResponse;
 import com.eefood.reactionservice.dto.response.PostResponse;
@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 @Mapper(componentModel = "spring")
 public interface PostMapper {
   //els
+  @Mapping(target = "difficulty", expression = "java(post.getDifficulty() != null ? post.getDifficulty().name() : null)")
   PostDocument toDocument(Post post);
 
   @Mapping(target = "reactionCounts", source = "reactions", qualifiedByName = "mapReactionCounts")
