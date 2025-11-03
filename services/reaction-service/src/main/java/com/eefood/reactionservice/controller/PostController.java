@@ -69,4 +69,6 @@ public class PostController {
     PostResponse post = postService.getPostById(id);
     return new ResponseData<>(HttpStatus.OK.value(), "Success", post);
   }
+
+
 }
