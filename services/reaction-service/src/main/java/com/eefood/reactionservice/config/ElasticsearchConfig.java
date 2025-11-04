@@ -30,9 +30,6 @@ public class ElasticsearchConfig {
       .build();
 
     // Tạo ObjectMapper với JavaT
-    //    // Tạo ObjectMapper với JavaTimeModule
-    //    ObjectMapper objectMapper = new ObjectMapper();
-    //    objectMapper.registerModule(new JavaTimeModule());imeModule
     ObjectMapper objectMapper = new ObjectMapper();
     objectMapper.registerModule(new JavaTimeModule());
 
