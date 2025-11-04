@@ -25,6 +25,14 @@ import java.util.stream.Collectors;
 public class UserController {
   private final UserService userService;
 
+  @GetMapping("/info/{userId}")
+  public ResponseData<UserResponse> getUserById(@PathVariable Long userId) {
+    if(userId == null) {
+      return new ResponseData<>(HttpStatus.BAD_REQUEST.value(), "userId is null",null);
+    }
+    return new ResponseData<>(HttpStatus.OK.value(), "success",userService.getUserById(userId));
+  }
+
   @DeleteMapping("/cache-user-info")
   public ResponseData<List<UserInfo>> deleteCacheUserInfo(@RequestBody List<Long> userIds) {
 
