@@ -12,7 +12,7 @@ VALUES
 INSERT INTO ingredients (created_at, updated_at, created_by, updated_by, is_deleted, name, description, image)
 VALUES
     (now(), now(), 'System', 'System', false, 'Bánh phở', 'Sợi phở mềm', 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQGxVTnZ1UTbq6PE4Alaf3Wjs_cD6YqDQ2x2Q&s'),
-    (now(), now(), 'System', 'System', false, 'Thịt bò', 'Thịt bò tái hoặc chín', 'https://lh5.googleusercontent.com/dJ9m3nuT3wFEJSIOlJA8GDlXfyyRZoUjr-NrHlOnjk5p59xfrey02im6q04rcgdV2NV_aTyt6awIzNLT9X-ctm0Pw5XOHzboly5qJO3_mMktRPki_1yGArlM8ieOQPXYr7jb6cFscZ22LDwNjVVWLwY'),
+    (now(), now(), 'System', 'System', false, 'Thịt bò', 'Thịt bò tái hoặc chín', 'https://cdn.tgdd.vn/2021/01/content/bo%CC%80vai-800x500.jpg'),
     (now(), now(), 'System', 'System', false, 'Nước dùng', 'Nước hầm xương bò', 'https://cdn2.fptshop.com.vn/unsafe/1920x0/filters:format(webp):quality(75)/cach_ham_xuong_nhanh_mem_thumb_e223bc76e7.jpg'),
     (now(), now(), 'System', 'System', false, 'Bánh mì', 'Ổ bánh mì Việt Nam', 'https://cdn.tgdd.vn/2020/09/CookProduct/1260-1200x676-52.jpg'),
     (now(), now(), 'System', 'System', false, 'Thịt heo', 'Thịt heo', 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQLGOwMr44s_OFDGEmEHivFbbFitsGfcg8ILg&s'),
