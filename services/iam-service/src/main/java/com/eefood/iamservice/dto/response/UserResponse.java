@@ -24,6 +24,7 @@ public class UserResponse {
   private JsonNode address;
   private String provider;
   private String avatarUrl;
+  private String backgroundUrl;
   private List<String> allergies;
   private List<String> eatingPreferences;
   private List<String> dietaryPreferences;
