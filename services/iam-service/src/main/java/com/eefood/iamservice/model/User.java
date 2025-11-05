@@ -6,7 +6,6 @@ import com.eefood.iamservice.enums.Role;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.*;
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -55,6 +54,8 @@ public class User extends BaseEntity {
   private Provider provider;
 
   private String avatarUrl;
+
+  private String backgroundUrl;
 
   @ElementCollection
   @CollectionTable(name = "user_allergies", joinColumns = @JoinColumn(name = "user_id"))
