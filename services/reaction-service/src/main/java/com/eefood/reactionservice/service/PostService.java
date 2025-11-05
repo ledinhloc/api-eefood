@@ -4,6 +4,7 @@ import com.eefood.reactionservice.dto.request.PostCreateRequest;
 import com.eefood.reactionservice.dto.response.*;
 import com.eefood.reactionservice.enums.ErrorMessage;
 import com.eefood.reactionservice.exception.ExceptionUtil;
+import com.eefood.reactionservice.mapper.PostMapper;
 import com.eefood.reactionservice.model.Post;
 import com.eefood.reactionservice.repository.PostRepository;
 import com.eefood.reactionservice.repository.httpclient.IamClient;
@@ -187,50 +188,31 @@ public class PostService {
     Long userId,
     String region,
     String difficulty,
+    String category,
+    Integer maxCookTime,
+    String sortBy,
     Pageable pageable) {
-    List<Long> recipeIds = List.of();
-    //kiem tra loc
-    boolean hasRecipeFilter =
-      (keyword != null && !keyword.isBlank()) ||
-        (region != null && !region.isBlank()) ||
-        (difficulty != null && !difficulty.isBlank());
 
-    // chỉ gọi sang recipe-service khi có tiêu chí lọc
-    if (hasRecipeFilter) {
-      try {
-        ResponseData<List<Long>> response = recipeClient.searchRecipeIds(keyword, region, difficulty);
-        recipeIds = response.getData() != null ? response.getData() : List.of();
-        log.info("Filtered recipe IDs: {}", recipeIds);
-      } catch (Exception e) {
-        log.error("Error calling recipe service: {}", e.getMessage());
-      }
-    }
+    List<Long> postIds = postSearchService.searchPostIds(
+      keyword,
+      region,
+      difficulty,
+      category,
+      maxCookTime,
+      sortBy
+    );
 
-    // Tìm theo nội dung bài viết (content)
-    List<Long> postIdsFromES = List.of();
-    if (keyword != null && !keyword.isBlank()) {
-      postIdsFromES = postSearchService.searchPostIdsByContent(keyword);
-      log.info("Filtered post IDs from Elasticsearch (content): {}", postIdsFromES);
-    }
-
-    // Kết hợp điều kiện
     Specification<Post> spec = PostSpecification.isNotDeleted()
       .and(PostSpecification.hasUserId(userId));
 
-    if (!recipeIds.isEmpty() && !postIdsFromES.isEmpty()) {
-      spec = spec.and(
-        PostSpecification.hasRecipeIds(recipeIds)
-          .or(PostSpecification.hasPostIds(postIdsFromES))
-      );
-    } else if (!recipeIds.isEmpty()) {
-      spec = spec.and(PostSpecification.hasRecipeIds(recipeIds));
-    } else if (!postIdsFromES.isEmpty()) {
-      spec = spec.and(PostSpecification.hasPostIds(postIdsFromES));
+    if (!postIds.isEmpty()) {
+      spec = spec.and(PostSpecification.hasPostIds(postIds));
     }
 
     Page<Post> posts = postRepo.findAll(spec, pageable);
     return mapToPostResponse(posts);
   }
+
 
   private Page<PostResponse> mapToPostResponse(Page<Post> posts) {
     //lay thong tin user

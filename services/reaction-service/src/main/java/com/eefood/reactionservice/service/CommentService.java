@@ -6,6 +6,7 @@ import com.eefood.reactionservice.dto.response.ResponseData;
 import com.eefood.reactionservice.dto.response.UserInfo;
 import com.eefood.reactionservice.enums.ErrorMessage;
 import com.eefood.reactionservice.exception.ExceptionUtil;
+import com.eefood.reactionservice.mapper.CommentMapper;
 import com.eefood.reactionservice.model.Comment;
 import com.eefood.reactionservice.model.Post;
 import com.eefood.reactionservice.repository.CommentRepository;

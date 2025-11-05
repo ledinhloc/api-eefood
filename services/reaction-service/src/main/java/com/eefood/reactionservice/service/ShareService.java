@@ -4,6 +4,7 @@ import com.eefood.reactionservice.dto.request.ShareRequest;
 import com.eefood.reactionservice.dto.response.ShareResponse;
 import com.eefood.reactionservice.enums.ErrorMessage;
 import com.eefood.reactionservice.exception.ExceptionUtil;
+import com.eefood.reactionservice.mapper.ShareMapper;
 import com.eefood.reactionservice.model.Post;
 import com.eefood.reactionservice.model.Share;
 import com.eefood.reactionservice.repository.PostRepository;
