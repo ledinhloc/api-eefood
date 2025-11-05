@@ -1,4 +1,4 @@
-package com.eefood.reactionservice.service;
+package com.eefood.reactionservice.mapper;
 
 import com.eefood.reactionservice.dto.response.ShareResponse;
 import com.eefood.reactionservice.model.Share;

@@ -3,6 +3,8 @@ package com.eefood.reactionservice.config;
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
 import co.elastic.clients.transport.rest_client.RestClientTransport;
 import co.elastic.clients.json.jackson.JacksonJsonpMapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.apache.http.HttpHost;
 import org.apache.http.message.BasicHeader;
 import org.elasticsearch.client.RestClient;
@@ -27,7 +29,11 @@ public class ElasticsearchConfig {
       })
       .build();
 
-    RestClientTransport transport = new RestClientTransport(restClient, new JacksonJsonpMapper());
+    // Tạo ObjectMapper với JavaT
+    ObjectMapper objectMapper = new ObjectMapper();
+    objectMapper.registerModule(new JavaTimeModule());
+
+    RestClientTransport transport = new RestClientTransport(restClient, new JacksonJsonpMapper(objectMapper));
     return new ElasticsearchClient(transport);
   }
 }

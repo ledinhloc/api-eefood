@@ -54,15 +54,32 @@ public class PostController {
     @RequestParam(required = false) Long userId,
     @RequestParam(required = false) String region,
     @RequestParam(required = false) String difficulty,
+    @RequestParam(required = false) String category,
+    @RequestParam(required = false) Integer maxCookTime,
+    @RequestParam(defaultValue = "newest") String sortBy,  // newest | popular | toprated
     @RequestParam(defaultValue = "1") int page,
-    @RequestParam(defaultValue = "10") int size,
-    @RequestParam(defaultValue = "createdAt") String sortBy,
-    @RequestParam(defaultValue = "DESC")Sort.Direction sortDirection
-    ) {
-    Pageable pageable = PageRequest.of(page-1, size, Sort.by(sortDirection, sortBy));
-    Page<PostResponse> result = postService.getAllPosts(keyword, userId, region, difficulty, pageable);
-    return new ResponseData<>(HttpStatus.OK.value(), "Success", result);
+    @RequestParam(defaultValue = "10") int size
+  ) {
+    Pageable pageable = PageRequest.of(page - 1, size);
+
+    Page<PostResponse> result = postService.getAllPosts(
+      keyword,
+      userId,
+      region,
+      difficulty,
+      category,
+      maxCookTime,
+      sortBy,
+      pageable
+    );
+
+    return new ResponseData<>(
+      HttpStatus.OK.value(),
+      "Success",
+      result
+    );
   }
+
 
   @GetMapping("/{id}")
   public ResponseData<PostResponse> getPostById(@PathVariable Long id) {
