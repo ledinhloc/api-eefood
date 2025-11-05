@@ -9,6 +9,7 @@ CREATE TABLE public.users
     address    jsonb,
     auth_id    character varying(255),
     avatar_url character varying(255),
+    background_url character varying(255),
     dob        date,
     email      character varying(255) NOT NULL UNIQUE,
     gender     character varying(10),
