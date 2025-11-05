@@ -1,8 +1,7 @@
-package com.eefood.reactionservice.service;
+package com.eefood.reactionservice.mapper;
 
 import com.eefood.reactionservice.dto.response.CollectionResponse;
 import com.eefood.reactionservice.dto.response.PostCollectionResponse;
-import com.eefood.reactionservice.dto.response.PostResponse;
 import com.eefood.reactionservice.model.Collection;
 import com.eefood.reactionservice.model.CollectionPost;
 import com.eefood.reactionservice.model.Post;
@@ -10,7 +9,6 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Mapper(componentModel = "spring")
 public interface CollectionMapper {

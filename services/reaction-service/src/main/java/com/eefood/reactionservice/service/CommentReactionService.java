@@ -4,6 +4,7 @@ import com.eefood.reactionservice.dto.request.CommentReactionRequest;
 import com.eefood.reactionservice.dto.response.CommentReactionResponse;
 import com.eefood.reactionservice.dto.response.UserInfo;
 import com.eefood.reactionservice.enums.ReactionType;
+import com.eefood.reactionservice.mapper.CommentReactionMapper;
 import com.eefood.reactionservice.model.*;
 import com.eefood.reactionservice.repository.CommentReactionCountRepository;
 import com.eefood.reactionservice.repository.CommentReactionRepository;
@@ -13,9 +14,7 @@ import com.eefood.reactionservice.util.NotificationUtils;
 import com.eefood.reactionservice.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
