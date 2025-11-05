@@ -154,54 +154,53 @@ INSERT INTO collection_post (collection_id, post_id, created_at) VALUES
     (2, 9, NOW()),
     (2, 10, NOW());
 
-INSERT INTO follow (created_by, is_deleted, updated_at, updated_by, follower_id, following_id)
-VALUES
--- User 1 follows users 2, 3, 4
-('system', false, now(), 'system', 1, 2),
-('system', false, now(), 'system', 1, 3),
-('system', false, now(), 'system', 1, 4),
+INSERT INTO follow (follower_id, following_id, created_at) VALUES
+-- User 1 follows 2, 3, 4
+(1, 2, now()),
+(1, 3, now()),
+(1, 4, now()),
 
--- User 2 follows users 1, 5, 6
-('system', false, now(), 'system', 2, 1),
-('system', false, now(), 'system', 2, 5),
-('system', false, now(), 'system', 2, 6),
+-- User 2 follows 1, 5, 6
+(2, 1, now()),
+(2, 5, now()),
+(2, 6, now()),
 
--- User 3 follows users 1, 7, 8
-('system', false, now(), 'system', 3, 1),
-('system', false, now(), 'system', 3, 7),
-('system', false, now(), 'system', 3, 8),
+-- User 3 follows 1, 7, 8
+(3, 1, now()),
+(3, 7, now()),
+(3, 8, now()),
 
--- User 4 follows users 2, 9, 10
-('system', false, now(), 'system', 4, 2),
-('system', false, now(), 'system', 4, 9),
-('system', false, now(), 'system', 4, 10),
+-- User 4 follows 2, 9, 10
+(4, 2, now()),
+(4, 9, now()),
+(4, 10, now()),
 
--- User 5 follows users 3, 11, 12
-('system', false, now(), 'system', 5, 3),
-('system', false, now(), 'system', 5, 11),
-('system', false, now(), 'system', 5, 12),
+-- User 5 follows 3, 11, 12
+(5, 3, now()),
+(5, 11, now()),
+(5, 12, now()),
 
--- User 6 follows users 4, 13, 14
-('system', false, now(), 'system', 6, 4),
-('system', false, now(), 'system', 6, 13),
-('system', false, now(), 'system', 6, 14),
+-- User 6 follows 4, 13, 14
+(6, 4, now()),
+(6, 13, now()),
+(6, 14, now()),
 
--- User 7 follows users 5, 15, 16
-('system', false, now(), 'system', 7, 5),
-('system', false, now(), 'system', 7, 15),
-('system', false, now(), 'system', 7, 16),
+-- User 7 follows 5, 15, 16
+(7, 5, now()),
+(7, 15, now()),
+(7, 16, now()),
 
--- User 8 follows users 6, 17, 18
-('system', false, now(), 'system', 8, 6),
-('system', false, now(), 'system', 8, 17),
-('system', false, now(), 'system', 8, 18),
+-- User 8 follows 6, 17, 18
+(8, 6, now()),
+(8, 17, now()),
+(8, 18, now()),
 
--- User 9 follows users 7, 19, 20
-('system', false, now(), 'system', 9, 7),
-('system', false, now(), 'system', 9, 19),
-('system', false, now(), 'system', 9, 20),
+-- User 9 follows 7, 19, 20
+(9, 7, now()),
+(9, 19, now()),
+(9, 20, now()),
 
--- User 10 follows users 8, 1, 2
-('system', false, now(), 'system', 10, 8),
-('system', false, now(), 'system', 10, 1),
-('system', false, now(), 'system', 10, 2);
+-- User 10 follows 8, 1, 2
+(10, 8, now()),
+(10, 1, now()),
+(10, 2, now());
