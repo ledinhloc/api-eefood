@@ -1,6 +1,8 @@
 package com.eefood.reactionservice.repository;
 
 import com.eefood.reactionservice.model.Follow;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -11,9 +13,9 @@ import java.util.Optional;
 public interface FollowRepository extends JpaRepository<Follow, Long> {
     Optional<Follow> findByFollowerIdAndFollowingId(Long followerId, Long followingId);
 
-    List<Follow> findByFollowingId(Long userId);
+    Page<Follow> findByFollowingId(Long userId, Pageable pageable);
 
-    List<Follow> findByFollowerId(Long userId);
+    Page<Follow> findByFollowerId(Long userId, Pageable pageable);
 
     long countByFollowerId(Long followerId);
 

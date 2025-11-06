@@ -83,6 +83,10 @@ spring:
               uri: lb://REACTION-SERVICE
               predicates:
                 - Path=/api/v1/shares/**
+            - id: follow-user-service
+              uri: lb://REACTION-SERVICE
+              predicates:
+                - Path=/api/v1/follows/**
     bus:
       enabled: true
     stream:
