@@ -17,8 +17,8 @@ import java.util.stream.Collectors;
 
 @Mapper(componentModel = "spring")
 public interface PostMapper {
-  @Mapping(target = "countReaction", expression = "java(post.getReactions() != null ? post.getReactions().size() : 0)")
-  @Mapping(target = "countComment", expression = "java(post.getComments() != null ? post.getComments().size() : 0)")
+  @Mapping(target = "countReaction", expression = "java(post.getReactions() != null ? post.getReactions().size() : 0L)")
+  @Mapping(target = "countComment", expression = "java(post.getComments() != null ? post.getComments().size() : 0L)")
   @Mapping(target = "difficulty", expression = "java(post.getDifficulty() != null ? post.getDifficulty().name() : null)")
   @Mapping(target = "location", source = "region")
   @Mapping(target = "prepTime", expression = "java(post.getPrepTime() != null ? post.getPrepTime().toString() : null)")
