@@ -18,4 +18,6 @@ public interface PostRepository extends JpaRepository<Post, Long>, JpaSpecificat
   boolean existsByRecipeIdAndIsDeletedFalse(Long recipeId);
 
   List<Post> findAllByUserIdAndIsDeletedFalse(Long userId);
+
+  Post findByRecipeIdAndIsDeletedFalse(long id);
 }
