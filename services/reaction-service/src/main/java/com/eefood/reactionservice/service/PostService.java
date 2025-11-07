@@ -104,10 +104,18 @@ public class PostService {
 
     Post post = Post.builder()
       .userId(currentUserId)
-      .recipeId(request.getRecipeId())
       .content(request.getContent())
+      //thong tin recipe
+      .recipeId(request.getRecipeId())
       .title(recipe.getTitle())
+      .description(recipe.getDescription())
+      .region(recipe.getRegion())
       .imageUrl(recipe.getImageUrl())
+      .prepTime(recipe.getPrepTime())
+      .cookTime(recipe.getCookTime())
+      .difficulty(recipe.getDifficulty())
+      .recipeCategories(recipe.getRecipeCategories())
+      .recipeIngredientKeywords(recipe.getRecipeIngredientKeywords())
       .build();
 
     postRepo.save(post);

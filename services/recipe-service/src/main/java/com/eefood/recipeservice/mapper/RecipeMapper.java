@@ -8,8 +8,10 @@ import com.eefood.recipeservice.dto.response.StepResponse;
 import com.eefood.recipeservice.model.*;
 import org.mapstruct.*;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Mapper(componentModel = "spring")
 public interface RecipeMapper {
@@ -21,6 +23,8 @@ public interface RecipeMapper {
 //  @Mapping(target = "ingredients", source = "ingredients", qualifiedByName = "filterDeletedIngredients")
 //  @Mapping(target = "steps", source = "steps", qualifiedByName = "filterDeletedSteps")
   RecipeResponse toResponse(Recipe recipe);
+  @Mapping(target = "recipeCategories", expression = "java(mapCategories(recipe.getCategories()))")
+  @Mapping(target = "recipeIngredientKeywords", expression = "java(mapIngredientKeywords(recipe.getIngredients()))")
   RecipeSummaryResponse toSummaryResponse(Recipe recipe);
   RecipeDetailResponse toDetailResponse(Recipe recipe);
 
@@ -50,6 +54,21 @@ public interface RecipeMapper {
   //category
   CategoryResponse toResponse(Category category);
 
+  default Set<String> mapCategories(Set<Category> categories) {
+    if (categories == null) return new HashSet<>();
+    return categories.stream()
+      .filter(c -> !Boolean.TRUE.equals(c.getIsDeleted()))
+      .map(Category::getDescription)
+      .collect(Collectors.toSet());
+  }
+
+  default Set<String> mapIngredientKeywords(Set<RecipeIngredient> ingredients) {
+    if (ingredients == null) return new HashSet<>();
+    return ingredients.stream()
+      .filter(i -> !Boolean.TRUE.equals(i.getIsDeleted()))
+      .map(i -> i.getIngredient().getName())
+      .collect(Collectors.toSet());
+  }
 //  @Named("filterDeletedIngredients")
 //  default List<RecipeIngredientResponse> mapFilteredIngredients(Set<RecipeIngredient> ingredients) {
 //    if (ingredients == null) return null;
