@@ -13,4 +13,5 @@ public class UserNotificationResponse {
     private Long id;
     private String email;
     private String username;
+    private String fcmToken;
 }

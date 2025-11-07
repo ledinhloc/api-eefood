@@ -30,7 +30,7 @@ public class AuthController {
     return new ResponseData<>(
         HttpStatus.OK.value(),
         "Success",
-        userService.login(request.getEmail(), request.getPassword()));
+        userService.login(request.getEmail(), request.getPassword(), request.getFcmToken()));
   }
 
   // refresh token

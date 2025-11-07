@@ -41,6 +41,7 @@ public class NotificationsService {
     private final SecurityUtil securityUtil;
     private final NotificationsRecipientRepo notificationsRecipientRepo;
     private final IamClient iamClient;
+    private final FirebaseNotificationService firebaseNotificationService;
 
     // Giống push notification
     @Transactional
@@ -124,11 +125,17 @@ public class NotificationsService {
                 .isRead(false)
                 .build();
 
-        messagingTemplate.convertAndSendToUser(
-                userId.toString(),
-                "/queue/notifications",
+//        messagingTemplate.convertAndSendToUser(
+//                userId.toString(),
+//                "/queue/notifications",
+//                response
+//        );
+
+        firebaseNotificationService.sendNotificationToUser(
+                userId,
                 response
         );
+
         log.info("Notification sent via WebSocket to user: {}", userId);
     }
 
@@ -146,6 +153,9 @@ public class NotificationsService {
                 "/topic/notifications",
                 response
         );
+
+        firebaseNotificationService.sendBroadcast(response);
+
         log.info("Broadcast notification sent via WebSocket (topic /topic/notifications)");
     }
 
