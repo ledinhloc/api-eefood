@@ -38,54 +38,10 @@ public class PostService {
     List<Post> posts = postRepo.findAllByUserIdAndIsDeletedFalse(userId);
 
     if (posts.isEmpty()) return List.of();
-
-    // Lấy danh sách recipeId
-    List<Long> recipeIds = posts.stream()
-      .map(Post::getRecipeId)
-      .distinct()
-      .toList();
-
-    // Gọi sang recipe-service để lấy thông tin tóm tắt
-    Map<Long, RecipeSummaryResponse> recipeMap = recipeIds.isEmpty()
-      ? Map.of()
-      : recipeIds.stream()
-      .map(id -> {
-        try {
-          ResponseData<RecipeSummaryResponse> res = recipeClient.getRecipeSummary(id);
-          return Map.entry(id, res.getData());
-        } catch (Exception e) {
-          log.error("Failed to get recipe summary for recipeId={}: {}", id, e.getMessage());
-          return null;
-        }
-      })
-      .filter(Objects::nonNull)
-      .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-
-    // Map sang response DTO
-    return posts.stream().map(post -> {
-      RecipeSummaryResponse recipe = recipeMap.get(post.getRecipeId());
-
-      long countReaction = post.getReactions() != null ? post.getReactions().size() : 0;
-      long countComment = post.getComments() != null ? post.getComments().size() : 0;
-
-      return PostPublishResponse.builder()
-        .id(post.getId())
-        .recipeId(post.getRecipeId())
-        .userId(post.getUserId())
-        .title(post.getTitle())
-        .content(post.getContent())
-        .imageUrl(post.getImageUrl())
-        .createdAt(post.getCreatedAt())
-        .countReaction(countReaction)
-        .countComment(countComment)
-        .difficulty(recipe != null && recipe.getDifficulty() != null ? recipe.getDifficulty().name() : null)
-        .location(recipe != null ? recipe.getRegion() : null)
-        .prepTime(recipe != null && recipe.getPrepTime() != null ? recipe.getPrepTime().toString() : null)
-        .cookTime(recipe != null && recipe.getCookTime() != null ? recipe.getCookTime().toString() : null)
-        .build();
-    }).collect(Collectors.toList());
+    return posts.stream()
+      .map(postMapper::toPublishResponse)
+      .collect(Collectors.toList());
   }
-
 
   public PostPublishResponse createPost(PostCreateRequest request) {
     Long currentUserId = securityUtil.getCurrentUserId();
