@@ -1,4 +1,4 @@
-package com.eefood.reactionservice.producer;
+package com.eefood.reactionservice.kafka;
 
 import com.eefood.reactionservice.dto.request.NotificationRequest;
 import lombok.RequiredArgsConstructor;

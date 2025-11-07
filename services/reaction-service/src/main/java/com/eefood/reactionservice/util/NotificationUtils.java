@@ -2,7 +2,7 @@ package com.eefood.reactionservice.util;
 
 import com.eefood.reactionservice.dto.request.NotificationRequest;
 import com.eefood.reactionservice.enums.ReactionType;
-import com.eefood.reactionservice.producer.NotificationProducer;
+import com.eefood.reactionservice.kafka.NotificationProducer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
