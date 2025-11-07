@@ -1,5 +1,6 @@
 package com.eefood.recipeservice.service;
 
+import com.eefood.common.avro.RecipeEvent;
 import com.eefood.recipeservice.dto.request.RecipeIngredientRequest;
 import com.eefood.recipeservice.dto.request.RecipeRequest;
 import com.eefood.recipeservice.dto.request.RecipeStepRequest;
@@ -7,6 +8,7 @@ import com.eefood.recipeservice.dto.response.*;
 import com.eefood.recipeservice.enums.Difficulty;
 import com.eefood.recipeservice.enums.ErrorMessage;
 import com.eefood.recipeservice.exception.ExceptionUtil;
+import com.eefood.recipeservice.kafka.RecipeProducer;
 import com.eefood.recipeservice.mapper.RecipeMapper;
 import com.eefood.recipeservice.model.*;
 import com.eefood.recipeservice.repository.CategoryRepository;
@@ -36,6 +38,7 @@ public class RecipeService {
   private final IngredientRepository ingredientRepository;
   private final IamClient iamClient;
   private final RecipeIndexer recipeIndexer;
+  private final RecipeProducer recipeProducer;
 
   public Recipe getEntityRecipe(Long id) {
     return recipeRepository.findByIdAndIsDeletedFalse(id)
@@ -156,12 +159,12 @@ public class RecipeService {
     recipe.setAuthorId(currentUser);
     Recipe saved = recipeRepository.save(recipe);
     //luu els
-    recipeIndexer.saveOrUpdateRecipe(saved);
+//    recipeIndexer.saveOrUpdateRecipe(saved);
     return recipeMapper.toResponse(saved);
   }
 
   @Transactional
-  public RecipeResponse updateRecipe(Long id, RecipeRequest request, String currentUser) {
+  public RecipeResponse updateRecipe(Long id, RecipeRequest request) {
     Recipe recipe = recipeRepository.findByIdAndIsDeletedFalse(id)
       .orElseThrow(() -> new EntityNotFoundException("Recipe not found"));
 
@@ -173,7 +176,6 @@ public class RecipeService {
     recipe.setPrepTime(request.getPrepTime());
     recipe.setCookTime(request.getCookTime());
     recipe.setDifficulty(request.getDifficulty());
-    recipe.setUpdatedBy(currentUser);
 
     // update categories
     List<Category> categories = categoryRepository.findAllById(request.getCategoryIds());
@@ -191,7 +193,6 @@ public class RecipeService {
     for (RecipeIngredient ri : existingIngredients) {
       if (ri.getId() != null && !requestIngredientIds.contains(ri.getId())) {
         ri.setIsDeleted(true);
-        ri.setUpdatedBy(currentUser);
       }
     }
 
@@ -204,8 +205,6 @@ public class RecipeService {
                 .orElseThrow(() -> new EntityNotFoundException("Ingredient not found with id: " + ingReq.getIngredientId()));
         newIng.setIngredient(ingredient);
         newIng.setRecipe(recipe);
-        newIng.setCreatedBy(currentUser);
-        newIng.setUpdatedBy(currentUser);
         recipe.addIngredient(newIng);
       } else {
         // update
@@ -216,12 +215,10 @@ public class RecipeService {
 
         if (Boolean.TRUE.equals(ri.getIsDeleted())) {
           ri.setIsDeleted(false);
-          ri.setUpdatedBy(currentUser);
         }
 
         ri.setQuantity(ingReq.getQuantity());
         ri.setUnit(ingReq.getUnit());
-        ri.setUpdatedBy(currentUser);
 
         // nếu ingredientId thay đổi → update reference
         if (!ri.getIngredient().getId().equals(ingReq.getIngredientId())) {
@@ -244,7 +241,6 @@ public class RecipeService {
     for (RecipeStep step : existingSteps) {
       if (!requestStepIds.contains(step.getId())) {
         step.setIsDeleted(true);
-        step.setUpdatedBy(currentUser);
         stepRepository.save(step);
       }
     }
@@ -254,8 +250,6 @@ public class RecipeService {
       if (stepReq.getId() == null) {
         RecipeStep newStep = recipeMapper.toEntity(stepReq);
         newStep.setRecipe(recipe);
-        newStep.setCreatedBy(currentUser);
-        newStep.setUpdatedBy(currentUser);
         stepRepository.save(newStep);
       } else {
         RecipeStep step = stepRepository.findById(stepReq.getId())
@@ -264,7 +258,6 @@ public class RecipeService {
         // khôi phục nếu trước đó bị xóa mềm
         if (Boolean.TRUE.equals(step.getIsDeleted())) {
           step.setIsDeleted(false);
-          step.setUpdatedBy(currentUser);
         }
 
         step.setStepNumber(stepReq.getStepNumber());
@@ -272,11 +265,34 @@ public class RecipeService {
         step.setImageUrl(stepReq.getImageUrl());
         step.setVideoUrl(stepReq.getVideoUrl());
         step.setStepTime(stepReq.getStepTime());
-        step.setUpdatedBy(currentUser);
         stepRepository.save(step);
       }
     }
-    recipeIndexer.saveOrUpdateRecipe(recipe);
+
+    // Gửi event kafka sau khi update
+    RecipeEvent event = RecipeEvent.newBuilder()
+      .setId(recipe.getId())
+      .setTitle(recipe.getTitle())
+      .setDescription(recipe.getDescription())
+      .setRegion(recipe.getRegion())
+      .setImageUrl(recipe.getImageUrl())
+      .setPrepTime(recipe.getPrepTime())
+      .setCookTime(recipe.getCookTime())
+      .setDifficulty(recipe.getDifficulty() != null ? recipe.getDifficulty().name() : null)
+      .setCategories(
+        recipe.getCategories().stream()
+          .map(Category::getDescription)
+          .collect(Collectors.toList())
+      )
+      .setIngredientKeywords(
+        recipe.getIngredients().stream()
+          .map(ri -> ri.getIngredient().getName())
+          .collect(Collectors.toList())
+      )
+      .build();
+    recipeProducer.sendRecipe(event);
+    //els
+//    recipeIndexer.saveOrUpdateRecipe(recipe);
     return recipeMapper.toResponse(recipe);
   }
 }
