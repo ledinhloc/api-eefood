@@ -37,7 +37,7 @@ public class WebSocketAuthInterceptor implements HandshakeInterceptor {
 
                     if (userId != null) {
                         attributes.put("userId", userId);
-                        log.info("✅ WebSocket connection authenticated for userId={}", userId);
+                        log.info("WebSocket connection authenticated for userId={}", userId);
                         return true;
                     } else {
                         log.warn("Token does not contain userId claim");
