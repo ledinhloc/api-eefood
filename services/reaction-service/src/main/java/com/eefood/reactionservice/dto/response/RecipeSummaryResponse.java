@@ -6,6 +6,9 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
 
+import java.util.HashSet;
+import java.util.Set;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -20,4 +23,6 @@ public class RecipeSummaryResponse {
   private Integer prepTime;
   private Integer cookTime;
   private Difficulty difficulty;
+  private Set<String> recipeCategories = new HashSet<>();
+  private Set<String> recipeIngredientKeywords = new HashSet<>();
 }

@@ -1,6 +1,7 @@
 package com.eefood.reactionservice.mapper;
 
 import com.eefood.reactionservice.dto.response.CommentResponse;
+import com.eefood.reactionservice.dto.response.PostPublishResponse;
 import com.eefood.reactionservice.dto.response.PostResponse;
 import com.eefood.reactionservice.model.Comment;
 import com.eefood.reactionservice.model.Post;
@@ -16,6 +17,14 @@ import java.util.stream.Collectors;
 
 @Mapper(componentModel = "spring")
 public interface PostMapper {
+  @Mapping(target = "countReaction", expression = "java(post.getReactions() != null ? post.getReactions().size() : 0)")
+  @Mapping(target = "countComment", expression = "java(post.getComments() != null ? post.getComments().size() : 0)")
+  @Mapping(target = "difficulty", expression = "java(post.getDifficulty() != null ? post.getDifficulty().name() : null)")
+  @Mapping(target = "location", source = "region")
+  @Mapping(target = "prepTime", expression = "java(post.getPrepTime() != null ? post.getPrepTime().toString() : null)")
+  @Mapping(target = "cookTime", expression = "java(post.getCookTime() != null ? post.getCookTime().toString() : null)")
+  PostPublishResponse toPublishResponse(Post post);
+
   //els
   @Mapping(target = "difficulty", expression = "java(post.getDifficulty() != null ? post.getDifficulty().name() : null)")
   PostDocument toDocument(Post post);
@@ -25,9 +34,7 @@ public interface PostMapper {
     target = "totalShares",
     expression = "java(post.getShares() != null ? (long) post.getShares().size() : 0L)"
   )
-//  @Mapping(target = "comments", expression = "java(mapComments(post.getComments()))")
   PostResponse toResponse(Post post);
-//  Post toEntity(PostResponse postResponse);
 
   // ========== SUPPORT MAPPING METHODS ==========
   @Named("mapReactionCounts")
