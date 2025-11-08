@@ -70,6 +70,6 @@ public class RecipeConsumer {
 
     postRepository.save(post);
     postIndexer.saveOrUpdatePost(post);
-    log.info("✅ Updated post for recipeId={} successfully", event.getId());
+    log.info("Updated post for recipeId={} successfully", event.getId());
   }
 }
