@@ -1,11 +1,12 @@
 package com.eefood.iamservice.service;
 
+import com.eefood.common.avro.OtpCreateEvent;
 import com.eefood.iamservice.dto.request.OtpCreateRequest;
 import com.eefood.iamservice.enums.ErrorMessage;
 import com.eefood.iamservice.enums.OtpType;
 import com.eefood.iamservice.model.Otp;
 import com.eefood.iamservice.model.User;
-import com.eefood.iamservice.producer.EmailProducer;
+import com.eefood.iamservice.kafka.EmailProducer;
 import com.eefood.iamservice.repository.OtpRepository;
 import com.eefood.iamservice.repository.UserRepository;
 import com.eefood.iamservice.utils.ExceptionUtil;
@@ -55,14 +56,21 @@ public class OtpService {
             .user(user)
             .build();
 
-    OtpCreateRequest otpRequest =
-        OtpCreateRequest.builder().otpCode(otpCode).otpType(otpType).email(email).build();
+    com.eefood.common.avro.OtpType avroOtpType =
+      com.eefood.common.avro.OtpType.valueOf(otpType.name());
+
+    OtpCreateEvent otpRequest =
+      OtpCreateEvent.newBuilder().setOtpCode(otpCode).setOtpType(avroOtpType).setEmail(email).build();
 
     otpRepository.save(otp);
 
     emailProducer.sendEmailProducerEvent(otpRequest);
 
-    return otpRequest;
+    return OtpCreateRequest.builder()
+      .email(email)
+      .otpCode(otpCode)
+      .otpType(otpType)
+      .build();
   }
 
   public boolean canSendOtp(User user) {

@@ -28,17 +28,20 @@ VALUES
     (now(), now(), 'System', 'System', false,1, 9, false, null);
 
 -- ================================
--- Dữ liệu mẫu cho notifications_setting (10 rows)
+-- Dữ liệu mẫu cho notifications_setting (đã xử lý trùng)
 -- ================================
+
 INSERT INTO notifications_setting (created_at, updated_at, created_by, updated_by, is_deleted, user_id, type, enabled)
 VALUES
+    -- user_id = 1
     (now(), now(), 'System', 'System', false, 1, 'COMMENT', true),
     (now(), now(), 'System', 'System', false, 1, 'REACTION', true),
     (now(), now(), 'System', 'System', false, 1, 'FOLLOW', true),
-    (now(), now(), 'System', 'System', false, 1, 'COMMENT', false),
-    (now(), now(), 'System', 'System', false, 1, 'REACTION', true),
-    (now(), now(), 'System', 'System', false, 1, 'FOLLOW', false),
     (now(), now(), 'System', 'System', false, 1, 'SAVE_RECIPE', true),
     (now(), now(), 'System', 'System', false, 1, 'SHARE_RECIPE', true),
     (now(), now(), 'System', 'System', false, 1, 'WELCOME', true),
-    (now(), now(), 'System', 'System', false, 1, 'RECIPE_OF_THE_DAY', false);
+    (now(), now(), 'System', 'System', false, 1, 'RECIPE_OF_THE_DAY', false),
+    -- user_id = 2
+    (now(), now(), 'System', 'System', false, 2, 'COMMENT', false),
+    (now(), now(), 'System', 'System', false, 2, 'REACTION', true),
+    (now(), now(), 'System', 'System', false, 2, 'FOLLOW', false);
