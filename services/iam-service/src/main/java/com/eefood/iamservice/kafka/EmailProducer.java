@@ -1,6 +1,6 @@
-package com.eefood.iamservice.producer;
+package com.eefood.iamservice.kafka;
 
-import com.eefood.iamservice.dto.request.OtpCreateRequest;
+import com.eefood.common.avro.OtpCreateEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
@@ -11,7 +11,7 @@ public class EmailProducer {
   private final KafkaTemplate<String, Object> kafkaTemplate;
   private static final String EMAIL_TOPIC = "notification.email";
 
-  public void sendEmailProducerEvent(OtpCreateRequest otpCreateRequest) {
+  public void sendEmailProducerEvent(OtpCreateEvent otpCreateRequest) {
     kafkaTemplate.send(EMAIL_TOPIC, otpCreateRequest);
   }
 }

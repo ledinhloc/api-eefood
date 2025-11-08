@@ -1,6 +1,6 @@
 package com.eefood.reactionservice.util;
 
-import com.eefood.reactionservice.dto.request.NotificationRequest;
+import com.eefood.common.avro.NotificationEvent;
 import com.eefood.reactionservice.enums.ReactionType;
 import com.eefood.reactionservice.kafka.NotificationProducer;
 import lombok.RequiredArgsConstructor;
@@ -20,15 +20,15 @@ public class NotificationUtils {
                                         String avatarUrl,
                                         String postPath,
                                         String postImageUrl) {
-        NotificationRequest notification = NotificationRequest.builder()
-                .title(commenterName + " đã bình luận bài viết của bạn")
-                .body(body)
-                .path(postPath)
-                .avatarUrl(avatarUrl)
-                .postImageUrl(postImageUrl)
-                .type("COMMENT")
-                .userId(receiverId)
-                .build();
+      NotificationEvent notification = NotificationEvent.newBuilder()
+        .setTitle(commenterName + " đã bình luận bài viết của bạn")
+        .setBody(body)
+        .setPath(postPath)
+        .setAvatarUrl(avatarUrl)
+        .setPostImageUrl(postImageUrl)
+        .setType("COMMENT")
+        .setUserId(receiverId)
+        .build();
 
         notificationProducer.sendNotification(notification);
     }
@@ -53,16 +53,16 @@ public class NotificationUtils {
 
         String type = isPost ? "bài viết" : "bình luận";
         String title = String.format(reactorName + " đã " + reactionText + " %s của bạn", type);
-        NotificationRequest notification = NotificationRequest.builder()
-                .title(title)
-                .body("Nhấn vào đây để xem chi tiết bài viết")
-                .path(postPath)
-                .avatarUrl(avatarUrl)
-                .postImageUrl(postImageUrl)
-                .type("REACTION")
-                .userId(receiverId)
-                .build();
+      NotificationEvent notification = NotificationEvent.newBuilder()
+        .setTitle(title)
+        .setBody("Nhấn vào đây để xem chi tiết bài viết")
+        .setPath(postPath)
+        .setAvatarUrl(avatarUrl)
+        .setPostImageUrl(postImageUrl)
+        .setType("REACTION")
+        .setUserId(receiverId)
+        .build();
 
-        notificationProducer.sendNotification(notification);
+      notificationProducer.sendNotification(notification);
     }
 }
