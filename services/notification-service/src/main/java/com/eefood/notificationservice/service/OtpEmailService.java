@@ -41,7 +41,7 @@ public class OtpEmailService {
               + otpCode
               + "</span>"
               + "</div>"
-              + "<p>Regards,<br/>Echo English Team</p>"
+              + "<p>Regards,<br/>EE FOOD Team</p>"
               + "<hr style=\"border:none; border-top:1px solid #eee; margin-top:20px;\"/>"
               + "<p style=\"font-size:12px; color:#aaa; text-align:center;\">Echo Inc, 1600 Amphitheatre Parkway, California</p>"
               + "</div>";
