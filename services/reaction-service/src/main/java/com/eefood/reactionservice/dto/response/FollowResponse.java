@@ -19,6 +19,7 @@ public class FollowResponse {
     private LocalDateTime createdAt;
 
     //  Thông tin user
+    private boolean isFollow;
     private String username;
     private String email;
     private String avatarUrl;
