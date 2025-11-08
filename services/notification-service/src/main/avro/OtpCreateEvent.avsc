@@ -1,0 +1,17 @@
+{
+  "type": "record",
+  "name": "OtpCreateEvent",
+  "namespace": "com.eefood.common.avro",
+  "fields": [
+    { "name": "email", "type": "string" },
+    { "name": "otpCode", "type": "string" },
+    {
+      "name": "otpType",
+      "type": {
+        "type": "enum",
+        "name": "OtpType",
+        "symbols": ["REGISTER", "FORGOT_PASSWORD"]
+      }
+    }
+  ]
+}
