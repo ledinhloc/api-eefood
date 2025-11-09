@@ -26,6 +26,12 @@ public class FollowController {
         return new ResponseData<>(HttpStatus.OK.value(), "Success", isAllowed);
     }
 
+    @DeleteMapping("/{targetId}")
+    public ResponseData<Boolean> unFollow(@PathVariable Long targetId) {
+        boolean isAllowed = followService.unFollow(targetId);
+        return new ResponseData<>(HttpStatus.OK.value(), "Success", isAllowed);
+    }
+
     @GetMapping("/check/{targetId}")
     public ResponseData<Boolean> checkFollow(@PathVariable Long targetId) {
         boolean isAllowed = followService.checkFollow(targetId);

@@ -56,6 +56,23 @@ public class FollowService {
         }
     }
 
+    @Transactional
+    public boolean unFollow(Long followingId) {
+        Long currentUserId = securityUtil.getCurrentUserId();
+
+        if(currentUserId.equals(followingId)) {
+            throw new RuntimeException("You cannot unfollow yourself.");
+        }
+
+        var existing = followRepository.findByFollowerIdAndFollowingId(currentUserId, followingId);
+
+        if(existing.isPresent()) {
+            followRepository.delete(existing.get());
+            return true;
+        }
+        return false;
+    }
+
     public boolean checkFollow(Long followingId) {
         Long currentUserId = securityUtil.getCurrentUserId();
         return followRepository.findByFollowerIdAndFollowingId(currentUserId, followingId).isPresent();
@@ -113,8 +130,8 @@ public class FollowService {
 
         List<FollowResponse> responses = followPage.getContent().stream().map(f -> {
             FollowResponse dto = followMapper.toResponse(f);
-
             Long lookupId = isFollowers ? f.getFollowerId() : f.getFollowingId();
+            dto.setFollow(checkFollow(lookupId));
             UserInfo u = userInfoMap.get(lookupId);
 
             if (u != null) {

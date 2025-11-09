@@ -12,6 +12,29 @@ public class NotificationUtils {
     private final NotificationProducer notificationProducer;
 
     /**
+     * Gửi thông báo khi người dùng reply vào comment của người khác.
+     */
+    public void sendReplyNotification(Long receiverId,
+                                      String replierName,
+                                      String body,
+                                      String avatarUrl,
+                                      String postPath,
+                                      String postImageUrl) {
+        NotificationEvent notification = NotificationEvent.newBuilder()
+                .setTitle(replierName + " đã trả lời bình luận của bạn")
+                .setBody(body)
+                .setPath(postPath)
+                .setAvatarUrl(avatarUrl)
+                .setPostImageUrl(postImageUrl)
+                .setType("REPLY")
+                .setUserId(receiverId)
+                .build();
+
+        notificationProducer.sendNotification(notification);
+    }
+
+
+    /**
      * Gửi thông báo khi người dùng bình luận bài viết.
      */
     public void sendCommentNotification(Long receiverId,
