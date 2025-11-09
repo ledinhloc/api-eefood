@@ -126,15 +126,31 @@ public class CommentService {
         resp.setEmail(userInfo.getEmail());
         resp.setAvatarUrl(userInfo.getAvatarUrl());
 
-        if (!currentUserId.equals(post.getUserId())) {
-            notificationUtils.sendCommentNotification(
-                    post.getUserId(),
-                    userInfo.getUsername(),
-                    resp.getContent(),
-                    userInfo.getAvatarUrl(),
-                    "/posts/" + post.getId(),
-                    post.getImageUrl()
-            );
+        // Nếu là comment gốc (không có parent)
+        if (parent == null) {
+            // Gửi thông báo cho chủ bài viết nếu không phải chính họ
+            if (!currentUserId.equals(post.getUserId())) {
+                notificationUtils.sendCommentNotification(
+                        post.getUserId(),
+                        userInfo.getUsername(),
+                        resp.getContent(),
+                        userInfo.getAvatarUrl(),
+                        "/posts/" + post.getId(),
+                        post.getImageUrl()
+                );
+            }
+        } else {
+            // Là reply -> gửi cho chủ comment mà mình đang reply, nếu khác user hiện tại
+            if (!currentUserId.equals(parent.getUserId())) {
+                notificationUtils.sendReplyNotification(
+                        parent.getUserId(),
+                        userInfo.getUsername(),
+                        resp.getContent(),
+                        userInfo.getAvatarUrl(),
+                        "/posts/" + post.getId(),
+                        post.getImageUrl()
+                );
+            }
         }
 
         return resp;
