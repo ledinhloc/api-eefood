@@ -1,27 +1,41 @@
 package com.eefood.reactionservice.controller;
-
-
 import com.eefood.reactionservice.dto.request.PostCreateRequest;
 import com.eefood.reactionservice.dto.response.PostPublishResponse;
 import com.eefood.reactionservice.dto.response.PostResponse;
 import com.eefood.reactionservice.dto.response.ResponseData;
+import com.eefood.reactionservice.service.GeminiService;
 import com.eefood.reactionservice.service.PostService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/api/v1/posts")
 @RequiredArgsConstructor
 public class PostController {
   private final PostService postService;
+  private final GeminiService geminiService;
+
+  @PostMapping(value = "/get-keyword", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  public ResponseData<String> getKeyword(@RequestParam MultipartFile image) {
+    String result = geminiService.extractKeywordsFromImage(image);
+    return new ResponseData<>(
+            HttpStatus.OK.value(),
+            "Success",
+            result
+    );
+  }
 
   @GetMapping("/user")
   public ResponseData<List<PostPublishResponse>> getPostsPublishByUser() {
