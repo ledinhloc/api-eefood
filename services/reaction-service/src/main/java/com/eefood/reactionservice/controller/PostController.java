@@ -60,8 +60,6 @@ public class PostController {
     @RequestParam(defaultValue = "1") int page,
     @RequestParam(defaultValue = "10") int size
   ) {
-    Pageable pageable = PageRequest.of(page - 1, size);
-
     Page<PostResponse> result = postService.getAllPosts(
       keyword,
       userId,
@@ -70,7 +68,8 @@ public class PostController {
       category,
       maxCookTime,
       sortBy,
-      pageable
+      page,
+      size
     );
 
     return new ResponseData<>(
