@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -33,6 +34,12 @@ public class PostSearchService {
     int size
   ) {
     try {
+
+      Map<String, JsonData> scriptParams = new HashMap<>();
+      List<String> prefs = user.getEatingPreferences() != null ? user.getEatingPreferences() : List.of();
+      scriptParams.put("userPrefs", JsonData.of(prefs));
+      scriptParams.put("userRegion", JsonData.of(region != null ? region : ""));
+
       return client.search(s -> {
           var search = s
             .index("posts")
@@ -80,31 +87,43 @@ public class PostSearchService {
               .script(sc -> sc
                 .source("""
             double score = 1.0;
-            if (params.userPrefs != null) {
-              for (pref in params.userPrefs) {
-                if (doc['recipeIngredientKeywords'].contains(pref)) {
-                  score += 2;
+            
+            // Tăng điểm theo sở thích ăn uống
+            if (params.userPrefs != null && params.userPrefs.length > 0) {
+                if (doc.containsKey('recipeIngredientKeywords.keyword') && doc['recipeIngredientKeywords.keyword'].size() > 0) {
+                    for (pref in params.userPrefs) {
+                        for (kw in doc['recipeIngredientKeywords.keyword']) {
+                            if (kw == pref) {
+                                score += 2;
+                                break;
+                            }
+                        }
+                    }
                 }
-                if (doc['recipeCategories'].contains(pref)) {
-                  score += 1.5;
+                if (doc.containsKey('recipeCategories.keyword') && doc['recipeCategories.keyword'].size() > 0) {
+                    for (pref in params.userPrefs) {
+                        for (cat in doc['recipeCategories.keyword']) {
+                            if (cat == pref) {
+                                score += 1.5;
+                                break;
+                            }
+                        }
+                    }
                 }
-              }
             }
-            if (params.userRegion != null &&
-                doc['region.keyword'].size() > 0 &&
-                doc['region.keyword'].value == params.userRegion) {
-              score += 1.0;
-            }
+
+            // Tăng điểm theo region
+//            if (params.userRegion != null && params.userRegion != "" 
+//                && doc.containsKey('region.keyword') && doc['region.keyword'].size() > 0
+//                && doc['region.keyword'].value == params.userRegion) {
+//                score += 1;
+//            }
+
             return score;
         """)
-                .params(Map.of(
-                  "userPrefs", JsonData.of(user.getEatingPreferences() != null ? user.getEatingPreferences() : List.of()),
-                  "userRegion", JsonData.of(region != null ? region : "")
-                ))
-
+                .params(scriptParams)
               )
             ))
-
             .boostMode(FunctionBoostMode.Replace)
           ));
 
