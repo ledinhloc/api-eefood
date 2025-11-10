@@ -160,10 +160,6 @@ public class PostService {
     String sortBy,
     Pageable pageable) {
 
-    CompletableFuture<String> keywordFuture = CompletableFuture.completedFuture(keyword);
-
-    log.info("keyword: {}", keyword);
-
     List<Long> postIds = postSearchService.searchPostIds(
       keyword,
       region,
