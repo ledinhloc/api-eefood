@@ -16,10 +16,12 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -32,6 +34,7 @@ public class PostService {
   private final PostSearchService postSearchService;
   private final RecipeClient recipeClient;
   private final SecurityUtil securityUtil;
+  private final GeminiService geminiService;
 
   public List<PostPublishResponse> getPostsPublishByUser() {
     Long userId = securityUtil.getCurrentUserId();
@@ -157,6 +160,10 @@ public class PostService {
     String sortBy,
     Pageable pageable) {
 
+    CompletableFuture<String> keywordFuture = CompletableFuture.completedFuture(keyword);
+
+    log.info("keyword: {}", keyword);
+
     List<Long> postIds = postSearchService.searchPostIds(
       keyword,
       region,
@@ -176,7 +183,6 @@ public class PostService {
     Page<Post> posts = postRepo.findAll(spec, pageable);
     return mapToPostResponse(posts);
   }
-
 
   private Page<PostResponse> mapToPostResponse(Page<Post> posts) {
     //lay thong tin user
