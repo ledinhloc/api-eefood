@@ -5,6 +5,7 @@ import lombok.*;
 import org.springframework.data.annotation.Id;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -26,8 +27,8 @@ public class PostDocument {
   private Integer cookTime;
   private String difficulty;
 
-  private Set<String> recipeCategories;
-  private Set<String> recipeIngredientKeywords;
+  private Set<String> recipeCategories = new HashSet<>();
+  private Set<String> recipeIngredientKeywords = new HashSet<>();
 
   private LocalDateTime createdAt;
 }

@@ -166,7 +166,7 @@ public class PostService {
     ResponseData<UserResponse> userResponse = iamClient.getUserById(currentUserId);
     UserResponse user = userResponse.getData();
     //debug
-    log.info(user.toString());
+//    log.info(user.toString());
 
     //Lấy danh sách postIds từ Elasticsearch
     List<Long> postIds = postSearchService.searchPostIds(
@@ -180,7 +180,7 @@ public class PostService {
       size
     );
     //debug
-    log.info("----------------" + postIds.toString());
+    log.info("----------------PostIds : " + postIds.toString());
 
     if (postIds.isEmpty()) {
       return new PageImpl<>(List.of());
@@ -202,7 +202,7 @@ public class PostService {
       .toList();
     List<PostResponse> postResponses = mapToPostResponse(orderedPosts);
     //debug
-    log.info("----------------" + postResponses.toString());
+//    log.info("----------------" + postResponses.toString());
     return new PageImpl<>(postResponses, PageRequest.of(page - 1, size), postIds.size());
   }
 
