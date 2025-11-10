@@ -83,12 +83,20 @@ management:
       application: iam-service # Gắn nhãn `application=iam-service` vào tất cả metric
 
 logging:
+  charset:
+    console: UTF-8
   level:
     root: INFO
     # Log feign chi tiết
     feign: DEBUG
     feign.client: DEBUG
 
+google:
+  ai:
+    gemini:
+      api-key: ${GEMINI_API_KEY}
+      model: gemini-2.5-flash
+      temperature: 0.1
 
 
 
