@@ -1,6 +1,7 @@
 package com.eefood.reactionservice.service;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import co.elastic.clients.elasticsearch._types.FieldValue;
 import co.elastic.clients.elasticsearch.core.search.Hit;
 import co.elastic.clients.elasticsearch._types.SortOrder;
 import co.elastic.clients.elasticsearch._types.query_dsl.FunctionBoostMode;
@@ -34,11 +35,16 @@ public class PostSearchService {
     int size
   ) {
     try {
+      String userCity;
+      if (user.getAddress() != null && user.getAddress().get("city") != null) {
+        userCity = user.getAddress().get("city").asText();
+      } else {
+        userCity = "";
+      }
 
-      Map<String, JsonData> scriptParams = new HashMap<>();
-      List<String> prefs = user.getEatingPreferences() != null ? user.getEatingPreferences() : List.of();
-      scriptParams.put("userPrefs", JsonData.of(prefs));
-      scriptParams.put("userRegion", JsonData.of(region != null ? region : ""));
+      List<String> eatingPrefs = user.getEatingPreferences() != null ? user.getEatingPreferences() : List.of();
+      List<String> dietaryPrefs = user.getDietaryPreferences() != null ? user.getDietaryPreferences() : List.of();
+      List<String> allergies = user.getAllergies() != null ? user.getAllergies() : List.of();
 
       return client.search(s -> {
           var search = s
@@ -82,49 +88,61 @@ public class PostSearchService {
 
               return b;
             }))
-            // --- SCRIPT SCORE ---
-            .functions(fn -> fn.scriptScore(ss -> ss
-              .script(sc -> sc
-                .source("""
-            double score = 1.0;
-            
-            // Tăng điểm theo sở thích ăn uống
-            if (params.userPrefs != null && params.userPrefs.length > 0) {
-                if (doc.containsKey('recipeIngredientKeywords.keyword') && doc['recipeIngredientKeywords.keyword'].size() > 0) {
-                    for (pref in params.userPrefs) {
-                        for (kw in doc['recipeIngredientKeywords.keyword']) {
-                            if (kw == pref) {
-                                score += 2;
-                                break;
-                            }
-                        }
-                    }
-                }
-                if (doc.containsKey('recipeCategories.keyword') && doc['recipeCategories.keyword'].size() > 0) {
-                    for (pref in params.userPrefs) {
-                        for (cat in doc['recipeCategories.keyword']) {
-                            if (cat == pref) {
-                                score += 1.5;
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
+              .functions(fList -> {
+                /** ---- SỞ THÍCH ĂN UỐNG ---- **/
+                for (String pref : eatingPrefs) {
 
-            // Tăng điểm theo region
-//            if (params.userRegion != null && params.userRegion != "" 
-//                && doc.containsKey('region.keyword') && doc['region.keyword'].size() > 0
-//                && doc['region.keyword'].value == params.userRegion) {
-//                score += 1;
-//            }
+                  // Ingredient match
+                  fList.filter(f -> f.match(m -> m
+                    .field("recipeIngredientKeywords")
+                    .query(pref)
+                    .fuzziness("AUTO")
+                  )).weight(3.0);
 
-            return score;
-        """)
-                .params(scriptParams)
-              )
-            ))
-            .boostMode(FunctionBoostMode.Replace)
+                  // Category match
+                  fList.filter(f -> f.match(m -> m
+                    .field("recipeCategories")
+                    .query(pref)
+                    .fuzziness("AUTO")
+                  )).weight(2.0);
+                }
+
+                /** ---- ĐỊA CHỈ / THÀNH PHỐ ---- **/
+                if (!userCity.isBlank()) {
+                  fList.filter(f -> f.match(m -> m
+                    .field("region")        // region trong PostDocument
+                    .query(userCity)
+                    .fuzziness("AUTO")
+                  )).weight(1.5);
+                }
+
+                /** ---- CHẾ ĐỘ ĂN ---- **/
+                for (String diet : dietaryPrefs) {
+
+                  fList.filter(f -> f.match(m -> m
+                    .field("recipeCategories")
+                    .query(diet)
+                    .fuzziness("AUTO")
+                  )).weight(2.5);
+
+                  fList.filter(f -> f.match(m -> m
+                    .field("content")
+                    .query(diet)
+                    .fuzziness("AUTO")
+                  )).weight(1.0);
+                }
+
+                /** ---- DỊ ỨNG (giảm điểm) ---- **/
+//                for (String al : allergies) {
+//                  fList.filter(f -> f.match(m -> m
+//                    .field("recipeIngredientKeywords")
+//                    .query(al)
+//                    .fuzziness("AUTO")
+//                  )).weight(0.2);
+//                }
+                return fList;
+              })
+              .boostMode(FunctionBoostMode.Replace)
           ));
 
           // --- Sort theo score ---
