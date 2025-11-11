@@ -9,12 +9,14 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface CommentRepository extends JpaRepository<Comment, Long>, JpaSpecificationExecutor<Comment> {
-    List<Comment> findByParentIdAndIsDeletedFalse(Long id);
+  List<Comment> findAllByUserIdAndCreatedAtAfterAndIsDeletedFalse(Long userId, LocalDateTime fromDate);
+  List<Comment> findByParentIdAndIsDeletedFalse(Long id);
 
     Optional<Comment> findByIdAndIsDeletedFalse(Long id);
 
