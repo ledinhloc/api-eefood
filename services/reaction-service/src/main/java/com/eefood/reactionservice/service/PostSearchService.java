@@ -28,6 +28,7 @@ public class PostSearchService {
 
   private final ElasticsearchClient client;
   private final PostReactionService postReactionService;
+  private final CommentService commentService;
 
   public List<Long> searchPostIds(
     String keyword,
@@ -54,6 +55,8 @@ public class PostSearchService {
       List<String> allergies = user.getAllergies() != null ? user.getAllergies() : List.of();
       List<String> reactedPostKeywords = postReactionService.getTopKeywordsFromReactedPosts(user.getId(),10, 20);
       log.info("-----reactedPostKeywords: {}", reactedPostKeywords);
+      List<String> commentedPostKeywords = commentService.getTopKeywordsFromCommentedPosts(user.getId(), 10, 20);
+
       return client.search(s -> {
           var search = s
             .index("posts")
@@ -63,28 +66,28 @@ public class PostSearchService {
           // --- QUERY CHÍNH ---
           search.query(q -> q.functionScore(fs -> fs
             .query(base -> base.bool(b -> {
-              // 1. Keyword
-              if (keyword != null && !keyword.isBlank()) {
-                b.should(sh -> sh.multiMatch(mm -> mm
-                  .fields("title", "content", "recipeIngredientKeywords")
-                  .query(keyword)
-                ));
-              }
-
-              // 2. Lọc theo region
-              if (region != null && !region.isBlank()) {
-                b.filter(f -> f.term(t -> t.field("region.keyword").value(region)));
-              }
-
-              // 3. Lọc theo độ khó
-              if (difficulty != null && !difficulty.isBlank()) {
-                b.filter(f -> f.term(t -> t.field("difficulty.keyword").value(difficulty)));
-              }
-
-              // 4. Lọc theo category
-              if (category != null && !category.isBlank()) {
-                b.filter(f -> f.term(t -> t.field("recipeCategories.keyword").value(category)));
-              }
+//              // 1. Keyword
+//              if (keyword != null && !keyword.isBlank()) {
+//                b.should(sh -> sh.multiMatch(mm -> mm
+//                  .fields("title", "content", "recipeIngredientKeywords")
+//                  .query(keyword)
+//                ));
+//              }
+//
+//              // 2. Lọc theo region
+//              if (region != null && !region.isBlank()) {
+//                b.filter(f -> f.term(t -> t.field("region.keyword").value(region)));
+//              }
+//
+//              // 3. Lọc theo độ khó
+//              if (difficulty != null && !difficulty.isBlank()) {
+//                b.filter(f -> f.term(t -> t.field("difficulty.keyword").value(difficulty)));
+//              }
+//
+//              // 4. Lọc theo category
+//              if (category != null && !category.isBlank()) {
+//                b.filter(f -> f.term(t -> t.field("recipeCategories.keyword").value(category)));
+//              }
 
               // 5. Lọc theo thời gian nấu
 //              if (maxCookTime != null) {
@@ -239,11 +242,34 @@ public class PostSearchService {
                   )).weight(2.0);
                 }
 
+                // Lấy keyword từ comment
+                for (String k : commentedPostKeywords) {
+                  fList.filter(f -> f.match(m -> m
+                    .field("recipeIngredientKeywords")
+                    .query(k)
+                    .fuzziness("AUTO")
+                  )).weight(4.0);
+
+                  fList.filter(f -> f.match(m -> m
+                    .field("recipeCategories")
+                    .query(k)
+                    .fuzziness("AUTO")
+                  )).weight(3.0);
+
+                  fList.filter(f -> f.match(m -> m
+                    .field("title")
+                    .query(k)
+                    .fuzziness("AUTO")
+                  )).weight(2.0);
+                }
+
                 return fList;
               })
             // --- Boost / Score Mode ---
             .scoreMode(FunctionScoreMode.Sum)
-              .boostMode(FunctionBoostMode.Replace)
+              .boostMode(FunctionBoostMode.Sum)
+//            .scoreMode(FunctionScoreMode.Avg)
+//            .boostMode(FunctionBoostMode.Multiply)
           ))
           ;
 

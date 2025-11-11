@@ -20,6 +20,8 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -36,7 +38,28 @@ public class CommentService {
     private final SecurityUtil securityUtil;
     private final NotificationUtils notificationUtils;
 
-    public CommentResponse getCommentById(Long commentId) {
+  public List<String> getTopKeywordsFromCommentedPosts(Long userId, int limit, int days) {
+    LocalDateTime since = LocalDateTime.now().minusDays(days);
+
+    return commentRepository.findAllByUserIdAndCreatedAtAfterAndIsDeletedFalse(userId, since).stream()
+      .map(Comment::getPost)
+      .distinct() // tránh trùng post
+      .flatMap(post -> {
+        List<String> keywords = new ArrayList<>();
+        if (post.getRecipeIngredientKeywords() != null) keywords.addAll(post.getRecipeIngredientKeywords());
+        if (post.getRecipeCategories() != null) keywords.addAll(post.getRecipeCategories());
+        if (post.getTitle() != null) keywords.add(post.getTitle());
+        return keywords.stream();
+      })
+      .collect(Collectors.groupingBy(k -> k, Collectors.counting())) // đếm tần suất
+      .entrySet().stream()
+      .sorted((a, b) -> Long.compare(b.getValue(), a.getValue())) // sắp xếp giảm dần
+      .limit(limit) // giới hạn số lượng keyword trả về
+      .map(Map.Entry::getKey)
+      .toList();
+  }
+
+  public CommentResponse getCommentById(Long commentId) {
         Comment comment = commentRepository.findById(commentId).orElse(null);
         return commentMapper.toResponse(comment);
     }
