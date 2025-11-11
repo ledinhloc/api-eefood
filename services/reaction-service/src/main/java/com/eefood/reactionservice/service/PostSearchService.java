@@ -129,21 +129,43 @@ public class PostSearchService {
                     .field("content")
                     .query(diet)
                     .fuzziness("AUTO")
-                  )).weight(1.0);
+                  )).weight(1.5);
                 }
 
                 /** ---- DỊ ỨNG (giảm điểm) ---- **/
-//                for (String al : allergies) {
-//                  fList.filter(f -> f.match(m -> m
-//                    .field("recipeIngredientKeywords")
-//                    .query(al)
-//                    .fuzziness("AUTO")
-//                  )).weight(0.2);
+                for (String al : allergies) {
+                  fList.filter(f -> f.match(m -> m
+                    .field("recipeIngredientKeywords")
+                    .query(al)
+                    .fuzziness("AUTO")
+                  )).weight(0.2);
+                }
+
+//                if (!allergies.isEmpty()) {
+//                  fList.scriptScore(ss -> ss
+//                    .script(sc -> sc
+//                      .source("""
+//                        double penalty = 1.0;
+//                        for (def allergy : params.allergies) {
+//                          if (doc.containsKey('recipeIngredientKeywords') && !doc['recipeIngredientKeywords'].empty) {
+//                            for (def keyword : doc['recipeIngredientKeywords'].values) {
+//                              if (keyword == allergy) {
+//                                penalty *= 0.3;
+//                              }
+//                            }
+//                          }
+//                        }
+//                        return _score * penalty;
+//                                """)
+//                      .params(Map.of("allergies", JsonData.of(allergies)))
+//                    )
+//                  );
 //                }
                 return fList;
               })
               .boostMode(FunctionBoostMode.Replace)
-          ));
+          ))
+          ;
 
           // --- Sort theo score ---
           search.sort(srt -> srt.score(o -> o.order(SortOrder.Desc)));
