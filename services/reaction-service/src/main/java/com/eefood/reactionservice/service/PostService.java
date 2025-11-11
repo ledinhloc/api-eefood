@@ -13,6 +13,8 @@ import com.eefood.reactionservice.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -35,6 +37,7 @@ public class PostService {
   private final RecipeClient recipeClient;
   private final SecurityUtil securityUtil;
   private final GeminiService geminiService;
+  private final FollowService followService;
 
   public List<PostPublishResponse> getPostsPublishByUser() {
     Long userId = securityUtil.getCurrentUserId();
@@ -157,46 +160,82 @@ public class PostService {
     String difficulty,
     String category,
     Integer maxCookTime,
-    String sortBy,
-    Pageable pageable) {
+    int page,
+    int size
+    ) {
 
+    //lay thong tin user
+    Long currentUserId = securityUtil.getCurrentUserId();
+    ResponseData<UserResponse> userResponse = iamClient.getUserById(currentUserId);
+    UserResponse user = userResponse.getData();
+    //debug
+//    log.info(user.toString());
+    List<Long> newFollowings = followService.getNewFollowings(userId);
+    List<Long> oldFollowings = followService.getOldFollowings(userId);
+
+
+    //Lấy danh sách postIds từ Elasticsearch
     List<Long> postIds = postSearchService.searchPostIds(
       keyword,
       region,
       difficulty,
       category,
       maxCookTime,
-      sortBy
+      user,
+      newFollowings,
+      oldFollowings,
+      page,
+      size
     );
+    //debug
+    log.info("----------------PostIds : " + postIds.toString());
 
-    Specification<Post> spec = PostSpecification.isNotDeleted()
-      .and(PostSpecification.hasUserId(userId));
-
-    if (!postIds.isEmpty()) {
-      spec = spec.and(PostSpecification.hasPostIds(postIds));
+    if (postIds.isEmpty()) {
+      return new PageImpl<>(List.of());
     }
 
-    Page<Post> posts = postRepo.findAll(spec, pageable);
-    return mapToPostResponse(posts);
+    // 3. Lấy Post từ DB theo postIds
+    Specification<Post> spec = PostSpecification.isNotDeleted()
+      .and(PostSpecification.hasUserId(userId))
+      .and(PostSpecification.hasPostIds(postIds));
+
+    List<Post> posts = postRepo.findAll(spec);
+    // 4. Sắp xếp theo thứ tự của postIds (theo ES)
+    Map<Long, Post> postMap = posts.stream()
+      .collect(Collectors.toMap(Post::getId, p -> p));
+
+    List<Post> orderedPosts = postIds.stream()
+      .map(postMap::get)
+      .filter(Objects::nonNull)
+      .toList();
+    List<PostResponse> postResponses = mapToPostResponse(orderedPosts);
+    //debug
+//    log.info("----------------" + postResponses.toString());
+    return new PageImpl<>(postResponses, PageRequest.of(page - 1, size), postIds.size());
   }
 
-  private Page<PostResponse> mapToPostResponse(Page<Post> posts) {
-    //lay thong tin user
+
+  private List<PostResponse> mapToPostResponse(List<Post> posts) {
+    // Lấy thông tin user
     List<Long> userIds = posts.stream().map(Post::getUserId).distinct().toList();
     List<UserInfo> userInfos = iamClient.getUserInfoBatch(userIds).getData();
-    Map<Long, UserInfo> userInfoMap = userInfos.stream().collect(Collectors.toMap(UserInfo::getId, u -> u));
+    Map<Long, UserInfo> userInfoMap = userInfos.stream()
+      .collect(Collectors.toMap(UserInfo::getId, u -> u));
 
-    return posts.map(post ->{
-      PostResponse response = postMapper.toResponse(post);
-      UserInfo userInfo = userInfoMap.get(post.getUserId());
-      if(userInfo != null){
-        response.setUsername(userInfo.getUsername());
-        response.setEmail(userInfo.getEmail());
-        response.setAvatarUrl(userInfo.getAvatarUrl());
-      }
-      return response;
-    });
+    return posts.stream()
+      .map(post -> {
+        PostResponse response = postMapper.toResponse(post);
+        UserInfo userInfo = userInfoMap.get(post.getUserId());
+        if (userInfo != null) {
+          response.setUsername(userInfo.getUsername());
+          response.setEmail(userInfo.getEmail());
+          response.setAvatarUrl(userInfo.getAvatarUrl());
+        }
+        return response;
+      })
+      .toList();
   }
+
   public PostResponse getPostById(Long id) {
     Post post = postRepo.findByIdAndIsDeletedFalse(id);
     if (post == null) {
