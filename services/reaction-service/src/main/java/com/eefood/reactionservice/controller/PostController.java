@@ -70,12 +70,9 @@ public class PostController {
     @RequestParam(required = false) String difficulty,
     @RequestParam(required = false) String category,
     @RequestParam(required = false) Integer maxCookTime,
-    @RequestParam(defaultValue = "newest") String sortBy,  // newest | popular | toprated
     @RequestParam(defaultValue = "1") int page,
     @RequestParam(defaultValue = "10") int size
   ) {
-    Pageable pageable = PageRequest.of(page - 1, size);
-
     Page<PostResponse> result = postService.getAllPosts(
       keyword,
       userId,
@@ -83,8 +80,8 @@ public class PostController {
       difficulty,
       category,
       maxCookTime,
-      sortBy,
-      pageable
+      page,
+      size
     );
 
     return new ResponseData<>(
