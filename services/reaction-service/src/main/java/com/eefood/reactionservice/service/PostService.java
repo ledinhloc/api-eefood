@@ -37,6 +37,7 @@ public class PostService {
   private final RecipeClient recipeClient;
   private final SecurityUtil securityUtil;
   private final GeminiService geminiService;
+  private final FollowService followService;
 
   public List<PostPublishResponse> getPostsPublishByUser() {
     Long userId = securityUtil.getCurrentUserId();
@@ -170,6 +171,9 @@ public class PostService {
     UserResponse user = userResponse.getData();
     //debug
 //    log.info(user.toString());
+    List<Long> newFollowings = followService.getNewFollowings(userId);
+    List<Long> oldFollowings = followService.getOldFollowings(userId);
+
 
     //Lấy danh sách postIds từ Elasticsearch
     List<Long> postIds = postSearchService.searchPostIds(
@@ -179,6 +183,8 @@ public class PostService {
       category,
       maxCookTime,
       user,
+      newFollowings,
+      oldFollowings,
       page,
       size
     );
