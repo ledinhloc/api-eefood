@@ -29,6 +29,8 @@ public class PostSearchService {
   private final ElasticsearchClient client;
   private final PostReactionService postReactionService;
   private final CommentService commentService;
+  private final PostViewLogService postViewLogService;
+
 
   public List<Long> searchPostIds(
     String keyword,
@@ -53,41 +55,46 @@ public class PostSearchService {
       List<String> eatingPrefs = user.getEatingPreferences() != null ? user.getEatingPreferences() : List.of();
       List<String> dietaryPrefs = user.getDietaryPreferences() != null ? user.getDietaryPreferences() : List.of();
       List<String> allergies = user.getAllergies() != null ? user.getAllergies() : List.of();
-      List<String> reactedPostKeywords = postReactionService.getTopKeywordsFromReactedPosts(user.getId(),10, 20);
+      List<String> reactedPostKeywords = postReactionService.getTopKeywordsFromReactedPosts(user.getId(),5, 20);
       log.info("-----reactedPostKeywords: {}", reactedPostKeywords);
-      List<String> commentedPostKeywords = commentService.getTopKeywordsFromCommentedPosts(user.getId(), 10, 20);
+      List<String> commentedPostKeywords = commentService.getTopKeywordsFromCommentedPosts(user.getId(), 5, 20);
+
+      List<String> viewedPostKeywords = postViewLogService.getTopKeywordsFromViewedPosts(user.getId(), 10, 5,14);
+      log.info("-----viewedPostKeywords: {}", viewedPostKeywords);
+
 
       return client.search(s -> {
           var search = s
             .index("posts")
             .from((page - 1) * size)
             .size(size);
+          log.info("-------Search params - page: {}, size: {}, from: {}", page, size, (page - 1) * size);
 
           // --- QUERY CHÍNH ---
           search.query(q -> q.functionScore(fs -> fs
             .query(base -> base.bool(b -> {
-//              // 1. Keyword
-//              if (keyword != null && !keyword.isBlank()) {
-//                b.should(sh -> sh.multiMatch(mm -> mm
-//                  .fields("title", "content", "recipeIngredientKeywords")
-//                  .query(keyword)
-//                ));
-//              }
-//
-//              // 2. Lọc theo region
-//              if (region != null && !region.isBlank()) {
-//                b.filter(f -> f.term(t -> t.field("region.keyword").value(region)));
-//              }
-//
-//              // 3. Lọc theo độ khó
-//              if (difficulty != null && !difficulty.isBlank()) {
-//                b.filter(f -> f.term(t -> t.field("difficulty.keyword").value(difficulty)));
-//              }
-//
-//              // 4. Lọc theo category
-//              if (category != null && !category.isBlank()) {
-//                b.filter(f -> f.term(t -> t.field("recipeCategories.keyword").value(category)));
-//              }
+              // 1. Keyword
+              if (keyword != null && !keyword.isBlank()) {
+                b.should(sh -> sh.multiMatch(mm -> mm
+                  .fields("title", "content", "recipeIngredientKeywords")
+                  .query(keyword)
+                ));
+              }
+
+              // 2. Lọc theo region
+              if (region != null && !region.isBlank()) {
+                b.filter(f -> f.term(t -> t.field("region.keyword").value(region)));
+              }
+
+              // 3. Lọc theo độ khó
+              if (difficulty != null && !difficulty.isBlank()) {
+                b.filter(f -> f.term(t -> t.field("difficulty.keyword").value(difficulty)));
+              }
+
+              // 4. Lọc theo category
+              if (category != null && !category.isBlank()) {
+                b.filter(f -> f.term(t -> t.field("recipeCategories.keyword").value(category)));
+              }
 
               // 5. Lọc theo thời gian nấu
 //              if (maxCookTime != null) {
@@ -100,27 +107,27 @@ public class PostSearchService {
               return b;
             }))
               .functions(fList -> {
-                fList.scriptScore(ss -> ss
-                  .script(sc -> sc
-                    .source("""
-                      // Tính ngày khác nhau
-                      long daysSinceCreation = (System.currentTimeMillis() - doc['createdAt'].value.getTime()) / (1000 * 60 * 60 * 24);
-
-                      // Boost mạnh cho bài mới (0-3 ngày)
-                      if (daysSinceCreation <= 3) {
-                        return _score * 3.0;
-                      }
-                      // Boost vừa (3-7 ngày)
-                      else if (daysSinceCreation <= 7) {
-                        return _score * 2.0;
-                      }
-                      // Bình thường (>7 ngày)
-                      else {
-                        return _score * 1.0;
-                      }
-                    """)
-                  )
-                );
+//                fList.scriptScore(ss -> ss
+//                  .script(sc -> sc
+//                    .source("""
+//                      // Tính ngày khác nhau
+//                      long daysSinceCreation = (System.currentTimeMillis() - doc['createdAt'].value.getTime()) / (1000 * 60 * 60 * 24);
+//
+//                      // Boost mạnh cho bài mới (0-3 ngày)
+//                      if (daysSinceCreation <= 3) {
+//                        return _score * 3.0;
+//                      }
+//                      // Boost vừa (3-7 ngày)
+//                      else if (daysSinceCreation <= 7) {
+//                        return _score * 2.0;
+//                      }
+//                      // Bình thường (>7 ngày)
+//                      else {
+//                        return _score * 1.0;
+//                      }
+//                    """)
+//                  )
+//                );
 
                 /** ---- SỞ THÍCH ĂN UỐNG ---- **/
                 for (String pref : eatingPrefs) {
@@ -263,6 +270,27 @@ public class PostSearchService {
                   )).weight(2.0);
                 }
 
+                /** ---- các post tương tự với post user đã xem chi tiết lâu ---- **/
+                for (String k : viewedPostKeywords) {
+                  fList.filter(f -> f.match(m -> m
+                    .field("recipeIngredientKeywords")
+                    .query(k)
+                    .fuzziness("AUTO")
+                  )).weight(3.5);
+
+                  fList.filter(f -> f.match(m -> m
+                    .field("recipeCategories")
+                    .query(k)
+                    .fuzziness("AUTO")
+                  )).weight(2.5);
+
+                  fList.filter(f -> f.match(m -> m
+                    .field("title")
+                    .query(k)
+                    .fuzziness("AUTO")
+                  )).weight(1.5);
+                }
+
                 return fList;
               })
             // --- Boost / Score Mode ---
@@ -281,6 +309,8 @@ public class PostSearchService {
         .hits()
         .hits()
         .stream()
+//        .peek(hit -> log.info("--------- Post ID: {}, Score: {}",
+//          hit.source().getId(), hit.score()))  //Log từng kết quả
         .map(Hit::source)
         .map(PostDocument::getId)
         .toList();

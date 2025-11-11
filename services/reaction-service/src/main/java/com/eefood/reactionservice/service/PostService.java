@@ -160,7 +160,6 @@ public class PostService {
     String difficulty,
     String category,
     Integer maxCookTime,
-    String sortBy,
     int page,
     int size
     ) {
