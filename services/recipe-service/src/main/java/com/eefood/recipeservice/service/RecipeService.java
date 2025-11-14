@@ -16,15 +16,24 @@ import com.eefood.recipeservice.repository.IngredientRepository;
 import com.eefood.recipeservice.repository.RecipeRepository;
 import com.eefood.recipeservice.repository.RecipeStepRepository;
 import com.eefood.recipeservice.repository.httpclient.IamClient;
+import com.eefood.recipeservice.util.SecurityUtil;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.googleai.GoogleAiGeminiChatModel;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jsoup.Jsoup;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 @Slf4j
@@ -39,6 +48,144 @@ public class RecipeService {
   private final IamClient iamClient;
   private final RecipeIndexer recipeIndexer;
   private final RecipeProducer recipeProducer;
+  private final SecurityUtil securityUtil;
+  private final GoogleAiGeminiChatModel gemini;
+  private final ObjectMapper objectMapper = new ObjectMapper();
+
+  /** Lấy nội dung HTML bằng Jsoup */
+  private String fetchWebContent(String url) {
+    try {
+      return Jsoup.connect(url)
+        .userAgent("Mozilla/5.0")
+        .timeout(10000)
+        .get()
+        .text(); // dùng .html() nếu cần đầy đủ HTML
+    } catch (Exception e) {
+      throw new RuntimeException("Fetch thất bại: " + e.getMessage());
+    }
+  }
+
+  public RecipeResponse extractAndCreate(String url) {
+    // FETCH HTML CONTENT
+    String html = fetchWebContent(url);
+
+    // PROMPT AI
+    String prompt = """
+You are an advanced Recipe Extraction Engine.
+
+Your task:
+- Read and analyze the HTML content provided below.
+- Extract ONLY the relevant recipe information.
+- Ignore all unrelated content such as ads, banners, user comments, tracking scripts, stylesheets.
+
+STRICT OUTPUT RULES (MUST FOLLOW EXACTLY):
+1. Output MUST be **pure JSON only**.
+2. Do NOT include any explanation, description, or natural language.
+3. Do NOT wrap JSON in code blocks (` ```json` or ```).
+4. JSON MUST start with '{' and end with '}'.
+5. JSON MUST match the EXACT schema below.
+6. All string fields MUST be plain strings. No special formatting.
+7. difficulty MUST be one of: "EASY", "MEDIUM", "HARD".
+8. ingredients[] MUST contain objects { "name", "quantity", "unit" }
+9. steps[] MUST contain objects { "stepNumber", "instruction" }
+10. If a field is missing from HTML, return a reasonable empty value: 
+   - "" for strings
+   - 0 for numbers
+   - [] for arrays
+11. Do NOT add comments inside JSON.
+
+YOUR OUTPUT JSON SCHEMA (MUST MATCH EXACTLY):
+{
+  "title": "",
+  "description": "",
+  "region": "",
+  "categories": [],
+  "prepTime": 0,
+  "cookTime": 0,
+  "difficulty": "EASY",
+  "imageUrl": "",
+  "ingredients": [
+    { "name": "", "quantity": 0, "unit": "" }
+  ],
+  "steps": [
+    { "stepNumber": 1, "instruction": "" }
+  ]
+}
+
+NOW ANALYZE THE FOLLOWING HTML AND RETURN ONLY JSON:
+
+===== HTML CONTENT START =====
+%s
+===== HTML CONTENT END =====
+""".formatted(html);
+
+
+    log.info("------------"+ prompt);
+
+    // Gửi prompt đến Gemini
+    ChatRequest request = ChatRequest.builder()
+      .messages(UserMessage.from(prompt))
+      .build();
+    ChatResponse response = gemini.chat(request);
+    String aiJson = response.aiMessage().text();
+
+
+    log.info("------------"+ aiJson);
+    // PARSE JSON → DTO
+    RecipeExtractDTO dto;
+    try{
+      dto = objectMapper.readValue(aiJson, RecipeExtractDTO.class);
+    }catch (JsonProcessingException e){
+        throw new RuntimeException("AI trả JSON sai format: " + e.getMessage());
+    }
+
+    // tạo mới Category
+    List<Long> categoryIds = dto.getCategories().stream()
+      .map(c -> categoryRepository.findByDescriptionIgnoreCase(c)
+        .orElseGet(() -> {
+          Category newC = new Category();
+          newC.setDescription(c);
+          return categoryRepository.save(newC);
+        }).getId()
+      ).toList();
+
+    //tạo mới Ingredient
+    List<RecipeIngredientRequest> ingredientRequests =
+      dto.getIngredients().stream().map(i -> {
+
+        Ingredient ingredient = ingredientRepository.findByNameIgnoreCase(i.getName())
+          .orElseGet(() -> {
+            Ingredient newIng = new Ingredient();
+            newIng.setName(i.getName());
+            return ingredientRepository.save(newIng);
+          });
+
+        return RecipeIngredientRequest.builder()
+          .ingredientId(ingredient.getId())
+          .name(i.getName())
+          .quantity(i.getQuantity())
+          .unit(i.getUnit())
+          .build();
+      }).toList();
+
+    // Map sang RecipeRequest
+    RecipeRequest req = RecipeRequest.builder()
+      .title(dto.getTitle())
+      .description(dto.getDescription())
+      .region(dto.getRegion())
+      .imageUrl(dto.getImageUrl())
+      .prepTime(dto.getPrepTime())
+      .cookTime(dto.getCookTime())
+      .difficulty(Difficulty.valueOf(dto.getDifficulty()))
+      .categoryIds(categoryIds)
+      .ingredients(ingredientRequests)
+      .steps(dto.getSteps())
+      .build();
+
+    Long authorId = securityUtil.getCurrentUserId();
+    // SAVE RECIPE
+    return createRecipe(req, authorId);
+  }
 
   public Recipe getEntityRecipe(Long id) {
     return recipeRepository.findByIdAndIsDeletedFalse(id)

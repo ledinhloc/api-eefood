@@ -6,8 +6,8 @@ CREATE TABLE categories
     created_by  VARCHAR(255)                            NOT NULL,
     updated_by  VARCHAR(255)                            NOT NULL,
     is_deleted  BOOLEAN                                 NOT NULL,
-    icon_url    VARCHAR(255),
-    description VARCHAR(255),
+    icon_url    VARCHAR,
+    description VARCHAR,
     CONSTRAINT pk_categories PRIMARY KEY (id)
 );
 
@@ -20,8 +20,8 @@ CREATE TABLE ingredients
     updated_by  VARCHAR(255)                            NOT NULL,
     is_deleted  BOOLEAN                                 NOT NULL,
     name        VARCHAR(100)                            NOT NULL,
-    description VARCHAR(255),
-    image       VARCHAR(255),
+    description VARCHAR,
+    image       VARCHAR,
     CONSTRAINT pk_ingredients PRIMARY KEY (id)
 );
 
@@ -56,9 +56,9 @@ CREATE TABLE recipe_steps
     is_deleted  BOOLEAN                                 NOT NULL,
     recipe_id   BIGINT                                  NOT NULL,
     step_number INTEGER                                 NOT NULL,
-    instruction VARCHAR(255),
-    image_url   VARCHAR(255),
-    video_url   VARCHAR(255),
+    instruction VARCHAR,
+    image_url   VARCHAR,
+    video_url   VARCHAR,
     step_time   INTEGER,
     CONSTRAINT pk_recipe_steps PRIMARY KEY (id)
 );
@@ -72,11 +72,11 @@ CREATE TABLE recipes
     updated_by  VARCHAR(255)                            NOT NULL,
     is_deleted  BOOLEAN                                 NOT NULL,
     author_id   BIGINT,
-    title       VARCHAR(255)                            NOT NULL,
-    description VARCHAR(255),
-    region      VARCHAR(255),
-    image_url   VARCHAR(255),
-    video_url   VARCHAR(255),
+    title       VARCHAR                            NOT NULL,
+    description VARCHAR,
+    region      VARCHAR,
+    image_url   VARCHAR,
+    video_url   VARCHAR,
     prep_time   INTEGER,
     cook_time   INTEGER,
     difficulty  VARCHAR(7),
