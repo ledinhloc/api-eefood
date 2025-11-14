@@ -16,11 +16,12 @@ public class RecipeExtractDTO {
   private String title;
   private String description;
   private String region;
+  private String imageUrl;
+  private String videoUrl;
   private List<String> categories;
   private Integer prepTime;
   private Integer cookTime;
   private String difficulty;
-  private String imageUrl;
   private List<IngredientExtractDTO> ingredients;
   private List<RecipeStepRequest> steps;
 }
