@@ -73,7 +73,7 @@ public class AuthService {
             .email(request.getEmail())
             .username(request.getUsername())
             .provider(Provider.NORMAL)
-            .role(Role.USER)
+            .role(request.getRole()!=null ? Role.ADMIN : Role.USER)
             .isDeleted(true)
             .build();
     User savedUser = userRepository.save(user);
