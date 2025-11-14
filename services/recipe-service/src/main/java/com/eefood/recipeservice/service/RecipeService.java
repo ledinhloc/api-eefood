@@ -27,6 +27,8 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -52,6 +54,45 @@ public class RecipeService {
   private final GoogleAiGeminiChatModel gemini;
   private final ObjectMapper objectMapper = new ObjectMapper();
 
+  private static final Set<String> ALLOWED_TAGS = Set.of(
+    "p","div","span","img","video","source","iframe",
+    "ul","ol","li","h1","h2","h3","h4",
+    "strong","b","i","em","u","br","a",
+    "section","article","header","main","figure",
+    "table","tbody","thead","tr","td","th"
+  );
+
+  private String cleanHtml(String html) {
+    Document doc = Jsoup.parse(html);
+
+    // Remove junk
+    doc.select("script, style, svg, noscript, meta, link").remove();
+
+    // Sanitize media tags
+    doc.select("img, video, source, iframe").forEach(tag -> {
+      String src = tag.attr("abs:src");
+      tag.clearAttributes();
+      if (!src.isEmpty()) tag.attr("src", src);
+    });
+
+    // WHITELIST — safe unwrap
+    List<Element> elements = new ArrayList<>(doc.body().select("*"));
+
+    for (Element el : elements) {
+      String tag = el.tagName();
+
+      // Skip root nodes
+      if (el.parent() == null || tag.equals("body") || tag.equals("html"))
+        continue;
+
+      if (!ALLOWED_TAGS.contains(tag)) {
+        el.unwrap(); // Remove tag but KEEP TEXT
+      }
+    }
+
+    return doc.body().html();
+  }
+
   /** Lấy nội dung HTML bằng Jsoup */
   private String fetchWebContent(String url) {
     try {
@@ -67,10 +108,13 @@ public class RecipeService {
 
   public RecipeResponse extractAndCreate(String url) {
     // FETCH HTML CONTENT
-    String html = fetchWebContent(url);
+//    String html = fetchWebContent(url);
+    String rawHtml = fetchWebContent(url);
+    String html = cleanHtml(rawHtml);
 
     // PROMPT AI
-    String prompt = """
+    String prompt =
+"""
 You are an advanced Recipe Extraction Engine.
 
 Your task:
@@ -88,11 +132,19 @@ STRICT OUTPUT RULES (MUST FOLLOW EXACTLY):
 7. difficulty MUST be one of: "EASY", "MEDIUM", "HARD".
 8. ingredients[] MUST contain objects { "name", "quantity", "unit" }
 9. steps[] MUST contain objects { "stepNumber", "instruction" }
-10. If a field is missing from HTML, return a reasonable empty value: 
+10. If a field is missing from HTML, return a reasonable empty value:
    - "" for strings
    - 0 for numbers
    - [] for arrays
 11. Do NOT add comments inside JSON.
+12. Do NOT mix ingredients into categories.
+13.  Ingredients MUST be separated into individual items — never group many ingredients into one string.
+       (Wrong: "Sả, ớt, hành tím, tỏi")
+       (Correct: 4 separate items)
+14. Ingredients MUST NOT include prefix like "Gia vị", "Nguyên liệu", "Mẹo", etc.
+15. Categories MUST be cooking categories (e.g., "Món Việt", "Món gà", "Món kho"), NOT ingredients.
+16. If time is not found, set to 0.
+17. steps[] MUST be separated correctly with actual instructions.
 
 YOUR OUTPUT JSON SCHEMA (MUST MATCH EXACTLY):
 {
@@ -118,8 +170,8 @@ NOW ANALYZE THE FOLLOWING HTML AND RETURN ONLY JSON:
 ===== HTML CONTENT START =====
 %s
 ===== HTML CONTENT END =====
-""".formatted(html);
-
+"""
+            .formatted(html);
 
     log.info("------------"+ prompt);
 
@@ -131,7 +183,7 @@ NOW ANALYZE THE FOLLOWING HTML AND RETURN ONLY JSON:
     String aiJson = response.aiMessage().text();
 
 
-    log.info("------------"+ aiJson);
+    log.info("------------ AiJson: "+ aiJson);
     // PARSE JSON → DTO
     RecipeExtractDTO dto;
     try{
