@@ -59,7 +59,7 @@ public class RecipeService {
         .userAgent("Mozilla/5.0")
         .timeout(10000)
         .get()
-        .text(); // dùng .html() nếu cần đầy đủ HTML
+        .html(); // dùng .html() nếu cần đầy đủ HTML
     } catch (Exception e) {
       throw new RuntimeException("Fetch thất bại: " + e.getMessage());
     }
@@ -99,16 +99,17 @@ YOUR OUTPUT JSON SCHEMA (MUST MATCH EXACTLY):
   "title": "",
   "description": "",
   "region": "",
+  "imageUrl": "",
+  "videoUrl": "",
   "categories": [],
   "prepTime": 0,
   "cookTime": 0,
   "difficulty": "EASY",
-  "imageUrl": "",
   "ingredients": [
     { "name": "", "quantity": 0, "unit": "" }
   ],
   "steps": [
-    { "stepNumber": 1, "instruction": "" }
+    { "stepNumber": 1, "instruction": "", "imageUrl": "","videoUrl": "", "stepTime": 0 }
   ]
 }
 
@@ -139,7 +140,10 @@ NOW ANALYZE THE FOLLOWING HTML AND RETURN ONLY JSON:
         throw new RuntimeException("AI trả JSON sai format: " + e.getMessage());
     }
 
-    // tạo mới Category
+    /** tạo mới Category
+     * neu cate ton tai -> lay id
+     * neu chua ton tai -> tao roi lay id
+     * */
     List<Long> categoryIds = dto.getCategories().stream()
       .map(c -> categoryRepository.findByDescriptionIgnoreCase(c)
         .orElseGet(() -> {
@@ -174,9 +178,10 @@ NOW ANALYZE THE FOLLOWING HTML AND RETURN ONLY JSON:
       .description(dto.getDescription())
       .region(dto.getRegion())
       .imageUrl(dto.getImageUrl())
+      .videoUrl(dto.getVideoUrl())
       .prepTime(dto.getPrepTime())
       .cookTime(dto.getCookTime())
-      .difficulty(Difficulty.valueOf(dto.getDifficulty()))
+      .difficulty(Difficulty.valueOf(dto.getDifficulty().toUpperCase()))
       .categoryIds(categoryIds)
       .ingredients(ingredientRequests)
       .steps(dto.getSteps())
