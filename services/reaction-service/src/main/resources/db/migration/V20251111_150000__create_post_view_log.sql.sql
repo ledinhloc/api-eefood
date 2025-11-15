@@ -21,5 +21,5 @@ VALUES
     (3, 7,  NOW() - INTERVAL '5 minutes', 40),
     (3, 8,  NOW() - INTERVAL '4 minutes', 35),
     (4, 9,  NOW() - INTERVAL '3 minutes', 55),
-    (4, 10, NOW() - INTERVAL '2 minutes', 60),
-    (5, 11, NOW() - INTERVAL '1 minute', 42);
+    (4, 10, NOW() - INTERVAL '2 minutes', 60);
+--     (5, 11, NOW() - INTERVAL '1 minute', 42);

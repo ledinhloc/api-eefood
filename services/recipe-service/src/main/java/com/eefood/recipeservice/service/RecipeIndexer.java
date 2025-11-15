@@ -83,4 +83,11 @@ public class RecipeIndexer {
     }
   }
 
+  private void clearIndex() throws IOException {
+    if (client.indices().exists(e -> e.index("recipes")).value()) {
+      client.indices().delete(d -> d.index("recipes"));
+      log.warn("Deleted old index 'recipes' before re-indexing");
+    }
+  }
+
 }
