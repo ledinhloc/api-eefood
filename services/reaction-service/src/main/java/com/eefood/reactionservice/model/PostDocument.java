@@ -30,5 +30,8 @@ public class PostDocument {
   private Set<String> recipeCategories = new HashSet<>();
   private Set<String> recipeIngredientKeywords = new HashSet<>();
 
+  private Long totalReactionCount;
+  private Long totalShares;
+
   private LocalDateTime createdAt;
 }
