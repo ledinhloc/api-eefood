@@ -1,5 +1,6 @@
 package com.eefood.reactionservice.service;
 
+import com.eefood.reactionservice.dto.SearchResult;
 import com.eefood.reactionservice.dto.request.PostCreateRequest;
 import com.eefood.reactionservice.dto.response.*;
 import com.eefood.reactionservice.enums.ErrorMessage;
@@ -176,7 +177,7 @@ public class PostService {
 
 
     //Lấy danh sách postIds từ Elasticsearch
-    List<Long> postIds = postSearchService.searchPostIds(
+    SearchResult esResult = postSearchService.searchPostIds(
       keyword,
       region,
       difficulty,
@@ -188,6 +189,9 @@ public class PostService {
       page,
       size
     );
+
+    List<Long> postIds = esResult.getIds();
+    long total = esResult.getTotal();
     //debug
     log.info("----------------PostIds : " + postIds.toString());
 
@@ -212,7 +216,7 @@ public class PostService {
     List<PostResponse> postResponses = mapToPostResponse(orderedPosts);
     //debug
 //    log.info("----------------" + postResponses.toString());
-    return new PageImpl<>(postResponses, PageRequest.of(page - 1, size), postIds.size());
+    return new PageImpl<>(postResponses, PageRequest.of(page - 1, size), total);
   }
 
   public Page<PostResponse> getAllPostsByAdmin(
@@ -231,8 +235,9 @@ public class PostService {
           Pageable pageable
   ) {
 
-    Page<Long> esPage = postAdminSearchService.searchPostIds(
+    SearchResult esResult = postAdminSearchService.searchPostIds(
             keyword,
+            userId,
             region,
             difficulty,
             category,
@@ -246,17 +251,16 @@ public class PostService {
             pageable
     );
 
-    List<Long> postIds = esPage.getContent();
-    long total = esPage.getTotalElements();
+    List<Long> postIds = esResult.getIds();
+    long total = esResult.getTotal();
     log.info("--------------PostIds : " + total);
-
+    log.info("PostIds from ES: {}", postIds);
 
     if (postIds.isEmpty()) {
       return new PageImpl<>(List.of(), pageable, 0);
     }
 
     Specification<Post> spec = PostSpecification.isNotDeleted()
-            .and(PostSpecification.hasUserId(userId))
             .and(PostSpecification.hasPostIds(postIds));
 
     List<Post> posts = postRepo.findAll(spec);
@@ -268,7 +272,7 @@ public class PostService {
             .map(postMap::get)
             .filter(Objects::nonNull)
             .toList();
-    
+
     List<PostResponse> responses = mapToPostResponse(orderedPosts);
 
     return new PageImpl<>(responses, pageable, total);
