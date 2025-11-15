@@ -34,6 +34,5 @@ public class RecipeStep extends BaseEntity {
 
   private String videoUrl;
 
-  @Min(value = 1)
   private Integer stepTime;
 }
