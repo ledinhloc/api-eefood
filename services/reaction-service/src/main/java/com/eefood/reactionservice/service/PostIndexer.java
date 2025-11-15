@@ -80,4 +80,11 @@ public class PostIndexer implements CommandLineRunner{
       log.error("Error deleting post {}: {}", postId, e.getMessage());
     }
   }
+
+  private void clearIndex() throws IOException {
+    if (client.indices().exists(e -> e.index("posts")).value()) {
+      client.indices().delete(d -> d.index("posts"));
+      log.warn("Deleted old index 'posts' before re-indexing");
+    }
+  }
 }
