@@ -230,7 +230,7 @@ public class PostService {
           String sortBy,
           Pageable pageable
   ) {
-    // Lấy danh sách postId từ Elasticsearch, đã paginate
+
     Page<Long> esPage = postAdminSearchService.searchPostIds(
             keyword,
             region,
@@ -255,14 +255,12 @@ public class PostService {
       return new PageImpl<>(List.of(), pageable, 0);
     }
 
-    // Lấy Post từ DB theo postIds
     Specification<Post> spec = PostSpecification.isNotDeleted()
             .and(PostSpecification.hasUserId(userId))
             .and(PostSpecification.hasPostIds(postIds));
 
     List<Post> posts = postRepo.findAll(spec);
 
-    // Sắp xếp theo thứ tự ES trả về
     Map<Long, Post> postMap = posts.stream()
             .collect(Collectors.toMap(Post::getId, p -> p));
 
@@ -270,8 +268,7 @@ public class PostService {
             .map(postMap::get)
             .filter(Objects::nonNull)
             .toList();
-
-    // Chuyển sang response
+    
     List<PostResponse> responses = mapToPostResponse(orderedPosts);
 
     return new PageImpl<>(responses, pageable, total);
