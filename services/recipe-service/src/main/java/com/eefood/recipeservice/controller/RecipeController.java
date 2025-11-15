@@ -1,6 +1,7 @@
 package com.eefood.recipeservice.controller;
 
 import com.eefood.recipeservice.dto.request.RecipeRequest;
+import com.eefood.recipeservice.dto.request.RequestUrl;
 import com.eefood.recipeservice.dto.response.RecipeDetailResponse;
 import com.eefood.recipeservice.dto.response.RecipeResponse;
 import com.eefood.recipeservice.dto.response.RecipeSummaryResponse;
@@ -38,6 +39,14 @@ public class RecipeController {
 
   private final RecipeService recipeService;
   private final RecipeSearchService recipeSearchService;
+
+  @PostMapping("/extract")
+  public ResponseData<RecipeResponse> extract(@RequestBody RequestUrl requestUrl) {
+
+    RecipeResponse result = recipeService.extractAndCreate(requestUrl.getUrl());
+
+    return new ResponseData<>(200, "Extract success", result);
+  }
 
   @GetMapping("/summary/{id}")
   public ResponseData<RecipeSummaryResponse> getRecipeSummary(@PathVariable Long id) {

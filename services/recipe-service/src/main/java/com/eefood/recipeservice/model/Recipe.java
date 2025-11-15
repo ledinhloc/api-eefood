@@ -23,17 +23,17 @@ public class Recipe extends BaseEntity {
   private Long id;
   private Long authorId;
   @Column(nullable = false)
-  private String title;//lọc theo
-  private String description;//lọc theo
-  private String region;//lọc theo
-  private String imageUrl;
-  private String videoUrl;
-  private Integer prepTime;
-  private Integer cookTime;
+  private String title;//lọc theo*
+  private String description;//lọc theo*
+  private String region;//lọc theo*
+  private String imageUrl;//*
+  private String videoUrl;//*
+  private Integer prepTime;//*
+  private Integer cookTime;//*
 
   @Enumerated(EnumType.STRING)
   @Column(length = 7)
-  private Difficulty difficulty;//lọc theo
+  private Difficulty difficulty;//lọc theo*
 
   @ManyToMany
   @JoinTable(
@@ -41,7 +41,7 @@ public class Recipe extends BaseEntity {
     joinColumns = @JoinColumn(name = "recipe_id"),
     inverseJoinColumns = @JoinColumn(name = "category_id")
   )
-  private Set<Category> categories = new HashSet<>();
+  private Set<Category> categories = new HashSet<>();//*
 
   @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
   @Builder.Default
