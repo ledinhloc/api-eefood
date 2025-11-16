@@ -24,6 +24,14 @@ public class AuthController {
   private final UserService userService;
   private final KeycloakAdminService keycloakService;
 
+  @PostMapping("/google-login")
+  public ResponseData<?> loginWithGoogle(@Valid @RequestBody GoogleLoginRequest request) {
+    return new ResponseData<>(
+            HttpStatus.OK.value(),
+            "Success",
+            authService.loginWithGoogle(request));
+  }
+
   // login
   @PostMapping("/login")
   public ResponseData<?> login(@RequestBody @Valid LoginRequest request) {
