@@ -82,6 +82,8 @@ logging:
     feign: DEBUG
     feign.client: DEBUG
     org.springframework.security: DEBUG
+google:
+  client_id: ${GOOGLE_CLIENT_ID}
 
 
 
