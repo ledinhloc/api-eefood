@@ -12,13 +12,17 @@ import com.eefood.iamservice.model.User;
 import com.eefood.iamservice.repository.OtpRepository;
 import com.eefood.iamservice.repository.UserRepository;
 import com.eefood.iamservice.utils.ExceptionUtil;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
 import jakarta.transaction.Transactional;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
@@ -33,6 +37,138 @@ public class AuthService {
   private final UserMapper userMapper;
   private final OtpService otpService;
   private final KeycloakAdminService keycloakAdminService;
+
+  @Value("${google.client_id}")
+  private String googleClientId;
+
+  private UserResponse createGoogleUser(String email, String name, String picture) {
+    // Tạo mật khẩu ngẫu nhiên (user không biết và không sử dụng)
+    String randomPassword = UUID.randomUUID().toString();
+
+    // Tạo user mới trong DB
+    User user = User.builder()
+            .email(email)
+            .username(name)
+            .provider(Provider.GOOGLE)
+            .role(Role.USER)
+            .avatarUrl(picture)
+            .isDeleted(false)
+            .build();
+
+    User savedUser = userRepository.save(user);
+
+    // Tạo user trong Keycloak
+    var creationResponse = keycloakAdminService.createUserInKeycloak(
+            UserCreationParam.builder()
+                    .email(email)
+                    .enabled(true)
+                    .emailVerified(true)
+                    .credentials(
+                            List.of(
+                                    Credential.builder()
+                                            .type("password")
+                                            .temporary(false)
+                                            .value(randomPassword)
+                                            .build()))
+                    .attributes(Map.of("userId", String.valueOf(savedUser.getId())))
+                    .build());
+
+    handleKeycloakCreationResponse(creationResponse, savedUser, email);
+
+    // Gán role USER cho user mới trong Keycloak
+    if (savedUser.getAuthId() != null) {
+      try {
+        keycloakAdminService.assignRealmRoleToUser(savedUser.getAuthId(), "USER");
+      } catch (Exception e) {
+        log.error("Failed to assign USER role to new Google user: {}", email, e);
+      }
+    }
+
+    log.info("Created new Google user: {}", email);
+
+    // Lấy token từ Keycloak sử dụng hàm login có sẵn
+    var kcToken = keycloakAdminService.login(email, randomPassword);
+
+    UserResponse response = userMapper.toUserResponse(savedUser);
+    response.setAccessToken(kcToken.getAccessToken());
+    response.setRefreshToken(kcToken.getRefreshToken());
+
+    return response;
+  }
+
+  private GoogleIdToken.Payload verifyTokenGoogle(String idTokenString) {
+    try {
+      GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier
+              .Builder(new NetHttpTransport(), new GsonFactory())
+              .setAudience(Collections.singleton(googleClientId)).build();
+
+      GoogleIdToken idToken = verifier.verify(idTokenString);
+
+      return (idToken != null) ? idToken.getPayload() : null;
+    }
+    catch (Exception e) {
+      return null;
+    }
+  }
+
+  public UserResponse loginWithGoogle(GoogleLoginRequest request) {
+    GoogleIdToken.Payload payload = verifyTokenGoogle(request.getIdToken());
+    if (payload == null) {
+      throw ExceptionUtil.badRequest(ErrorMessage.INVALID_MESSAGE_KEY);
+    }
+
+    String email = payload.getEmail();
+    String name = (String) payload.get("name");
+    String picture = (String) payload.get("picture");
+
+    Optional<User> userOpt = userRepository.findByEmailAndIsDeletedFalse(email);
+
+    if (userOpt.isPresent()) {
+      User user = userOpt.get();
+
+      if (user.getProvider() != Provider.GOOGLE) {
+        throw ExceptionUtil.badRequest(ErrorMessage.USER_EXISTED);
+      }
+        return loginExistingGoogleUser(user);
+    }
+    else {
+      Optional<String> keycloakUserIdOpt = keycloakAdminService.findUserIdByEmail(email);
+      if (keycloakUserIdOpt.isPresent()) {
+        log.warn("User exists in Keycloak: {}", email);
+        throw ExceptionUtil.badRequest(ErrorMessage.USER_EXISTED);
+      }
+      // Tạo user mới với Provider GOOGLE
+      return createGoogleUser(email, name,picture);
+    }
+  }
+
+  private UserResponse loginExistingGoogleUser(User user) {
+    String authId = user.getAuthId();
+    if (authId == null || authId.isBlank()) {
+      // Tìm authId từ Keycloak nếu chưa có
+      var maybeId = keycloakAdminService.findUserIdByEmail(user.getEmail());
+      if (maybeId.isPresent()) {
+        authId = maybeId.get();
+        user.setAuthId(authId);
+        userRepository.save(user);
+      } else {
+        throw ExceptionUtil.badRequest(ErrorMessage.USER_NOT_FOUND);
+      }
+    }
+    // Tạo password tạm để login
+    String tempPassword = UUID.randomUUID().toString();
+    // Reset password trong Keycloak
+    keycloakAdminService.resetPassword(authId, tempPassword);
+    // Sử dụng hàm login có sẵn
+    var kcToken = keycloakAdminService.login(user.getEmail(), tempPassword);
+
+    UserResponse response = userMapper.toUserResponse(user);
+    response.setAccessToken(kcToken.getAccessToken());
+    response.setRefreshToken(kcToken.getRefreshToken());
+
+    log.info("Google user logged in successfully: {}", user.getEmail());
+    return response;
+  }
 
   // Hàm đăng ký user
   @Transactional
@@ -95,7 +231,7 @@ public class AuthService {
                 .attributes(Map.of("userId", String.valueOf(savedUser.getId())))
                 .build());
 
-    handleKeycloakCreationResponse(creationResponse, savedUser, request);
+    handleKeycloakCreationResponse(creationResponse, savedUser, request.getEmail());
 
     // Giới hạn số lần gửi mail
     if (!otpService.canSendOtp(savedUser)) {
@@ -175,10 +311,10 @@ public class AuthService {
 
   // Hàm xử lý trạng thái keycloak
   private void handleKeycloakCreationResponse(
-      ResponseEntity<?> creationResponse, User savedUser, UserSignUpRequest request) {
+      ResponseEntity<?> creationResponse, User savedUser, String email) {
     if (creationResponse == null) {
       throw new RuntimeException(
-          "Keycloak createUser response is null for email=" + request.getEmail());
+          "Keycloak createUser response is null for email=" + email);
     }
 
     HttpStatusCode status = creationResponse.getStatusCode();
@@ -188,23 +324,23 @@ public class AuthService {
       if (authId != null) {
         savedUser.setAuthId(authId);
         userRepository.save(savedUser);
-        log.info("Created keycloak user for email={} authId={}", request.getEmail(), authId);
+        log.info("Created keycloak user for email={} authId={}", email, authId);
       } else {
         // Không nhận được Location header -> log warning
         log.warn(
             "Keycloak returned CREATED but Location header missing for email={}",
-            request.getEmail());
+                email);
       }
     } else if (status == HttpStatus.CONFLICT) {
       // user đã tồn tại trên Keycloak (có thể do race condition)
-      log.warn("Keycloak reported conflict when creating user with email={}", request.getEmail());
+      log.warn("Keycloak reported conflict when creating user with email={}", email);
     } else {
       // các trạng thái khác -> log & ném ngoại lệ nếu cần
       throw new RuntimeException(
           "Failed to create user in Keycloak. status="
               + status
               + " for email="
-              + request.getEmail());
+              + email);
     }
   }
 
