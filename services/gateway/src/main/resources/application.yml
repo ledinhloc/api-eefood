@@ -87,6 +87,14 @@ spring:
               uri: lb://REACTION-SERVICE
               predicates:
                 - Path=/api/v1/follows/**
+            - id: admin-post-service
+              uri: lb://REACTION-SERVICE
+              predicates:
+                - Path=/api/v1/admin/**
+            - id: story-reaction-service
+              uri: lb://REACTION-SERVICE
+              predicates:
+                - Path=/api/v1/story/**
     bus:
       enabled: true
     stream:
