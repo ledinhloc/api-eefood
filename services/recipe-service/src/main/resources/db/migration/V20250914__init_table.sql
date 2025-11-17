@@ -19,7 +19,7 @@ CREATE TABLE ingredients
     created_by  VARCHAR(255)                            NOT NULL,
     updated_by  VARCHAR(255)                            NOT NULL,
     is_deleted  BOOLEAN                                 NOT NULL,
-    name        VARCHAR(100)                            NOT NULL,
+    name        VARCHAR                                 NOT NULL,
     description VARCHAR,
     image       VARCHAR,
     CONSTRAINT pk_ingredients PRIMARY KEY (id)

@@ -1,0 +1,3 @@
+pip install selenium beautifulsoup4 webdriver-manager
+python script.py
+

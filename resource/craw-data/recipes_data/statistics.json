@@ -1,0 +1,515 @@
+{
+  "timestamp": "2025-11-17T21:12:01.316686",
+  "total_found": 75,
+  "total_success": 43,
+  "total_failed": 32,
+  "success_rate": "57.3%",
+  "recipes_list": [
+    {
+      "id": 1,
+      "title": "Cách nấu xôi mặn thập cẩm dẻo rền",
+      "ingredients_count": 11,
+      "steps_count": 3,
+      "difficulty": "MEDIUM",
+      "cook_time": 30
+    },
+    {
+      "id": 2,
+      "title": "Cách làm lợn quay kho dưa cải chua",
+      "ingredients_count": 10,
+      "steps_count": 3,
+      "difficulty": "MEDIUM",
+      "cook_time": 20
+    },
+    {
+      "id": 3,
+      "title": "Cách làm lòng thuôn hành răm - Món đưa cơm ngày nồm ẩm",
+      "ingredients_count": 8,
+      "steps_count": 4,
+      "difficulty": "MEDIUM",
+      "cook_time": 15
+    },
+    {
+      "id": 4,
+      "title": "Cách làm cà ri bò bổ dưỡng cho ngày nồm ẩm",
+      "ingredients_count": 12,
+      "steps_count": 4,
+      "difficulty": "MEDIUM",
+      "cook_time": 23
+    },
+    {
+      "id": 5,
+      "title": "Cách làm món bí baby nhồi thịt hấp",
+      "ingredients_count": 7,
+      "steps_count": 2,
+      "difficulty": "MEDIUM",
+      "cook_time": 25
+    },
+    {
+      "id": 6,
+      "title": "Cách làm bò kho gừng kiểu Bắc ấm bụng ngày rét",
+      "ingredients_count": 6,
+      "steps_count": 4,
+      "difficulty": "MEDIUM",
+      "cook_time": 28
+    },
+    {
+      "id": 7,
+      "title": "Cách làm trứng vịt lộn nướng muối ớt",
+      "ingredients_count": 8,
+      "steps_count": 3,
+      "difficulty": "MEDIUM",
+      "cook_time": 15
+    },
+    {
+      "id": 8,
+      "title": "Cách làm mực chiên nước mắm giòn dai, đậm vị",
+      "ingredients_count": 9,
+      "steps_count": 3,
+      "difficulty": "MEDIUM",
+      "cook_time": 23
+    },
+    {
+      "id": 9,
+      "title": "Cách làm lòng non dồi sụn cổ vũ bóng đá thêm rực lửa",
+      "ingredients_count": 11,
+      "steps_count": 4,
+      "difficulty": "MEDIUM",
+      "cook_time": 28
+    },
+    {
+      "id": 10,
+      "title": "Cách làm lươn om chuối đậu nóng hổi ngày đông",
+      "ingredients_count": 11,
+      "steps_count": 3,
+      "difficulty": "MEDIUM",
+      "cook_time": 20
+    },
+    {
+      "id": 11,
+      "title": "Cách làm món đuôi heo nấu rựa mận",
+      "ingredients_count": 7,
+      "steps_count": 4,
+      "difficulty": "MEDIUM",
+      "cook_time": 28
+    },
+    {
+      "id": 12,
+      "title": "Cách làm chim câu bằm xúc phồng tôm",
+      "ingredients_count": 12,
+      "steps_count": 3,
+      "difficulty": "MEDIUM",
+      "cook_time": 23
+    },
+    {
+      "id": 13,
+      "title": "Cánh gà nướng mật ong da giòn, vàng óng",
+      "ingredients_count": 7,
+      "steps_count": 4,
+      "difficulty": "MEDIUM",
+      "cook_time": 25
+    },
+    {
+      "id": 14,
+      "title": "Ốc bươu nướng tiêu xanh cho mùa World Cup 2022",
+      "ingredients_count": 7,
+      "steps_count": 3,
+      "difficulty": "MEDIUM",
+      "cook_time": 15
+    },
+    {
+      "id": 15,
+      "title": "Cách làm lươn xào sả ớt thơm ngon, đậm đà",
+      "ingredients_count": 11,
+      "steps_count": 3,
+      "difficulty": "MEDIUM",
+      "cook_time": 20
+    },
+    {
+      "id": 16,
+      "title": "Cách làm cá bống kho tương hao cơm ngày lạnh",
+      "ingredients_count": 7,
+      "steps_count": 2,
+      "difficulty": "MEDIUM",
+      "cook_time": 60
+    },
+    {
+      "id": 17,
+      "title": "Cách nấu canh bún cá - món cổ ngon của người Hà Nội",
+      "ingredients_count": 10,
+      "steps_count": 5,
+      "difficulty": "MEDIUM",
+      "cook_time": 28
+    },
+    {
+      "id": 18,
+      "title": "Cách nấu canh cải cúc thịt băm đơn giản ngon miệng",
+      "ingredients_count": 5,
+      "steps_count": 3,
+      "difficulty": "EASY",
+      "cook_time": 8
+    },
+    {
+      "id": 19,
+      "title": "Cách làm miến lươn nước giòn ấm nồng ngày đông",
+      "ingredients_count": 12,
+      "steps_count": 3,
+      "difficulty": "MEDIUM",
+      "cook_time": 28
+    },
+    {
+      "id": 20,
+      "title": "Cách làm tép đồng rang ba chỉ",
+      "ingredients_count": 5,
+      "steps_count": 3,
+      "difficulty": "EASY",
+      "cook_time": 15
+    },
+    {
+      "id": 21,
+      "title": "Cách làm thịt dải lợn nướng",
+      "ingredients_count": 6,
+      "steps_count": 3,
+      "difficulty": "MEDIUM",
+      "cook_time": 25
+    },
+    {
+      "id": 22,
+      "title": "Cách nấu canh cá rau cần chuẩn vị Bắc",
+      "ingredients_count": 9,
+      "steps_count": 3,
+      "difficulty": "MEDIUM",
+      "cook_time": 23
+    },
+    {
+      "id": 23,
+      "title": "Cách làm xôi cá rô đồng - món ngon dân dã Nam Định",
+      "ingredients_count": 6,
+      "steps_count": 4,
+      "difficulty": "MEDIUM",
+      "cook_time": 25
+    },
+    {
+      "id": 24,
+      "title": "Nấu canh cá dọc mùng ấm ngày se lạnh",
+      "ingredients_count": 8,
+      "steps_count": 3,
+      "difficulty": "MEDIUM",
+      "cook_time": 23
+    },
+    {
+      "id": 25,
+      "title": "Cách làm món lòng xào nghệ chuẩn vị, giòn dai, thơm ngon khó cưỡng",
+      "ingredients_count": 7,
+      "steps_count": 4,
+      "difficulty": "MEDIUM",
+      "cook_time": 18
+    },
+    {
+      "id": 26,
+      "title": "Mực xào cần tỏi tây chỉ 15 phút",
+      "ingredients_count": 9,
+      "steps_count": 3,
+      "difficulty": "MEDIUM",
+      "cook_time": 8
+    },
+    {
+      "id": 27,
+      "title": "Niễng xào thịt bò - đặc sản ''trời ban'' vào đông",
+      "ingredients_count": 6,
+      "steps_count": 4,
+      "difficulty": "MEDIUM",
+      "cook_time": 13
+    },
+    {
+      "id": 28,
+      "title": "Cách làm cá rô đồng kho khế - món ngon đồng quê",
+      "ingredients_count": 8,
+      "steps_count": 4,
+      "difficulty": "MEDIUM",
+      "cook_time": 60
+    },
+    {
+      "id": 29,
+      "title": "Cách làm tim heo xào chua ngọt",
+      "ingredients_count": 9,
+      "steps_count": 4,
+      "difficulty": "MEDIUM",
+      "cook_time": 18
+    },
+    {
+      "id": 30,
+      "title": "Cách làm canh củ sắn nấu cá quả - món cổ của người Hà Nội",
+      "ingredients_count": 7,
+      "steps_count": 3,
+      "difficulty": "MEDIUM",
+      "cook_time": 20
+    },
+    {
+      "id": 31,
+      "title": "Cách làm bò thuôn hành răm món 'quốc dân' đậm vị Hà Nội",
+      "ingredients_count": 7,
+      "steps_count": 3,
+      "difficulty": "MEDIUM",
+      "cook_time": 10
+    },
+    {
+      "id": 32,
+      "title": "Cá kho trám xanh - thức quà mùa thu",
+      "ingredients_count": 10,
+      "steps_count": 4,
+      "difficulty": "MEDIUM",
+      "cook_time": 60
+    },
+    {
+      "id": 33,
+      "title": "Cách làm bò sốt tiêu đen ngon như nhà hàng",
+      "ingredients_count": 8,
+      "steps_count": 4,
+      "difficulty": "MEDIUM",
+      "cook_time": 20
+    },
+    {
+      "id": 34,
+      "title": "Cách làm xíu mại ăn bánh mì ngon",
+      "ingredients_count": 10,
+      "steps_count": 3,
+      "difficulty": "MEDIUM",
+      "cook_time": 23
+    },
+    {
+      "id": 35,
+      "title": "Cách làm bò kho kiểu Việt Nam",
+      "ingredients_count": 11,
+      "steps_count": 5,
+      "difficulty": "MEDIUM",
+      "cook_time": 30
+    },
+    {
+      "id": 36,
+      "title": "Cách làm bò xào sả ớt mềm ngon chỉ trong 15 phút",
+      "ingredients_count": 8,
+      "steps_count": 4,
+      "difficulty": "MEDIUM",
+      "cook_time": 8
+    },
+    {
+      "id": 37,
+      "title": "Cách làm cá rô phi nướng riềng sả",
+      "ingredients_count": 11,
+      "steps_count": 4,
+      "difficulty": "MEDIUM",
+      "cook_time": 30
+    },
+    {
+      "id": 38,
+      "title": "Cách làm cá kho củ cải đưa cơm",
+      "ingredients_count": 10,
+      "steps_count": 4,
+      "difficulty": "MEDIUM",
+      "cook_time": 120
+    },
+    {
+      "id": 39,
+      "title": "Cách làm ốc xào khế lá gừng - thức quà mùa thu Hà Nội",
+      "ingredients_count": 8,
+      "steps_count": 4,
+      "difficulty": "MEDIUM",
+      "cook_time": 20
+    },
+    {
+      "id": 40,
+      "title": "Cách nấu canh bầu nhồi thịt ngọt mát",
+      "ingredients_count": 6,
+      "steps_count": 4,
+      "difficulty": "MEDIUM",
+      "cook_time": 15
+    },
+    {
+      "id": 41,
+      "title": "Cách làm thịt ba chỉ chiên mắm da giòn, thịt mềm",
+      "ingredients_count": 7,
+      "steps_count": 4,
+      "difficulty": "MEDIUM",
+      "cook_time": 28
+    },
+    {
+      "id": 42,
+      "title": "Cách làm ếch xào măng - món chân quê vào nhà hàng",
+      "ingredients_count": 10,
+      "steps_count": 4,
+      "difficulty": "MEDIUM",
+      "cook_time": 18
+    },
+    {
+      "id": 43,
+      "title": "Cách làm món cá nướng muối ớt đổi vị cuối tuần",
+      "ingredients_count": 10,
+      "steps_count": 4,
+      "difficulty": "MEDIUM",
+      "cook_time": 30
+    }
+  ],
+  "failed_urls": [
+    {
+      "title": "Mâm cơm dân dã ngày hè với cá ngần",
+      "url": "https://vnexpress.net/mam-com-dan-da-ngay-he-voi-ca-ngan-4899079.html",
+      "reason": "Định dạng không hợp lệ (thiếu ingredients hoặc steps)"
+    },
+    {
+      "title": "Thịt vịt có bổ hơn gà?",
+      "url": "https://vnexpress.net/thit-vit-co-bo-hon-ga-4836915.html",
+      "reason": "Định dạng không hợp lệ (thiếu ingredients hoặc steps)"
+    },
+    {
+      "title": "Mâm cơm đồng quê mùa hè",
+      "url": "https://vnexpress.net/doi-song-cooking-mam-com-dong-que-mua-he-4617908.html",
+      "reason": "Định dạng không hợp lệ (thiếu ingredients hoặc steps)"
+    },
+    {
+      "title": "Những món ăn đồng quê mùa hè",
+      "url": "https://vnexpress.net/doi-song-cooking-nhung-mon-an-dong-que-mua-he-4612425.html",
+      "reason": "Định dạng không hợp lệ (thiếu ingredients hoặc steps)"
+    },
+    {
+      "title": "Mâm cơm hè Hà Nội dân dã mà đưa miệng",
+      "url": "https://vnexpress.net/doi-song-cooking-mam-com-he-ha-noi-dan-da-ma-dua-mieng-4609200.html",
+      "reason": "Định dạng không hợp lệ (thiếu ingredients hoặc steps)"
+    },
+    {
+      "title": "Các món canh cho mùa đông",
+      "url": "https://vnexpress.net/doi-song-cooking-cac-mon-canh-cho-mua-dong-4541533.html",
+      "reason": "Định dạng không hợp lệ (thiếu ingredients hoặc steps)"
+    },
+    {
+      "title": "Chân giò heo hầm đu đủ",
+      "url": "https://vnexpress.net/doi-song-cooking-chan-gio-heo-ham-du-du-4533177.html",
+      "reason": "Định dạng không hợp lệ (thiếu ingredients hoặc steps)"
+    },
+    {
+      "title": "Cà pháo ram thịt ba chỉ, lá lốt",
+      "url": "https://vnexpress.net/doi-song-cooking-ca-phao-ram-thit-ba-chi-la-lot-4516363.html",
+      "reason": "Định dạng không hợp lệ (thiếu ingredients hoặc steps)"
+    },
+    {
+      "title": "Xôi trám",
+      "url": "https://vnexpress.net/doi-song-cooking-xoi-tram-4514195.html",
+      "reason": "Định dạng không hợp lệ (thiếu ingredients hoặc steps)"
+    },
+    {
+      "title": "Đậu phụ nhồi thịt sốt cà chua",
+      "url": "https://vnexpress.net/doi-song-cooking-dau-phu-nhoi-thit-sot-ca-chua-4503398.html",
+      "reason": "Định dạng không hợp lệ (thiếu ingredients hoặc steps)"
+    },
+    {
+      "title": "Cá nục kho thơm đậm vị hao cơm",
+      "url": "https://vnexpress.net/doi-song-cooking-ca-nuc-kho-thom-dam-vi-hao-com-4500760.html",
+      "reason": "Định dạng không hợp lệ (thiếu ingredients hoặc steps)"
+    },
+    {
+      "title": "Ngan xào lăn, giòn ngon như nhà hàng",
+      "url": "https://vnexpress.net/doi-song-cooking-ngan-xao-lan-gion-ngon-nhu-nha-hang-4499915.html",
+      "reason": "Định dạng không hợp lệ (thiếu ingredients hoặc steps)"
+    },
+    {
+      "title": "Bún gạo xào chay",
+      "url": "https://vnexpress.net/doi-song-cooking-bun-gao-xao-chay-4497090.html",
+      "reason": "Định dạng không hợp lệ (thiếu ingredients hoặc steps)"
+    },
+    {
+      "title": "Bún ốc nóng - nét ẩm thực dân dã Hà thành",
+      "url": "https://vnexpress.net/doi-song-cooking-bun-oc-nong-4496617.html",
+      "reason": "Định dạng không hợp lệ (thiếu ingredients hoặc steps)"
+    },
+    {
+      "title": "Cách làm mồng tơi xào tỏi đơn giản, ngon như nhà hàng",
+      "url": "https://vnexpress.net/doi-song-cooking-mong-toi-xao-toi-4495929.html",
+      "reason": "Định dạng không hợp lệ (thiếu ingredients hoặc steps)"
+    },
+    {
+      "title": "Cách làm món thăn lợn rim tiêu",
+      "url": "https://vnexpress.net/doi-song-cooking-cach-lam-mon-than-lon-rim-tieu-4495379.html",
+      "reason": "Định dạng không hợp lệ (thiếu ingredients hoặc steps)"
+    },
+    {
+      "title": "Tàu hủ khìa nước dừa đơn giản mà hao cơm",
+      "url": "https://vnexpress.net/doi-song-cooking-tau-hu-khia-nuoc-dua-4495062.html",
+      "reason": "Định dạng không hợp lệ (thiếu ingredients hoặc steps)"
+    },
+    {
+      "title": "Mì tôm xào bò đơn giản, ngon như nhà hàng",
+      "url": "https://vnexpress.net/doi-song-cooking-mi-tom-xao-bo-4493944.html",
+      "reason": "Định dạng không hợp lệ (thiếu ingredients hoặc steps)"
+    },
+    {
+      "title": "Bí quyết làm bê tái chanh thịt mềm, bì giòn",
+      "url": "https://vnexpress.net/doi-song-cooking-be-tai-chanh-4493654.html",
+      "reason": "Định dạng không hợp lệ (thiếu ingredients hoặc steps)"
+    },
+    {
+      "title": "Giả cầy An Phú - món ngon Thái Bình",
+      "url": "https://vnexpress.net/doi-song-cooking-gia-cay-an-phu-4492308.html",
+      "reason": "Định dạng không hợp lệ (thiếu ingredients hoặc steps)"
+    },
+    {
+      "title": "Tôm chiên xù sốt me",
+      "url": "https://vnexpress.net/doi-song-cooking-tom-chien-xu-sot-me-4491859.html",
+      "reason": "Định dạng không hợp lệ (thiếu ingredients hoặc steps)"
+    },
+    {
+      "title": "Cá rô đồng chiên giòn - món chân quê gây thương nhớ",
+      "url": "https://vnexpress.net/doi-song-cooking-ca-ro-dong-chien-gion-4491437.html",
+      "reason": "Định dạng không hợp lệ (thiếu ingredients hoặc steps)"
+    },
+    {
+      "title": "Gỏi bưởi tôm, mực khô - món ngon đãi tiệc",
+      "url": "https://vnexpress.net/doi-song-cooking-goi-buoi-tom-muc-kho-4490135.html",
+      "reason": "Định dạng không hợp lệ (thiếu ingredients hoặc steps)"
+    },
+    {
+      "title": "Chim cút chiên bơ da giòn, mềm như nhà hàng",
+      "url": "https://vnexpress.net/doi-song-cooking-chim-cut-chien-bo-4489093.html",
+      "reason": "Định dạng không hợp lệ (thiếu ingredients hoặc steps)"
+    },
+    {
+      "title": "Thịt ba chỉ rán húng lìu kiểu Bắc",
+      "url": "https://vnexpress.net/doi-song-cooking-thit-ba-chi-ran-hung-liu-4488761.html",
+      "reason": "Định dạng không hợp lệ (thiếu ingredients hoặc steps)"
+    },
+    {
+      "title": "Miến măng vịt thơm ngon tại nhà",
+      "url": "https://vnexpress.net/doi-song-cooking-mien-mang-vit-4488516.html",
+      "reason": "Định dạng không hợp lệ (thiếu ingredients hoặc steps)"
+    },
+    {
+      "title": "Cách làm bún dọc mùng Hà Nội",
+      "url": "https://vnexpress.net/doi-song-cooking-bun-doc-mung-ha-noi-4487736.html",
+      "reason": "Định dạng không hợp lệ (thiếu ingredients hoặc steps)"
+    },
+    {
+      "title": "Ba chỉ kho trứng cút đậm đà",
+      "url": "https://vnexpress.net/doi-song-cooking-thit-ba-chi-kho-trung-cut-4487181.html",
+      "reason": "Định dạng không hợp lệ (thiếu ingredients hoặc steps)"
+    },
+    {
+      "title": "Cách làm xíu mại hợp khẩu vị người Việt",
+      "url": "https://vnexpress.net/doi-song-cooking-xiu-mai-4485771.html",
+      "reason": "Định dạng không hợp lệ (thiếu ingredients hoặc steps)"
+    },
+    {
+      "title": "Thịt ba chỉ chiên muối, sả, ớt",
+      "url": "https://vnexpress.net/doi-song-cooking-thit-ba-chi-chien-muoi-sa-ot-4485414.html",
+      "reason": "Định dạng không hợp lệ (thiếu ingredients hoặc steps)"
+    },
+    {
+      "title": "Cách làm món sườn heo ram mặn đơn giản",
+      "url": "https://vnexpress.net/doi-song-cooking-suon-heo-ram-man-4485033.html",
+      "reason": "Định dạng không hợp lệ (thiếu ingredients hoặc steps)"
+    },
+    {
+      "title": "Bí quyết làm miến xào hải sản không bị dính",
+      "url": "https://vnexpress.net/doi-song-cooking-mien-xao-hai-san-4483171.html",
+      "reason": "Định dạng không hợp lệ (thiếu ingredients hoặc steps)"
+    }
+  ]
+}
