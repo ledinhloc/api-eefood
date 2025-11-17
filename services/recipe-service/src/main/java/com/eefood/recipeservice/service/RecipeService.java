@@ -125,8 +125,6 @@ Your task:
 STRICT OUTPUT RULES (MUST FOLLOW EXACTLY):
 1. Output MUST be **pure JSON only**.
 2. Do NOT include any explanation, description, or natural language.
-3. Do NOT wrap JSON in code blocks (` ```json` or ```).
-4. JSON MUST start with '{' and end with '}'.
 5. JSON MUST match the EXACT schema below.
 6. All string fields MUST be plain strings. No special formatting.
 7. difficulty MUST be one of: "EASY", "MEDIUM", "HARD".
@@ -173,7 +171,7 @@ NOW ANALYZE THE FOLLOWING HTML AND RETURN ONLY JSON:
 """
             .formatted(html);
 
-    log.info("------------"+ prompt);
+//    log.info("------------"+ prompt);
 
     // Gửi prompt đến Gemini
     ChatRequest request = ChatRequest.builder()
@@ -183,7 +181,7 @@ NOW ANALYZE THE FOLLOWING HTML AND RETURN ONLY JSON:
     String aiJson = response.aiMessage().text();
 
 
-    log.info("------------ AiJson: "+ aiJson);
+//    log.info("------------ AiJson: "+ aiJson);
     // PARSE JSON → DTO
     RecipeExtractDTO dto;
     try{
@@ -192,6 +190,10 @@ NOW ANALYZE THE FOLLOWING HTML AND RETURN ONLY JSON:
         throw new RuntimeException("AI trả JSON sai format: " + e.getMessage());
     }
 
+    return saveExtractResult(dto);
+  }
+
+  public RecipeResponse saveExtractResult(RecipeExtractDTO dto) {
     /** tạo mới Category
      * neu cate ton tai -> lay id
      * neu chua ton tai -> tao roi lay id
