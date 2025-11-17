@@ -1,5 +1,6 @@
 package com.eefood.reactionservice.service;
 
+import com.eefood.reactionservice.dto.SearchResult;
 import com.eefood.reactionservice.dto.request.PostCreateRequest;
 import com.eefood.reactionservice.dto.response.*;
 import com.eefood.reactionservice.enums.ErrorMessage;
@@ -38,6 +39,7 @@ public class PostService {
   private final SecurityUtil securityUtil;
   private final GeminiService geminiService;
   private final FollowService followService;
+  private final PostAdminSearchService postAdminSearchService;
 
   public List<PostPublishResponse> getPostsPublishByUser() {
     Long userId = securityUtil.getCurrentUserId();
@@ -175,7 +177,7 @@ public class PostService {
 
 
     //Lấy danh sách postIds từ Elasticsearch
-    List<Long> postIds = postSearchService.searchPostIds(
+    SearchResult esResult = postSearchService.searchPostIds(
       keyword,
       region,
       difficulty,
@@ -187,6 +189,9 @@ public class PostService {
       page,
       size
     );
+
+    List<Long> postIds = esResult.getIds();
+    long total = esResult.getTotal();
     //debug
     log.info("----------------PostIds : " + postIds.toString());
 
@@ -211,9 +216,67 @@ public class PostService {
     List<PostResponse> postResponses = mapToPostResponse(orderedPosts);
     //debug
 //    log.info("----------------" + postResponses.toString());
-    return new PageImpl<>(postResponses, PageRequest.of(page - 1, size), postIds.size());
+    return new PageImpl<>(postResponses, PageRequest.of(page - 1, size), total);
   }
 
+  public Page<PostResponse> getAllPostsByAdmin(
+          String keyword,
+          Long userId,
+          String region,
+          String difficulty,
+          String category,
+          Integer minPrepTime,
+          Integer maxPrepTime,
+          Integer minCookTime,
+          Integer maxCookTime,
+          Integer minReactionCount,
+          Integer minTotalShares,
+          String sortBy,
+          Pageable pageable
+  ) {
+
+    SearchResult esResult = postAdminSearchService.searchPostIds(
+            keyword,
+            userId,
+            region,
+            difficulty,
+            category,
+            minPrepTime,
+            maxPrepTime,
+            minCookTime,
+            maxCookTime,
+            minReactionCount,
+            minTotalShares,
+            sortBy,
+            pageable
+    );
+
+    List<Long> postIds = esResult.getIds();
+    long total = esResult.getTotal();
+    log.info("--------------PostIds : " + total);
+    log.info("PostIds from ES: {}", postIds);
+
+    if (postIds.isEmpty()) {
+      return new PageImpl<>(List.of(), pageable, 0);
+    }
+
+    Specification<Post> spec = PostSpecification.isNotDeleted()
+            .and(PostSpecification.hasPostIds(postIds));
+
+    List<Post> posts = postRepo.findAll(spec);
+
+    Map<Long, Post> postMap = posts.stream()
+            .collect(Collectors.toMap(Post::getId, p -> p));
+
+    List<Post> orderedPosts = postIds.stream()
+            .map(postMap::get)
+            .filter(Objects::nonNull)
+            .toList();
+
+    List<PostResponse> responses = mapToPostResponse(orderedPosts);
+
+    return new PageImpl<>(responses, pageable, total);
+  }
 
   private List<PostResponse> mapToPostResponse(List<Post> posts) {
     // Lấy thông tin user

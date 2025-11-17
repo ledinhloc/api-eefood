@@ -9,6 +9,7 @@ import co.elastic.clients.elasticsearch._types.query_dsl.FunctionBoostMode;
 import co.elastic.clients.elasticsearch._types.query_dsl.Query;
 import co.elastic.clients.json.JsonData;
 import co.elastic.clients.elasticsearch._types.query_dsl.RangeQuery;
+import com.eefood.reactionservice.dto.SearchResult;
 import com.eefood.reactionservice.dto.response.UserResponse;
 import com.eefood.reactionservice.model.PostDocument;
 import com.eefood.reactionservice.repository.PostReactionRepository;
@@ -32,7 +33,7 @@ public class PostSearchService {
   private final PostViewLogService postViewLogService;
 
 
-  public List<Long> searchPostIds(
+  public SearchResult searchPostIds(
     String keyword,
     String region,
     String difficulty,
@@ -63,7 +64,7 @@ public class PostSearchService {
       log.info("-----viewedPostKeywords: {}", viewedPostKeywords);
 
 
-      return client.search(s -> {
+        var response = client.search(s -> {
           var search = s
             .index("posts")
             .from((page - 1) * size)
@@ -305,19 +306,23 @@ public class PostSearchService {
           search.sort(srt -> srt.score(o -> o.order(SortOrder.Desc)));
 
           return search;
-        }, PostDocument.class)
-        .hits()
-        .hits()
-        .stream()
-//        .peek(hit -> log.info("--------- Post ID: {}, Score: {}",
-//          hit.source().getId(), hit.score()))  //Log từng kết quả
-        .map(Hit::source)
-        .map(PostDocument::getId)
-        .toList();
+        }, PostDocument.class);
+        List<Long> ids = response.hits()
+                .hits()
+                .stream()
+                .map(Hit::source)
+                .map(PostDocument::getId)
+                .toList();
+
+        long total = response.hits().total() != null
+                ? response.hits().total().value()
+                : 0;
+
+        return new SearchResult(ids, total);
 
     } catch (IOException e) {
       e.printStackTrace();
-      return List.of();
+      return new SearchResult(List.of(), 0L);
     }
   }
 }

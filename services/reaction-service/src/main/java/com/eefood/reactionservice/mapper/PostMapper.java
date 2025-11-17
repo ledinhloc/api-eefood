@@ -27,6 +27,10 @@ public interface PostMapper {
 
   //els
   @Mapping(target = "difficulty", expression = "java(post.getDifficulty() != null ? post.getDifficulty().name() : null)")
+  @Mapping(target = "totalReactionCount",
+          expression = "java(post.getReactions() != null ? (long) post.getReactions().size() : 0L)")
+  @Mapping(target = "totalShares",
+          expression = "java(post.getShares() != null ? (long) post.getShares().size() : 0L)")
   PostDocument toDocument(Post post);
 
   @Mapping(target = "reactionCounts", source = "reactions", qualifiedByName = "mapReactionCounts")
