@@ -468,8 +468,8 @@ NOW ANALYZE THE FOLLOWING HTML AND RETURN ONLY JSON:
 
         step.setStepNumber(stepReq.getStepNumber());
         step.setInstruction(stepReq.getInstruction());
-        step.setImageUrl(stepReq.getImageUrl());
-        step.setVideoUrl(stepReq.getVideoUrl());
+        step.setImageUrls(stepReq.getImageUrls());
+        step.setVideoUrls(stepReq.getVideoUrls());
         step.setStepTime(stepReq.getStepTime());
         stepRepository.save(step);
       }

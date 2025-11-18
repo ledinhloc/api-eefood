@@ -102,28 +102,54 @@ VALUES
     (now(), now(), 'System', 'System', false, 12, 15, 20, 'gram');  -- hành phi
 
 -- Recipe steps (example shortened)
-INSERT INTO recipe_steps (created_at, updated_at, created_by, updated_by, is_deleted, recipe_id, step_number, instruction, image_url, video_url)
+INSERT INTO recipe_steps
+(created_at, updated_at, created_by, updated_by, is_deleted, recipe_id, step_number, instruction, step_time)
 VALUES
-    (now(), now(), 'System', 'System', false, 1, 1, 'Hầm xương bò để lấy nước dùng','https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTG07ZJ1Hjx4tVG9al90QefJxwEx_7FcXhA7Q&s',null),
-    (now(), now(), 'System', 'System', false, 1, 2, 'Trụng bánh phở và bày ra bát','https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSLGmrUvmPipYnEfu-yfOL4dlPbEMadPmzGuA&s',null),
-    (now(), now(), 'System', 'System', false, 1, 3, 'Thêm thịt bò, chan nước dùng, cho rau thơm','https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQOYwc1mN9pwkHrXFQ-Sdavl5dfTeRRl8Ki-w&s',null),
-    (now(), now(), 'System', 'System', false, 2, 1, 'Nướng thịt heo, chả lụa','https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRcWhlNGxbRY9V1b8hkNMJUVNrtcXojR7YtcQ&s',null),
-    (now(), now(), 'System', 'System', false, 2, 2, 'Bỏ vào ổ bánh mì cùng rau thơm','https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQaenx8VPI70KyxwGaTeeDMBthgW3qjq-gMwA&s',null),
-    (now(), now(), 'System', 'System', false, 3, 1, 'Chuẩn bị rau sống và thịt','https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR3zVyxeM0inddmIoUgwm9zlNS_rz8-H61Lbg&s',null),
-    (now(), now(), 'System', 'System', false, 3, 2, 'Cuốn bánh tráng cùng nhân','https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRs8x7dT-Ic7vLrNHBr8KVspi6qonyxTpXQAw&s',null),
-    (now(), now(), 'System', 'System', false, 4, 1, 'Nướng thịt heo','https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRcWhlNGxbRY9V1b8hkNMJUVNrtcXojR7YtcQ&s',null),
-    (now(), now(), 'System', 'System', false, 4, 2, 'Ăn cùng bún và nước mắm','https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQgxEa1JTOnVCuABBZIE3s7tM6nvlK9hkkU3A&s',null),
-    (now(), now(), 'System', 'System', false, 5, 1, 'Nướng sườn heo','https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSTr7Hw_D5hSIm9jWsvm7LfcEXvj458i64SHA&s',null),
-    (now(), now(), 'System', 'System', false, 5, 2, 'Ăn cùng cơm tấm và nước mắm','https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQgxEa1JTOnVCuABBZIE3s7tM6nvlK9hkkU3A&s',null),
-    (now(), now(), 'System', 'System', false, 6, 1, 'Chuẩn bị thạch, trái cây, sữa dừa','https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSmUcAsrN76gDdbHPIvOMIbwPe9aEPYf_fyXw&s',null),
-    (now(), now(), 'System', 'System', false, 6, 2, 'Cho vào ly và thưởng thức','https://cdn2.fptshop.com.vn/unsafe/Uploads/images/tin-tuc/163493/Originals/che-thai-02.jpg',null),
-    (now(), now(), 'System', 'System', false, 7, 1, 'Hầm xương bò lấy nước dùng', 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTG07ZJ1Hjx4tVG9al90QefJxwEx_7FcXhA7Q&s', null),
-    (now(), now(), 'System', 'System', false, 7, 2, 'Nấu bún và nêm gia vị', 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQS_VrFctoP6q9_ebkRLGZlCwjS2AjIsV2nzA&s', null),
-    (now(), now(), 'System', 'System', false, 7, 3, 'Trình bày và thưởng thức', 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRS_-vvxRHP9YX-jRhUz1RGom51LTL3KT-7-Q&s', null),
-    (now(), now(), 'System', 'System', false, 8, 1, 'Cuốn nhân và chiên vàng', 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTcbtik0wKudnfOfW3eBThuhp_lWOtFMHUUlQ&s', null),
-    (now(), now(), 'System', 'System', false, 9, 1, 'Pha bột bánh xèo và chiên giòn', 'https://www.huongnghiepaau.com/wp-content/uploads/2017/02/cong-thuc-pha-bot-banh-xeo.jpg', null),
-    (now(), now(), 'System', 'System', false, 10, 1, 'Luộc mì cao lầu, xào thịt', 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR-nKfVkMBR-rPNDk9D9lMwVVMBOv7hqDJ6rQ&s', null),
-    (now(), now(), 'System', 'System', false, 11, 1, 'Tráng bánh cuốn, cho nhân thịt', 'https://i.ytimg.com/vi/rMgPhLjGoS4/maxresdefault.jpg', null),
-    (now(), now(), 'System', 'System', false, 12, 1, 'Đồ xôi, nghiền đậu xanh, rắc hành phi', 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQkuSoJ-s1D2HlXGe8Xf-mBikEKGcoG3LxNsg&s', null);
+    (now(), now(), 'System', 'System', false, 1, 1, 'Hầm xương bò để lấy nước dùng', NULL),
+    (now(), now(), 'System', 'System', false, 1, 2, 'Trụng bánh phở và bày ra bát', NULL),
+    (now(), now(), 'System', 'System', false, 1, 3, 'Thêm thịt bò, chan nước dùng, cho rau thơm', NULL),
+    (now(), now(), 'System', 'System', false, 2, 1, 'Nướng thịt heo, chả lụa', NULL),
+    (now(), now(), 'System', 'System', false, 2, 2, 'Bỏ vào ổ bánh mì cùng rau thơm', NULL),
+    (now(), now(), 'System', 'System', false, 3, 1, 'Chuẩn bị rau sống và thịt', NULL),
+    (now(), now(), 'System', 'System', false, 3, 2, 'Cuốn bánh tráng cùng nhân', NULL),
+    (now(), now(), 'System', 'System', false, 4, 1, 'Nướng thịt heo', NULL),
+    (now(), now(), 'System', 'System', false, 4, 2, 'Ăn cùng bún và nước mắm', NULL),
+    (now(), now(), 'System', 'System', false, 5, 1, 'Nướng sườn heo', NULL),
+    (now(), now(), 'System', 'System', false, 5, 2, 'Ăn cùng cơm tấm và nước mắm', NULL),
+    (now(), now(), 'System', 'System', false, 6, 1, 'Chuẩn bị thạch, trái cây, sữa dừa', NULL),
+    (now(), now(), 'System', 'System', false, 6, 2, 'Cho vào ly và thưởng thức', NULL),
+    (now(), now(), 'System', 'System', false, 7, 1, 'Hầm xương bò lấy nước dùng', NULL),
+    (now(), now(), 'System', 'System', false, 7, 2, 'Nấu bún và nêm gia vị', NULL),
+    (now(), now(), 'System', 'System', false, 7, 3, 'Trình bày và thưởng thức', NULL),
+    (now(), now(), 'System', 'System', false, 8, 1, 'Cuốn nhân và chiên vàng', NULL),
+    (now(), now(), 'System', 'System', false, 9, 1, 'Pha bột bánh xèo và chiên giòn', NULL),
+    (now(), now(), 'System', 'System', false, 10, 1, 'Luộc mì cao lầu, xào thịt', NULL),
+    (now(), now(), 'System', 'System', false, 11, 1, 'Tráng bánh cuốn, cho nhân thịt', NULL),
+    (now(), now(), 'System', 'System', false, 12, 1, 'Đồ xôi, nghiền đậu xanh, rắc hành phi', NULL);
+
+
+INSERT INTO recipe_step_images (recipe_step_id, image_url)
+VALUES
+    (1, 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTG07ZJ1Hjx4tVG9al90QefJxwEx_7FcXhA7Q&s'),
+    (2, 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSLGmrUvmPipYnEfu-yfOL4dlPbEMadPmzGuA&s'),
+    (3, 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQOYwc1mN9pwkHrXFQ-Sdavl5dfTeRRl8Ki-w&s'),
+    (4, 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRcWhlNGxbRY9V1b8hkNMJUVNrtcXojR7YtcQ&s'),
+    (5, 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQaenx8VPI70KyxwGaTeeDMBthgW3qjq-gMwA&s'),
+    (6, 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR3zVyxeM0inddmIoUgwm9zlNS_rz8-H61Lbg&s'),
+    (7, 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRs8x7dT-Ic7vLrNHBr8KVspi6qonyxTpXQAw&s'),
+    (8, 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRcWhlNGxbRY9V1b8hkNMJUVNrtcXojR7YtcQ&s'),
+    (9, 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQgxEa1JTOnVCuABBZIE3s7tM6nvlK9hkkU3A&s'),
+    (10, 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSTr7Hw_D5hSIm9jWsvm7LfcEXvj458i64SHA&s'),
+    (11, 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQgxEa1JTOnVCuABBZIE3s7tM6nvlK9hkkU3A&s'),
+    (12, 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSmUcAsrN76gDdbHPIvOMIbwPe9aEPYf_fyXw&s'),
+    (13, 'https://cdn2.fptshop.com.vn/unsafe/Uploads/images/tin-tuc/163493/Originals/che-thai-02.jpg'),
+    (14, 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTG07ZJ1Hjx4tVG9al90QefJxwEx_7FcXhA7Q&s'),
+    (15, 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQS_VrFctoP6q9_ebkRLGZlCwjS2AjIsV2nzA&s'),
+    (16, 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRS_-vvxRHP9YX-jRhUz1RGom51LTL3KT-7-Q&s'),
+    (17, 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTcbtik0wKudnfOfW3eBThuhp_lWOtFMHUUlQ&s'),
+    (18, 'https://www.huongnghiepaau.com/wp-content/uploads/2017/02/cong-thuc-pha-bot-banh-xeo.jpg'),
+    (19, 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR-nKfVkMBR-rPNDk9D9lMwVVMBOv7hqDJ6rQ&s'),
+    (20, 'https://i.ytimg.com/vi/rMgPhLjGoS4/maxresdefault.jpg'),
+    (21, 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQkuSoJ-s1D2HlXGe8Xf-mBikEKGcoG3LxNsg&s');
 
 
