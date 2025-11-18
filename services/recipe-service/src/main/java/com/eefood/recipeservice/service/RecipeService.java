@@ -1,6 +1,7 @@
 package com.eefood.recipeservice.service;
 
 import com.eefood.common.avro.RecipeEvent;
+import com.eefood.recipeservice.dto.request.PostCreateRequest;
 import com.eefood.recipeservice.dto.request.RecipeIngredientRequest;
 import com.eefood.recipeservice.dto.request.RecipeRequest;
 import com.eefood.recipeservice.dto.request.RecipeStepRequest;
@@ -16,6 +17,7 @@ import com.eefood.recipeservice.repository.IngredientRepository;
 import com.eefood.recipeservice.repository.RecipeRepository;
 import com.eefood.recipeservice.repository.RecipeStepRepository;
 import com.eefood.recipeservice.repository.httpclient.IamClient;
+import com.eefood.recipeservice.repository.httpclient.ReactionClient;
 import com.eefood.recipeservice.util.SecurityUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -32,11 +34,14 @@ import org.jsoup.nodes.Element;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 @Slf4j
 @Service
@@ -53,6 +58,106 @@ public class RecipeService {
   private final SecurityUtil securityUtil;
   private final GoogleAiGeminiChatModel gemini;
   private final ObjectMapper objectMapper = new ObjectMapper();
+
+  private final ReactionClient reactionClient;
+  private static final int MIN_USER_ID = 1;
+  private static final int MAX_USER_ID = 20;
+  private static final Random random = new Random();
+
+  public RecipeResponse saveExtractResultWithPost(RecipeExtractDTO dto) {
+    //Lưu recipe
+    RecipeResponse recipeResponse = saveExtractResult(dto);
+    long randomUserId = MIN_USER_ID + random.nextLong(MAX_USER_ID - MIN_USER_ID + 1);
+
+    createPostAsync(recipeResponse.getId(), randomUserId, dto.getTitle());
+    return recipeResponse;
+  }
+
+  //  Tạo post bất đồng bộ
+  private void createPostAsync(Long recipeId, Long userId, String recipeTitle) {
+    SecurityContext context = SecurityContextHolder.getContext();
+
+    CompletableFuture.runAsync(() -> {
+      try {
+        // Set SecurityContext vào thread mới
+        SecurityContextHolder.setContext(context);
+        createPostForUser(recipeId, userId, recipeTitle);
+      } finally {
+        SecurityContextHolder.clearContext();
+      }
+    });
+  }
+
+  private void createPostForUser(Long recipeId, Long userId, String recipeTitle) {
+    try {
+      PostCreateRequest postRequest = PostCreateRequest.builder()
+        .recipeId(recipeId)
+        .content("Cùng thử nấu " + recipeTitle + "! 🍳👨‍🍳")
+        .build();
+
+      // Gọi Post Service qua Feign Client với userId
+      reactionClient.createPost(postRequest, userId);
+
+      log.info("✅ Created post for recipe: {} user: {}", recipeId, userId);
+    } catch (Exception e) {
+      log.error("❌ Failed to create post for recipe: {} user: {}: {}",
+        recipeId, userId, e.getMessage());
+    }
+  }
+
+
+  public RecipeResponse saveExtractResult(RecipeExtractDTO dto) {
+    /** tạo mới Category
+     * neu cate ton tai -> lay id
+     * neu chua ton tai -> tao roi lay id
+     * */
+    List<Long> categoryIds = dto.getCategories().stream()
+      .map(c -> categoryRepository.findByDescriptionIgnoreCase(c)
+        .orElseGet(() -> {
+          Category newC = new Category();
+          newC.setDescription(c);
+          return categoryRepository.save(newC);
+        }).getId()
+      ).toList();
+
+    //tạo mới Ingredient
+    List<RecipeIngredientRequest> ingredientRequests =
+      dto.getIngredients().stream().map(i -> {
+
+        Ingredient ingredient = ingredientRepository.findByNameIgnoreCase(i.getName())
+          .orElseGet(() -> {
+            Ingredient newIng = new Ingredient();
+            newIng.setName(i.getName());
+            return ingredientRepository.save(newIng);
+          });
+
+        return RecipeIngredientRequest.builder()
+          .ingredientId(ingredient.getId())
+          .name(i.getName())
+          .quantity(i.getQuantity())
+          .unit(i.getUnit())
+          .build();
+      }).toList();
+
+    // Map sang RecipeRequest
+    RecipeRequest req = RecipeRequest.builder()
+      .title(dto.getTitle())
+      .description(dto.getDescription())
+      .region(dto.getRegion())
+      .imageUrl(dto.getImageUrl())
+      .videoUrl(dto.getVideoUrl())
+      .prepTime(dto.getPrepTime())
+      .cookTime(dto.getCookTime())
+      .difficulty(Difficulty.valueOf(dto.getDifficulty().toUpperCase()))
+      .categoryIds(categoryIds)
+      .ingredients(ingredientRequests)
+      .steps(dto.getSteps())
+      .build();
+
+    Long authorId = securityUtil.getCurrentUserId();
+    // SAVE RECIPE
+    return createRecipe(req, authorId);
+  }
 
   private static final Set<String> ALLOWED_TAGS = Set.of(
     "p","div","span","img","video","source","iframe",
@@ -192,60 +297,6 @@ NOW ANALYZE THE FOLLOWING HTML AND RETURN ONLY JSON:
 
     return saveExtractResult(dto);
   }
-
-  public RecipeResponse saveExtractResult(RecipeExtractDTO dto) {
-    /** tạo mới Category
-     * neu cate ton tai -> lay id
-     * neu chua ton tai -> tao roi lay id
-     * */
-    List<Long> categoryIds = dto.getCategories().stream()
-      .map(c -> categoryRepository.findByDescriptionIgnoreCase(c)
-        .orElseGet(() -> {
-          Category newC = new Category();
-          newC.setDescription(c);
-          return categoryRepository.save(newC);
-        }).getId()
-      ).toList();
-
-    //tạo mới Ingredient
-    List<RecipeIngredientRequest> ingredientRequests =
-      dto.getIngredients().stream().map(i -> {
-
-        Ingredient ingredient = ingredientRepository.findByNameIgnoreCase(i.getName())
-          .orElseGet(() -> {
-            Ingredient newIng = new Ingredient();
-            newIng.setName(i.getName());
-            return ingredientRepository.save(newIng);
-          });
-
-        return RecipeIngredientRequest.builder()
-          .ingredientId(ingredient.getId())
-          .name(i.getName())
-          .quantity(i.getQuantity())
-          .unit(i.getUnit())
-          .build();
-      }).toList();
-
-    // Map sang RecipeRequest
-    RecipeRequest req = RecipeRequest.builder()
-      .title(dto.getTitle())
-      .description(dto.getDescription())
-      .region(dto.getRegion())
-      .imageUrl(dto.getImageUrl())
-      .videoUrl(dto.getVideoUrl())
-      .prepTime(dto.getPrepTime())
-      .cookTime(dto.getCookTime())
-      .difficulty(Difficulty.valueOf(dto.getDifficulty().toUpperCase()))
-      .categoryIds(categoryIds)
-      .ingredients(ingredientRequests)
-      .steps(dto.getSteps())
-      .build();
-
-    Long authorId = securityUtil.getCurrentUserId();
-    // SAVE RECIPE
-    return createRecipe(req, authorId);
-  }
-
   public Recipe getEntityRecipe(Long id) {
     return recipeRepository.findByIdAndIsDeletedFalse(id)
       .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.RECIPE_NOT_FOUND));

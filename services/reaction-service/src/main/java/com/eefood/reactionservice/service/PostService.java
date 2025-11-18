@@ -51,9 +51,7 @@ public class PostService {
       .collect(Collectors.toList());
   }
 
-  public PostPublishResponse createPost(PostCreateRequest request) {
-    Long currentUserId = securityUtil.getCurrentUserId();
-
+  public PostPublishResponse createPost(PostCreateRequest request, Long userId) {
     boolean exists = postRepo.existsByRecipeIdAndIsDeletedFalse(request.getRecipeId());
     if (exists) {
       throw ExceptionUtil.conflict(ErrorMessage.ALREADY_EXISTS);
@@ -67,7 +65,7 @@ public class PostService {
     }
 
     Post post = Post.builder()
-      .userId(currentUserId)
+      .userId(userId)
       .content(request.getContent())
       //thong tin recipe
       .recipeId(request.getRecipeId())
