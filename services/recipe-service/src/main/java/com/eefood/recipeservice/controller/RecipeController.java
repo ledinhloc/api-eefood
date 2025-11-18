@@ -42,7 +42,7 @@ public class RecipeController {
     @RequestBody List<RecipeExtractDTO> listDto) {
 
     List<RecipeResponse> responses = listDto.stream()
-      .map(recipeService::saveExtractResult)  // gọi lại hàm đã có
+      .map(recipeService::saveExtractResultWithPost)  // gọi lại hàm đã có
       .toList();
 
     return new ResponseData<>(200, "Import success", responses);
