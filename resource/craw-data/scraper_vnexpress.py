@@ -330,59 +330,95 @@ class VnExpressRecipeScraper:
         
         return ""
 
-
     def parse_ingredient(self, text: str):
         """
         Parse ingredient text với hỗ trợ:
         - Số nguyên: "2 quả"
         - Số thập phân: "1.5 thìa"
         - Phân số: "1/2 củ hành"
-        - Range: "2-3 tô"
+        - Range: "2-3 tô", "1,5 - 1,7 kg"
         - Ghi chú: "(tùy chọn)", "(tuỳ ý)"
+        - Dấu ":" phân cách: "Tôm tươi: 200 gr"
+        - Đơn vị phức hợp: "5-6 thìa canh mẻ"
+        - Dấu "," trong số: "1,5 kg" → 1.5
+        - Trường hợp không có số: "Tỏi, sả bằm nhuyễn"
         
         Ví dụ:
+        - "Cơm nguội: 1 tô" → qty=1, unit="tô", name="Cơm nguội"
+        - "Tôm tươi: 200 gr" → qty=200, unit="g", name="Tôm tươi"
+        - "1,5 - 1,7 kg thịt vịt" → qty=1.6, unit="kg", name="thịt vịt"
+        - "5-6 thìa canh mẻ" → qty=5.5, unit="thìa canh", name="mẻ"
         - "1/2 củ hành tây (tùy chọn)" → qty=0.5, unit="củ", name="hành tây"
-        - "1.5 thìa nước mắm" → qty=1.5, unit="thìa", name="nước mắm"
-        - "2-3 quả trứng" → qty=2.5, unit="quả", name="trứng"
-        - "200 gr thịt lợn" → qty=200, unit="g", name="thịt lợn"
+        - "1 quả dừa tươi để lấy nước dừa" → qty=1, unit="quả", name="dừa tươi để lấy nước dừa"
+        - "Tỏi, sả bằm nhuyễn" → qty=1, unit="", name="Tỏi, sả bằm nhuyễn"
         """
         text = text.strip()
         
+        # ===== TÁCH NAME VÀ PHẦN SỐ LƯỢNG NẾU CÓ DẤU ":" =====
+        if ':' in text:
+            parts = text.split(':', 1)
+            name_part = parts[0].strip()
+            quantity_part = parts[1].strip()
+        else:
+            name_part = None
+            quantity_part = text
+        
         # ===== LOẠI BỎ GHI CHÚ TRONG NGOẶC =====
-        # "1/2 củ hành (tùy chọn)" → "1/2 củ hành"
-        # name_with_note = re.sub(r'\s*\([^)]*\)\s*', '', text).strip()
+        # quantity_part_clean = re.sub(r'\s*\([^)]*\)\s*', ' ', quantity_part).strip()
         
-        # ===== PATTERN  =====
-        # Nhóm 1: Số đầu (có thể phân số như 1/2 hoặc thập phân như 1.5)
-        # Nhóm 2: Số thứ 2 (nếu là range như 2-3)
-        # Nhóm 3: Đơn vị
-        # Nhóm 4: Tên nguyên liệu
+        # ===== PATTERN CẢI TIẾN =====
+        # Pattern mới xử lý:
+        # - Số đầu (có thể có dấu phẩy hoặc phân số): [\d,\.]+(?:/\d+)?
+        # - Dấu gạch ngang (tùy chọn): \s*-\s*
+        # - Số thứ 2 (tùy chọn): ([\d,\.]+(?:/\d+)?)?
+        # - Đơn vị đặc biệt "thìa canh" hoặc "thìa cà phê": (thìa\s+(?:canh|cà\s+phê)|muỗng\s+(?:canh|cà\s+phê))?
+        # - Đơn vị thường (1 từ): ([a-zA-ZÀ-ỹ]+)?
+        # - Phần còn lại là tên nguyên liệu
         
-        pattern = r"([\d\.]+(?:/\d+)?)\s*-?\s*([\d\.]+)?\s*([a-zA-ZÀ-ỹ]+)?\s*(.*)"
-        match = re.match(pattern, text)
+        # Pattern ưu tiên bắt "thìa canh/cà phê" trước, sau đó mới đến đơn vị 1 từ
+        pattern = r"^([\d,\.]+(?:/\d+)?)\s*-?\s*([\d,\.]+(?:/\d+)?)?\s*(?:(thìa\s+canh|thìa\s+cà\s+phê|muỗng\s+canh|muỗng\s+cà\s+phê)|([a-zA-ZÀ-ỹ]+))?\s*(.*?)$"
+        
+        match = re.match(pattern, quantity_part)
         
         if match:
-            qty1_str = match.group(1)
-            qty2_str = match.group(2)
-            unit = (match.group(3) or "").lower()
-            name = match.group(4).strip()
+            qty1_str = match.group(1).replace(',', '.')  # Chuyển "1,5" → "1.5"
+            qty2_str = match.group(2).replace(',', '.') if match.group(2) else None
+            unit_multi = match.group(3)  # Đơn vị nhiều từ (thìa canh, thìa cà phê)
+            unit_single = match.group(4)  # Đơn vị 1 từ
+            name_from_qty = match.group(5).strip()
+            
+            # Chọn đơn vị (ưu tiên đơn vị nhiều từ)
+            if unit_multi:
+                unit = unit_multi.strip().lower()
+            elif unit_single:
+                unit = unit_single.strip().lower()
+            else:
+                unit = ""
+            
+            # ===== XÁC ĐỊNH TÊN NGUYÊN LIỆU =====
+            if name_part:
+                name = name_part
+            else:
+                name = name_from_qty
+            
+            # Bỏ dấu "." cuối cùng trong name nếu có
+            name = name.rstrip('.')
             
             # ===== PARSE SỐ LƯỢNG ĐẦU TIÊN =====
             try:
-                # Nếu là phân số (1/2, 3/4, ...)
                 if "/" in qty1_str:
                     numerator, denominator = qty1_str.split("/")
                     qty1 = float(numerator) / float(denominator)
                 else:
-                    # Là số thập phân (1.5) hoặc số nguyên (2)
                     qty1 = float(qty1_str)
             except:
                 qty1 = 0
             
             # ===== PARSE SỐ LƯỢNG THỨ 2 (NẾU CÓ) =====
-            qty2 = qty1  # Default: bằng qty1
+            qty2 = qty1
             if qty2_str:
                 try:
+                    qty2_str = qty2_str.replace(',', '.')
                     if "/" in qty2_str:
                         numerator, denominator = qty2_str.split("/")
                         qty2 = float(numerator) / float(denominator)
@@ -391,7 +427,7 @@ class VnExpressRecipeScraper:
                 except:
                     qty2 = qty1
             
-            # ===== TÍNH TRUNG BÌNH NẾULÀ RANGE =====
+            # ===== TÍNH TRUNG BÌNH NẾU LÀ RANGE =====
             qty = (qty1 + qty2) / 2
             
             # ===== MAPPING ĐƠN VỊ =====
@@ -405,6 +441,8 @@ class VnExpressRecipeScraper:
                 "thìa": "thìa",
                 "thìa canh": "thìa canh",
                 "thìa cà phê": "thìa cà phê",
+                "muỗng canh": "thìa canh",
+                "muỗng cà phê": "thìa cà phê",
                 "cái": "cái",
                 "quả": "quả",
                 "củ": "củ",
@@ -413,16 +451,18 @@ class VnExpressRecipeScraper:
                 "chén": "chén",
                 "nắm": "nắm",
                 "lát": "lát",
+                "cây": "cây",
+                "nhánh": "nhánh",
+                "tép": "tép",
             }
             
             unit = unit_map.get(unit, unit)
             
-            # ===== LÀNG TRỤ QUANTITY VỀ INT NẾU CÓ PHẦN THẬP PHÂN LÀ 0 =====
+            # ===== LÀM TRÒN QUANTITY VỀ INT NẾU CÓ PHẦN THẬP PHÂN LÀ 0 =====
             if qty == int(qty):
                 qty = int(qty)
             else:
                 qty = round(qty, 2)
-
             
             return {
                 "name": name,
@@ -430,7 +470,15 @@ class VnExpressRecipeScraper:
                 "unit": unit
             }
         
-        return {"name": text, "qty": 1, "unit": ""}
+        # ===== TRƯỜNG HỢP KHÔNG CÓ SỐ (VÍ DỤ: "Tỏi, sả bằm nhuyễn") =====
+        if name_part:
+            # Nếu có dấu ":", lấy phần trước dấu ":"
+            name = name_part
+        else:
+            # Không có số và không có dấu ":", lấy toàn bộ text
+            name = quantity_part
+        
+        return {"name": name.rstrip('.'), "qty": 1, "unit": ""}
 
     def estimate_difficulty(self, ingredients):
         c = len(ingredients)
@@ -464,7 +512,7 @@ class VnExpressRecipeScraper:
 
 
 def main():
-    url = "https://vnexpress.net/doi-song-cooking-bun-gao-xao-chay-4497090.html"
+    url = "https://vnexpress.net/ca-hoi-ngam-tuong-mon-gay-sot-mua-he-4325134.html"
 
     scraper = VnExpressRecipeScraper(use_selenium=False)
     
@@ -482,5 +530,5 @@ def main():
         scraper.close()
 
 
-# if __name__ == "__main__":
-#     main()
+if __name__ == "__main__":
+    main()
