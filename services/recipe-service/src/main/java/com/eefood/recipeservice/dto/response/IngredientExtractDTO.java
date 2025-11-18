@@ -11,6 +11,6 @@ import lombok.NoArgsConstructor;
 @Builder
 public class IngredientExtractDTO {
   private String name;
-  private Integer quantity;
+  private Double quantity;
   private String unit;
 }

@@ -19,7 +19,7 @@ CREATE TABLE shopping_ingredients (
     is_deleted BOOLEAN NOT NULL DEFAULT false,
     shopping_item_id BIGINT NOT NULL REFERENCES shopping_items(id) ON DELETE CASCADE,
     ingredient_id BIGINT NOT NULL REFERENCES ingredients(id),
-    quantity INT NOT NULL,
+    quantity DOUBLE PRECISION NOT NULL,
     unit VARCHAR(50) NOT NULL,
     purchased BOOLEAN NOT NULL DEFAULT false
 );
