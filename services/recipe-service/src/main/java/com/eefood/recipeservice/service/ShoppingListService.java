@@ -18,6 +18,8 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 
+import static com.eefood.recipeservice.enums.ErrorMessage.SERVING_INVALID;
+
 @Service
 @RequiredArgsConstructor
 public class ShoppingListService {
@@ -117,6 +119,10 @@ public class ShoppingListService {
   // Thay đổi khẩu phần (update số lượng nguyên liệu theo servings mới)
   @Transactional
   public ShoppingItemDto updateServings(Long userId, Long itemId, Integer newServings) {
+    if (newServings == null || newServings <= 0 || newServings > 100000) {
+      throw ExceptionUtil.badRequest(SERVING_INVALID);
+    }
+
     ShoppingItem item = itemRepo.findByIdAndUserIdAndIsDeletedFalse(itemId, userId)
       .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.SHOPPING_ITEM_NOT_FOUND));
 
@@ -124,8 +130,8 @@ public class ShoppingListService {
     item.setServings(newServings);
 
     for (ShoppingIngredient ing : item.getIngredients()) {
-      double basePerServing = (double) ing.getQuantity() / oldServings;
-      ing.setQuantity((int) Math.round(basePerServing * newServings));
+      double basePerServing = ing.getQuantity() / oldServings;
+      ing.setQuantity(basePerServing * newServings);
     }
 
     itemRepo.save(item);

@@ -41,7 +41,7 @@ CREATE TABLE recipe_ingredients
     is_deleted    BOOLEAN                                 NOT NULL,
     recipe_id     BIGINT                                  NOT NULL,
     ingredient_id BIGINT                                  NOT NULL,
-    quantity      INTEGER,
+    quantity      DOUBLE PRECISION,
     unit          VARCHAR(255)                            NOT NULL,
     CONSTRAINT pk_recipe_ingredients PRIMARY KEY (id)
 );

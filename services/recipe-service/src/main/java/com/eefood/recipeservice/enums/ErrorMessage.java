@@ -59,6 +59,7 @@ public enum ErrorMessage {
 
   //Recipe service
   RECIPE_NOT_FOUND("Recipe not found or already deleted"),
+  SERVING_INVALID("serving invalid"),
 
   //ingre
   INGREDIENT_SHOPPING_NOT_FOUND("Ingredient not found"),

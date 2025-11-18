@@ -13,6 +13,6 @@ public class RecipeIngredientRequest {
     private Long id;
     private Long ingredientId;
     private String name;
-    private Integer quantity;
+    private Double quantity;
     private String unit;
 }
