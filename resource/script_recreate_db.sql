@@ -1,6 +1,6 @@
 -- Ngắt kết nối tất cả session đang dùng DB iam_service (nếu có)
 -- vì PostgreSQL không cho DROP DATABASE khi đang có kết nối active
--- recipe_service, notification_service,
+-- recipe_service, notification_service, reaction_service
 SELECT pg_terminate_backend(pg_stat_activity.pid)
 FROM pg_stat_activity
 WHERE pg_stat_activity.datname = 'recipe_service'

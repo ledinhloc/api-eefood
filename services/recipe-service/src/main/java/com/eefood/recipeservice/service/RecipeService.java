@@ -65,10 +65,10 @@ public class RecipeService {
   private static final Random random = new Random();
 
   public RecipeResponse saveExtractResultWithPost(RecipeExtractDTO dto) {
-    //Lưu recipe
-    RecipeResponse recipeResponse = saveExtractResult(dto);
-    long randomUserId = MIN_USER_ID + random.nextLong(MAX_USER_ID - MIN_USER_ID + 1);
 
+    long randomUserId = MIN_USER_ID + random.nextLong(MAX_USER_ID - MIN_USER_ID + 1);
+    //Lưu recipe
+    RecipeResponse recipeResponse = saveExtractResult(dto, randomUserId);
     createPostAsync(recipeResponse.getId(), randomUserId, dto.getTitle());
     return recipeResponse;
   }
@@ -92,21 +92,20 @@ public class RecipeService {
     try {
       PostCreateRequest postRequest = PostCreateRequest.builder()
         .recipeId(recipeId)
-        .content("Cùng thử nấu " + recipeTitle + "! 🍳👨‍🍳")
+        .content("Cùng thử nấu " + recipeTitle )
         .build();
 
       // Gọi Post Service qua Feign Client với userId
       reactionClient.createPost(postRequest, userId);
 
-      log.info("✅ Created post for recipe: {} user: {}", recipeId, userId);
+      log.info("----Created post for recipe: {} user: {}", recipeId, userId);
     } catch (Exception e) {
-      log.error("❌ Failed to create post for recipe: {} user: {}: {}",
+      log.error("----Failed to create post for recipe: {} user: {}: {}",
         recipeId, userId, e.getMessage());
     }
   }
 
-
-  public RecipeResponse saveExtractResult(RecipeExtractDTO dto) {
+  public RecipeResponse saveExtractResult(RecipeExtractDTO dto, Long userId) {
     /** tạo mới Category
      * neu cate ton tai -> lay id
      * neu chua ton tai -> tao roi lay id
@@ -153,10 +152,8 @@ public class RecipeService {
       .ingredients(ingredientRequests)
       .steps(dto.getSteps())
       .build();
-
-    Long authorId = securityUtil.getCurrentUserId();
     // SAVE RECIPE
-    return createRecipe(req, authorId);
+    return createRecipe(req, userId);
   }
 
   private static final Set<String> ALLOWED_TAGS = Set.of(
@@ -294,8 +291,9 @@ NOW ANALYZE THE FOLLOWING HTML AND RETURN ONLY JSON:
     }catch (JsonProcessingException e){
         throw new RuntimeException("AI trả JSON sai format: " + e.getMessage());
     }
+    Long userId = securityUtil.getCurrentUserId();
 
-    return saveExtractResult(dto);
+    return saveExtractResult(dto, userId);
   }
   public Recipe getEntityRecipe(Long id) {
     return recipeRepository.findByIdAndIsDeletedFalse(id)
