@@ -65,7 +65,8 @@ class VnExpressRecipeScraper:
 
     def scrape_recipe(self, url: str):
         """Scrape với tùy chọn Selenium hoặc Requests"""
-        logger.info(f" Loading: {url}")
+        # Đang load
+        # logger.info(f" Loading: {url}")
         
         if self.use_selenium:
             soup = self._load_with_selenium(url)
@@ -76,7 +77,7 @@ class VnExpressRecipeScraper:
             return None
 
         recipe = self._parse_recipe(soup)
-        logger.info("Done scraping.")
+        # logger.info("Done scraping.")**
         return recipe
 
     def _load_with_requests(self, url: str):

@@ -8,6 +8,7 @@ from typing import List, Dict
 from datetime import datetime
 import asyncio
 import aiohttp
+import threading
 
 from scraper_vnexpress import VnExpressRecipeScraper
 
@@ -16,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 class VnExpressFullScraper:
-    def __init__(self):
+    def __init__(self, max_concurrent: int = 5):
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
             "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
@@ -24,19 +25,15 @@ class VnExpressFullScraper:
         self.output_dir = Path("recipes_data")
         self.output_dir.mkdir(exist_ok=True)
         
-        self.scraped_recipes = []  # Danh sách recipe đã crawl
-        self.failed_urls = []      # URL không crawl được
+        self.scraped_recipes = []
+        self.failed_urls = []
         self.success_count = 0
         self.fail_count = 0
+        self.max_concurrent = max_concurrent  #  Số request đồng thời
     
     def get_recipe_urls_from_page(self, url: str) -> List[Dict]:
-        """
-        Lấy danh sách URL recipe từ một trang
-        
-        Returns:
-            list: [{'title': '...', 'url': '...', 'image': '...'}, ...]
-        """
-        logger.info(f"📄 Fetching page: {url}")
+        """Lấy danh sách URL recipe từ một trang"""
+        logger.info(f" Fetching page: {url}")
         
         try:
             response = requests.get(url, headers=self.headers, timeout=10)
@@ -55,20 +52,15 @@ class VnExpressFullScraper:
             
             for article in articles:
                 try:
-                    # Lấy link
                     link_elem = article.find("a", class_="thumb_img", href=True)
                     if not link_elem:
                         continue
                     
                     recipe_url = link_elem.get("href", "").strip()
-                    # if not recipe_url.startswith("http"):
-                    #     recipe_url = "https://vnexpress.net" + recipe_url
                     
-                    # Lấy tiêu đề
                     h2_elem = article.find("h2", class_="title_news")
                     title = h2_elem.get_text(strip=True) if h2_elem else "N/A"
                     
-                    # Lấy ảnh
                     img_elem = article.find("img")
                     image = img_elem.get("data-src") or img_elem.get("src") if img_elem else ""
                     
@@ -89,20 +81,10 @@ class VnExpressFullScraper:
             return []
     
     def get_all_recipe_urls(self, start_url: str, max_pages: int = 31) -> List[Dict]:
-        """
-        Lấy URL recipe từ tất cả các trang (1-31)
-        
-        Args:
-            start_url: URL trang 1
-            max_pages: Số trang tối đa (mặc định 31)
-        
-        Returns:
-            list: Danh sách tất cả URL
-        """
+        """Lấy URL recipe từ tất cả các trang"""
         all_urls = []
         
         for page in range(1, max_pages + 1):
-            # Xây dựng URL trang
             if page == 1:
                 page_url = start_url
             else:
@@ -117,96 +99,102 @@ class VnExpressFullScraper:
             
             all_urls.extend(recipes)
             
-            # Delay giữa các trang
             if page < max_pages:
-                time.sleep(1)
+                time.sleep(0.5)  # Giảm delay từ 1s xuống 0.5s
         
         logger.info(f"\n✅ Tổng lấy được {len(all_urls)} URL recipe")
         return all_urls
     
-    def crawl_recipe_details(self, recipe_urls: List[Dict]):
-        """
-        Crawl chi tiết từng recipe từ URL
-        
-        Args:
-            recipe_urls: Danh sách URL recipe
-        """
-        logger.info(f"\n🚀 ===== BẮT ĐẦU CRAWL CHI TIẾT {len(recipe_urls)} RECIPE =====\n")
-        
-        detail_scraper = VnExpressRecipeScraper(use_selenium=False)
-        
-        for idx, recipe_info in enumerate(recipe_urls, 1):
+    async def crawl_recipe_async(self, recipe_info: Dict, detail_scraper: VnExpressRecipeScraper, semaphore: asyncio.Semaphore):
+        """ Crawl một recipe bất đồng bộ"""
+        async with semaphore:  # Giới hạn số request đồng thời
             recipe_url = recipe_info['url']
             recipe_title = recipe_info['title']
             
-            logger.info(f"[{idx}/{len(recipe_urls)}] ⏳ Crawling: {recipe_title}")
-        
             try:
-                # Crawl chi tiết
-                detail = detail_scraper.scrape_recipe(recipe_url)
+                # Chạy crawl trong thread riêng để tránh block
+                loop = asyncio.get_event_loop()
+                detail = await loop.run_in_executor(None, detail_scraper.scrape_recipe, recipe_url)
                 
                 if not detail:
-                    logger.error(f"     ❌ Failed to get detail")
+                    logger.error(f"[FAIL] {recipe_title}: Không lấy được dữ liệu")
                     self.failed_urls.append({
                         "title": recipe_title,
                         "url": recipe_url,
                         "reason": "Không lấy được dữ liệu"
                     })
                     self.fail_count += 1
-                    continue
+                    return
                 
                 # Validate recipe
                 if not self._validate_recipe(detail):
-                    logger.warning(f"     ⚠️ Recipe không hợp lệ")
+                    logger.warning(f"[INVALID] {recipe_title}: Định dạng không hợp lệ")
                     self.failed_urls.append({
                         "title": recipe_title,
                         "url": recipe_url,
-                        "reason": "Định dạng không hợp lệ (thiếu ingredients hoặc steps)"
+                        "reason": "Định dạng không hợp lệ"
                     })
                     self.fail_count += 1
-                    continue
+                    return
                 
-                logger.info(f"     ✅ Success! ({len(detail['ingredients'])} nguyên liệu, {len(detail['steps'])} bước)")
+                logger.info(f"[OK] {recipe_title} ({len(detail['ingredients'])} ingredients, {len(detail['steps'])} steps)")
                 
                 self.scraped_recipes.append(detail)
                 self.success_count += 1
                 
             except Exception as e:
-                logger.error(f"     ❌ Exception: {e}")
+                logger.error(f"[ERROR] {recipe_title}: {str(e)[:50]}")
                 self.failed_urls.append({
                     "title": recipe_title,
                     "url": recipe_url,
-                    "reason": str(e)
+                    "reason": str(e)[:100]
                 })
                 self.fail_count += 1
-            
-            # Delay giữa các request
-            time.sleep(2)
+    
+    async def crawl_recipe_details_async(self, recipe_urls: List[Dict]):
+        """ Crawl tất cả recipe bất đồng bộ"""
+        logger.info(f"\n ===== BẮT ĐẦU CRAWL BẤT ĐỒNG BỘ {len(recipe_urls)} RECIPE =====\n")
+        logger.info(f" Số request đồng thời: {self.max_concurrent}\n")
+        
+        detail_scraper = VnExpressRecipeScraper(use_selenium=False)
+        semaphore = asyncio.Semaphore(self.max_concurrent)  # Giới hạn đồng thời
+        
+        # Tạo danh sách task
+        tasks = [
+            self.crawl_recipe_async(recipe_info, detail_scraper, semaphore)
+            for recipe_info in recipe_urls
+        ]
+        
+        # Chạy tất cả task đồng thời
+        start_time = time.time()
+        await asyncio.gather(*tasks)
+        elapsed = time.time() - start_time
         
         detail_scraper.close()
+        
+        logger.info(f"\n⏱️ Thời gian crawl: {elapsed:.2f}s")
+    
+    def crawl_recipe_details(self, recipe_urls: List[Dict]):
+        """Wrapper để chạy async code"""
+        asyncio.run(self.crawl_recipe_details_async(recipe_urls))
     
     def _validate_recipe(self, recipe: dict) -> bool:
         """Kiểm tra recipe có đủ dữ liệu không"""
-        # Phải có tiêu đề
         if not recipe.get('title'):
             return False
         
-        # Phải có ít nhất 3 nguyên liệu
         if len(recipe.get('ingredients', [])) < 3:
             return False
         
-        # Phải có ít nhất 1 bước
         if len(recipe.get('steps', [])) < 1:
             return False
         
         return True
     
     def export_recipes(self):
-        """
-        Export recipes thành 1 file JSON duy nhất
-        """
+        """Export recipes thành 1 file JSON"""
         if not self.scraped_recipes:
-            logger.warning("⚠️ Không có recipe để export")
+            logger.warning(" Không có recipe để export")
             return
         
         output_file = self.output_dir / "all_recipes.json"
@@ -217,9 +205,7 @@ class VnExpressFullScraper:
         logger.info(f"✅ Exported {len(self.scraped_recipes)} recipes to: {output_file}")
     
     def export_statistics(self):
-        """
-        Export thống kê crawl
-        """
+        """Export thống kê crawl"""
         stats = {
             "timestamp": datetime.now().isoformat(),
             "total_found": len(self.scraped_recipes) + len(self.failed_urls),
@@ -249,7 +235,6 @@ class VnExpressFullScraper:
         
         logger.info(f"✅ Exported statistics to: {output_file}")
         
-        # In thống kê ra console
         logger.info(f"\n📊 ===== THỐNG KÊ CRAWL =====")
         logger.info(f"⏰ Thời gian: {stats['timestamp']}")
         logger.info(f"✅ Thành công: {self.success_count}/{stats['total_found']} ({stats['success_rate']})")
@@ -260,25 +245,28 @@ class VnExpressFullScraper:
 def main():
     start_url = "https://vnexpress.net/doi-song/cooking/mon-ngon-hang-ngay-25532"
     
-    # ===== BƯỚC 1: Lấy danh sách URL từ 31 trang =====
+    # ===== BƯỚC 1: Lấy danh sách URL =====
     logger.info("===== BƯỚC 1: LẤY DANH SÁCH URL =====\n")
-    scraper = VnExpressFullScraper()
-    recipe_urls = scraper.get_all_recipe_urls(start_url, max_pages=5)
+    scraper = VnExpressFullScraper(max_concurrent=5)  # 5 request cùng lúc
+    recipe_urls = scraper.get_all_recipe_urls(start_url, max_pages=31)
     
     if not recipe_urls:
         logger.error("❌ Không lấy được danh sách URL")
         return
     
-    # ===== BƯỚC 2: Crawl chi tiết từng recipe =====
-    logger.info("\n\n===== BƯỚC 2: CRAWL CHI TIẾT =====")
+    # ===== BƯỚC 2: Crawl chi tiết (BẤT ĐỒNG BỘ) =====
+    logger.info("\n\n===== BƯỚC 2: CRAWL CHI TIẾT (BẤT ĐỒNG BỘ) =====")
+    start = time.time()
     scraper.crawl_recipe_details(recipe_urls)
+    elapsed = time.time() - start
     
     # ===== BƯỚC 3: Export kết quả =====
     logger.info("\n\n===== BƯỚC 3: EXPORT KẾT QUẢ =====\n")
     scraper.export_recipes()
     scraper.export_statistics()
     
-    logger.info(f"\n✅ Hoàn thành! Kết quả lưu trong thư mục: {scraper.output_dir}")
+    logger.info(f"\n✅ Hoàn thành trong {elapsed:.2f}s!")
+    logger.info(f"📁 Kết quả lưu trong: {scraper.output_dir}")
 
 
 if __name__ == "__main__":
