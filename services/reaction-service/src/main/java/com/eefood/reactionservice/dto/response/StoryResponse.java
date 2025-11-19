@@ -18,4 +18,6 @@ public class StoryResponse {
     private String contentUrl;
     private LocalDateTime createdAt;
     private LocalDateTime expiredAt;
+
+    private boolean isViewed;
 }
