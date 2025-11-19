@@ -36,10 +36,10 @@ class VnExpressRecipeScraper:
         
         if use_selenium:
             options = Options()
-            options.add_argument("--headless=new")  # ✅ Chạy gầm (không mở Chrome)
+            options.add_argument("--headless=new")
             options.add_argument("--disable-gpu")
             options.add_argument("--no-sandbox")
-            options.add_argument("--disable-dev-shm-usage")  # ✅ Tiết kiệm RAM
+            options.add_argument("--disable-dev-shm-usage")
             options.add_argument("--start-maximized")
             options.add_argument("--window-size=1920,1080")
             options.add_argument("--disable-blink-features=AutomationControlled")
@@ -49,9 +49,8 @@ class VnExpressRecipeScraper:
                 "Chrome/120.0.0.0 Safari/537.36"
             )
             
-            # Tắt các extension không cần
             prefs = {
-                "profile.managed_default_content_settings.images": 2,  # Tắt ảnh (tăng tốc)
+                "profile.managed_default_content_settings.images": 2,
             }
             options.add_experimental_option("prefs", prefs)
 
@@ -59,15 +58,14 @@ class VnExpressRecipeScraper:
                 service=Service(ChromeDriverManager().install()),
                 options=options
             )
-            #  Giảm timeout từ 10s xuống 5s
             self.driver.set_page_load_timeout(5)
             self.driver.set_script_timeout(5)
 
-    def scrape_recipe(self, url: str):
-        """Scrape với tùy chọn Selenium hoặc Requests"""
-        # Đang load
-        # logger.info(f" Loading: {url}")
-        
+    def scrape_recipe(self, url: str, category: str = "N/A"):
+        """
+        Scrape với tùy chọn Selenium hoặc Requests
+        ✅ Thêm tham số category
+        """
         if self.use_selenium:
             soup = self._load_with_selenium(url)
         else:
@@ -76,8 +74,7 @@ class VnExpressRecipeScraper:
         if not soup:
             return None
 
-        recipe = self._parse_recipe(soup)
-        # logger.info("Done scraping.")**
+        recipe = self._parse_recipe(soup, category)  # ✅ Truyền category vào parse
         return recipe
 
     def _load_with_requests(self, url: str):
@@ -91,7 +88,7 @@ class VnExpressRecipeScraper:
             response.raise_for_status()
             return BeautifulSoup(response.content, "html.parser")
         except Exception as e:
-            logger.error(f" Requests failed: {e}. Falling back to Selenium...")
+            logger.error(f"❌ Requests failed: {e}. Falling back to Selenium...")
             self.use_selenium = True
             self.__init__(use_selenium=True)
             return self._load_with_selenium(url)
@@ -101,7 +98,6 @@ class VnExpressRecipeScraper:
         try:
             self.driver.get(url)
             
-            #  Giảm wait time từ 10s xuống 3s
             try:
                 WebDriverWait(self.driver, 3).until(
                     EC.presence_of_element_located((By.CLASS_NAME, "title-detail"))
@@ -111,18 +107,21 @@ class VnExpressRecipeScraper:
             
             return BeautifulSoup(self.driver.page_source, "html.parser")
         except Exception as e:
-            logger.error(f" Selenium failed: {e}")
+            logger.error(f"❌ Selenium failed: {e}")
             return None
 
-    def _parse_recipe(self, soup):
-        """Parse recipe từ soup"""
+    def _parse_recipe(self, soup, category: str = "N/A"):
+        """
+        Parse recipe từ soup
+        ✅ Thêm tham số category
+        """
         recipe = {
             "title": "",
             "description": "",
             "region": "Việt Nam",
             "imageUrl": "",
             "videoUrl": "",
-            "categories": [],
+            "categories": [category] if category != "N/A" else [],  # ✅ Thêm vào categories
             "prepTime": 0,
             "cookTime": 0,
             "difficulty": "MEDIUM",
@@ -149,9 +148,6 @@ class VnExpressRecipeScraper:
                     recipe["imageUrl"] = img["src"]
         except:
             pass
-
-        # ===== CATEGORIES =====
-        recipe["categories"] = ["Cơm Hàng Ngày", "Việt Nam"]
 
         # ===== TIME =====
         try:
@@ -188,7 +184,6 @@ class VnExpressRecipeScraper:
             logger.warning(f"Ingredient error: {e}")
 
         # ===== STEPS =====
-        # ===== STEPS - HANDLE UL, OL, P + FIGURE FORMATS =====
         try:
             steps_section = soup.find("div", class_="fck_detail")  
 
@@ -287,9 +282,6 @@ class VnExpressRecipeScraper:
                         # Tránh lưu step rỗng
                         if not instruction_text.strip():
                             continue
-                        
-                        # Tự động thêm tiêu đề nếu chưa có
-                        # step_title = f"Bước {idx}. "
                         
                         recipe["steps"].append({
                             "stepNumber": len(recipe["steps"]) + 1,
@@ -430,7 +422,6 @@ class VnExpressRecipeScraper:
             # ===== TÍNH TRUNG BÌNH NẾU LÀ RANGE =====
             qty = (qty1 + qty2) / 2
             
-            # ===== MAPPING ĐƠN VỊ =====
             unit_map = {
                 "gr": "g",
                 "gram": "g",
@@ -475,7 +466,6 @@ class VnExpressRecipeScraper:
             # Nếu có dấu ":", lấy phần trước dấu ":"
             name = name_part
         else:
-            # Không có số và không có dấu ":", lấy toàn bộ text
             name = quantity_part
         
         return {"name": name.rstrip('.'), "qty": 1, "unit": ""}
@@ -523,12 +513,13 @@ def main():
         
         if recipe:
             scraper.export_to_json(recipe)
-            logger.info(f" Thời gian: {elapsed:.2f}s")
+            logger.info(f"⏱️ Thời gian: {elapsed:.2f}s")
+            logger.info(f"📂 Category: {recipe['category']}")
         else:
-            logger.error(" Failed to scrape")
+            logger.error("❌ Failed to scrape")
     finally:
         scraper.close()
 
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()

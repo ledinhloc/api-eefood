@@ -8,7 +8,6 @@ from typing import List, Dict
 from datetime import datetime
 import asyncio
 import aiohttp
-import threading
 
 from scraper_vnexpress import VnExpressRecipeScraper
 
@@ -17,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class VnExpressFullScraper:
-    def __init__(self, max_concurrent: int = 5):
+    def __init__(self, max_concurrent: int = 10):
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
             "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
@@ -29,26 +28,66 @@ class VnExpressFullScraper:
         self.failed_urls = []
         self.success_count = 0
         self.fail_count = 0
-        self.max_concurrent = max_concurrent  #  Số request đồng thời
-    
-    def get_recipe_urls_from_page(self, url: str) -> List[Dict]:
-        """Lấy danh sách URL recipe từ một trang"""
-        logger.info(f" Fetching page: {url}")
+        self.max_concurrent = max_concurrent
+
+    async def get_recipe_urls_from_page_async(self, url: str, category: str, session: aiohttp.ClientSession) -> tuple[List[Dict], bool, int]:
+        """
+        Lấy danh sách URL recipe từ một trang (async)
+        Returns: (recipes, has_next_page, max_page_number)
+        """
+        logger.info(f"📄 Fetching page: {url}")
         
         try:
-            response = requests.get(url, headers=self.headers, timeout=10)
-            response.raise_for_status()
-            soup = BeautifulSoup(response.content, "html.parser")
+            async with session.get(url, headers=self.headers, timeout=aiohttp.ClientTimeout(total=10)) as response:
+                response.raise_for_status()
+                content = await response.text()
+                soup = BeautifulSoup(content, "html.parser")
             
             recipes = []
             list_dish = soup.find("div", class_="list-dish")
             
             if not list_dish:
                 logger.warning("⚠️ Không tìm thấy div.list-dish")
-                return recipes
+                return recipes, False, 1
             
             articles = list_dish.find_all("article", class_="art_item")
             logger.info(f"   📦 Tìm thấy {len(articles)} bài viết")
+            
+            # ✅ Tìm số trang tối đa và kiểm tra nút "Next"
+            max_page = 1
+            has_next = False
+            
+            pagination = soup.find("div", id="pagination")
+            if pagination:
+                button_page = pagination.find("div", class_="button-page")
+                if button_page:
+                    # Tìm tất cả các link trang
+                    page_links = button_page.find_all("a", href=True)
+                    
+                    for link in page_links:
+                        href = link.get("href", "")
+                        
+                        # Kiểm tra nút Next (có class="pagination_btn pa_next")
+                        if "pa_next" in link.get("class", []):
+                            # Nếu href không phải "javascript:;" → còn trang tiếp theo
+                            if "javascript" not in href:
+                                has_next = True
+                        
+                        # Tìm số trang từ URL (format: -p3, -p10, etc.)
+                        if "-p" in href:
+                            try:
+                                page_num = int(href.split("-p")[-1].split("?")[0])
+                                max_page = max(max_page, page_num)
+                            except:
+                                pass
+                        
+                        # Hoặc tìm từ text của link (1, 2, 3, ...)
+                        text = link.get_text(strip=True)
+                        if text.isdigit():
+                            page_num = int(text)
+                            max_page = max(max_page, page_num)
+            
+            logger.info(f"   📊 Pagination: max_page={max_page}, has_next={has_next}")
             
             for article in articles:
                 try:
@@ -67,60 +106,111 @@ class VnExpressFullScraper:
                     recipes.append({
                         "title": title,
                         "url": recipe_url,
-                        "image": image
+                        "image": image,
+                        "category": category
                     })
                     
                 except Exception as e:
                     logger.warning(f"   ⚠️ Error parsing article: {e}")
                     continue
             
-            return recipes
+            return recipes, has_next, max_page
         
         except Exception as e:
             logger.error(f"❌ Error fetching page: {e}")
-            return []
-    
-    def get_all_recipe_urls(self, start_url: str, max_pages: int = 31) -> List[Dict]:
-        """Lấy URL recipe từ tất cả các trang"""
+            return [], False, 1
+
+
+    async def get_all_recipe_urls_async(self, list_url: List[Dict], max_pages: int = 100) -> List[Dict]:
+        """Lấy URL recipe từ tất cả các category (tự động dừng khi hết trang)"""
         all_urls = []
+        seen_urls = set()  # ✅ Tránh duplicate
         
-        for page in range(1, max_pages + 1):
-            if page == 1:
-                page_url = start_url
-            else:
-                page_url = f"{start_url}-p{page}"
-            
-            logger.info(f"\n🔗 ===== TRANG {page}/{max_pages} =====")
-            recipes = self.get_recipe_urls_from_page(page_url)
-            
-            if not recipes:
-                logger.warning(f"⚠️ Trang {page} không có dữ liệu")
-                break
-            
-            all_urls.extend(recipes)
-            
-            if page < max_pages:
-                time.sleep(0.5)  # Giảm delay từ 1s xuống 0.5s
+        async with aiohttp.ClientSession() as session:
+            for url_info in list_url:
+                base_url = url_info["url"]
+                category = url_info["category"]
+                
+                logger.info(f"\n🔍 Đang crawl category: {category}")
+                logger.info(f"   URL: {base_url}")
+                
+                page = 1
+                category_urls = []
+                detected_max_page = max_pages  # Mặc định là tham số truyền vào
+                
+                while page <= detected_max_page:
+                    page_url = base_url if page == 1 else f"{base_url}-p{page}"
+                    
+                    recipes, has_next, found_max_page = await self.get_recipe_urls_from_page_async(
+                        page_url, category, session
+                    )
+                    
+                    # ✅ Cập nhật số trang tối đa từ pagination (chỉ lần đầu)
+                    if page == 1 and found_max_page > 1:
+                        detected_max_page = min(found_max_page, max_pages)  # Không vượt quá max_pages
+                        logger.info(f"   🎯 Phát hiện category có {detected_max_page} trang")
+                    
+                    # ✅ Kiểm tra duplicate
+                    new_recipes = []
+                    duplicate_count = 0
+                    for recipe in recipes:
+                        if recipe['url'] not in seen_urls:
+                            seen_urls.add(recipe['url'])
+                            new_recipes.append(recipe)
+                        else:
+                            duplicate_count += 1
+                    
+                    if not new_recipes and duplicate_count == 0:
+                        logger.info(f"   ⛔ Trang {page}: Không có recipe → Dừng crawl")
+                        break
+                    
+                    if new_recipes:
+                        category_urls.extend(new_recipes)
+                        logger.info(f"   ✅ Trang {page}/{detected_max_page}: +{len(new_recipes)} mới, {duplicate_count} trùng (tổng: {len(category_urls)})")
+                    else:
+                        logger.info(f"   ⚠️ Trang {page}/{detected_max_page}: Tất cả đã trùng ({duplicate_count} recipes)")
+                    
+                    # ✅ Dừng nếu không có nút "Next" hoặc đã đến trang cuối
+                    if not has_next or page >= detected_max_page:
+                        logger.info(f"   ⛔ Đã đến trang cuối ({page}/{detected_max_page})")
+                        break
+                    
+                    page += 1
+                    await asyncio.sleep(0.5)  # ✅ Delay nhẹ tránh spam
+                
+                all_urls.extend(category_urls)
+                logger.info(f"   📊 Tổng {category}: {len(category_urls)} recipes từ {page} trang\n")
         
-        logger.info(f"\n✅ Tổng lấy được {len(all_urls)} URL recipe")
+        logger.info(f"\n✅ Tổng lấy được {len(all_urls)} URL recipe từ {len(list_url)} categories")
         return all_urls
+
+    def get_all_recipe_urls(self, list_url: List[Dict], max_pages: int = 100) -> List[Dict]:
+        """Wrapper để chạy async code"""
+        return asyncio.run(self.get_all_recipe_urls_async(list_url, max_pages))
     
     async def crawl_recipe_async(self, recipe_info: Dict, detail_scraper: VnExpressRecipeScraper, semaphore: asyncio.Semaphore):
-        """ Crawl một recipe bất đồng bộ"""
-        async with semaphore:  # Giới hạn số request đồng thời
+        """Crawl một recipe bất đồng bộ"""
+        async with semaphore:
             recipe_url = recipe_info['url']
             recipe_title = recipe_info['title']
+            recipe_category = recipe_info.get('category', 'N/A')
             
             try:
                 # Chạy crawl trong thread riêng để tránh block
                 loop = asyncio.get_event_loop()
-                detail = await loop.run_in_executor(None, detail_scraper.scrape_recipe, recipe_url)
+                detail = await loop.run_in_executor(
+                    None, 
+                    detail_scraper.scrape_recipe, 
+                    recipe_url,
+                    recipe_category  # ✅ Truyền category vào scraper
+                )
                 
                 if not detail:
                     logger.error(f"[FAIL] {recipe_title}: Không lấy được dữ liệu")
                     self.failed_urls.append({
                         "title": recipe_title,
                         "url": recipe_url,
+                        "category": recipe_category,
                         "reason": "Không lấy được dữ liệu"
                     })
                     self.fail_count += 1
@@ -132,12 +222,13 @@ class VnExpressFullScraper:
                     self.failed_urls.append({
                         "title": recipe_title,
                         "url": recipe_url,
+                        "category": recipe_category,
                         "reason": "Định dạng không hợp lệ"
                     })
                     self.fail_count += 1
                     return
                 
-                logger.info(f"[OK] {recipe_title} ({len(detail['ingredients'])} ingredients, {len(detail['steps'])} steps)")
+                logger.info(f"[OK] {recipe_title} - {recipe_category} ({len(detail['ingredients'])} ingredients, {len(detail['steps'])} steps)")
                 
                 self.scraped_recipes.append(detail)
                 self.success_count += 1
@@ -147,17 +238,18 @@ class VnExpressFullScraper:
                 self.failed_urls.append({
                     "title": recipe_title,
                     "url": recipe_url,
+                    "category": recipe_category,
                     "reason": str(e)[:100]
                 })
                 self.fail_count += 1
     
     async def crawl_recipe_details_async(self, recipe_urls: List[Dict]):
-        """ Crawl tất cả recipe bất đồng bộ"""
-        logger.info(f"\n ===== BẮT ĐẦU CRAWL BẤT ĐỒNG BỘ {len(recipe_urls)} RECIPE =====\n")
-        logger.info(f" Số request đồng thời: {self.max_concurrent}\n")
+        """Crawl tất cả recipe bất đồng bộ"""
+        logger.info(f"\n🚀 ===== BẮT ĐẦU CRAWL BẤT ĐỒNG BỘ {len(recipe_urls)} RECIPE =====\n")
+        logger.info(f"⚡ Số request đồng thời: {self.max_concurrent}\n")
         
         detail_scraper = VnExpressRecipeScraper(use_selenium=False)
-        semaphore = asyncio.Semaphore(self.max_concurrent)  # Giới hạn đồng thời
+        semaphore = asyncio.Semaphore(self.max_concurrent)
         
         # Tạo danh sách task
         tasks = [
@@ -194,7 +286,7 @@ class VnExpressFullScraper:
     def export_recipes(self):
         """Export recipes thành 1 file JSON"""
         if not self.scraped_recipes:
-            logger.warning(" Không có recipe để export")
+            logger.warning("⚠️ Không có recipe để export")
             return
         
         output_file = self.output_dir / "all_recipes.json"
@@ -213,10 +305,14 @@ class VnExpressFullScraper:
             "total_failed": self.fail_count,
             "success_rate": f"{(self.success_count / (self.success_count + self.fail_count) * 100):.1f}%" if (self.success_count + self.fail_count) > 0 else "0%",
             
+            # Thống kê theo category
+            "categories_stats": self._get_category_stats(),
+            
             "recipes_list": [
                 {
                     "id": idx,
                     "title": r["title"],
+                    "categories": r.get("categories", ["N/A"]),
                     "ingredients_count": len(r.get("ingredients", [])),
                     "steps_count": len(r.get("steps", [])),
                     "difficulty": r.get("difficulty", "N/A"),
@@ -239,11 +335,30 @@ class VnExpressFullScraper:
         logger.info(f"⏰ Thời gian: {stats['timestamp']}")
         logger.info(f"✅ Thành công: {self.success_count}/{stats['total_found']} ({stats['success_rate']})")
         logger.info(f"❌ Thất bại: {self.fail_count}")
-        logger.info(f"📋 Chi tiết: xem file {output_file}")
+        
+        # In thống kê theo category
+        logger.info(f"\n📂 Thống kê theo category:")
+        for cat, count in stats['categories_stats'].items():
+            logger.info(f"   - {cat}: {count} recipes")
+        
+        logger.info(f"\n📋 Chi tiết: xem file {output_file}")
+    
+    def _get_category_stats(self) -> Dict[str, int]:
+        """Thống kê số lượng recipe theo category"""
+        category_count = {}
+        for recipe in self.scraped_recipes:
+            categories = recipe.get("categories", [])
+            for cat in categories:
+                category_count[cat] = category_count.get(cat, 0) + 1
+            
+            # Nếu không có category nào, đếm vào "N/A"
+            if not categories:
+                category_count["N/A"] = category_count.get("N/A", 0) + 1
+        
+        return category_count
 
 
 def main():
-    start_url = "https://vnexpress.net/doi-song/cooking/mon-ngon-hang-ngay-25532"
     list_url = [
         {"url": "https://vnexpress.net/doi-song/cooking/mon-tet-25905", "category": "Món tết"},
         {"url": "https://vnexpress.net/doi-song/cooking/mon-ngon-hang-ngay-25532", "category": "Món ngon hàng ngày"},
@@ -254,14 +369,18 @@ def main():
         {"url": "https://vnexpress.net/doi-song/cooking/thuc-don-cho-ngay-nang-nong-25535", "category": "Ngày nắng nóng"},
         {"url": "https://vnexpress.net/doi-song/cooking/thuc-don-hang-ngay-25531", "category": "Thực đơn hàng ngày"},
         {"url": "https://vnexpress.net/doi-song/cooking/qua-mon-an-vat-25570", "category": "Quà - Món ăn vặt"},
+        {"url": "https://vnexpress.net/doi-song/cooking/mon-chay-26342", "category": "Món chay"},
         {"url": "https://vnexpress.net/doi-song/cooking/bua-sang-don-gian-25574", "category": "Bữa sáng đơn giản"},
         {"url": "https://vnexpress.net/doi-song/cooking/cac-loai-banh-26379", "category": "Các loại bánh"},
     ]
     
-    # ===== BƯỚC 1: Lấy danh sách URL =====
-    logger.info("===== BƯỚC 1: LẤY DANH SÁCH URL =====\n")
-    scraper = VnExpressFullScraper(max_concurrent=5)  # 5 request cùng lúc
-    recipe_urls = scraper.get_all_recipe_urls(start_url, max_pages=31)
+    logger.info("===== BƯỚC 1: LẤY DANH SÁCH URL (TỰ ĐỘNG PHÁT HIỆN HẾT TRANG) =====\n")
+    scraper = VnExpressFullScraper(max_concurrent=10)
+    
+    start = time.time()
+    recipe_urls = scraper.get_all_recipe_urls(list_url, max_pages=50)
+    elapsed = time.time() - start
+    logger.info(f"⏱️ Thời gian lấy URL: {elapsed:.2f}s")
     
     if not recipe_urls:
         logger.error("❌ Không lấy được danh sách URL")
