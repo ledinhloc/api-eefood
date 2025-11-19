@@ -84,7 +84,7 @@ class VnExpressFullScraper:
         """Lấy URL recipe từ tất cả các trang"""
         all_urls = []
         
-        for page in range(1, max_pages + 1):
+        for page in range(25, 32):
             if page == 1:
                 page_url = start_url
             else:
