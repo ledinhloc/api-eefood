@@ -512,7 +512,7 @@ class VnExpressRecipeScraper:
 
 
 def main():
-    url = "https://vnexpress.net/ca-hoi-ngam-tuong-mon-gay-sot-mua-he-4325134.html"
+    url = "https://vnexpress.net/doi-song-cooking-banh-nuong-nhan-sua-dua-4508524.html"
 
     scraper = VnExpressRecipeScraper(use_selenium=False)
     

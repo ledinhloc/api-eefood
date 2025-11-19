@@ -156,6 +156,8 @@ if __name__ == "__main__":
     test_cases = [
         "Rượu trắng: nửa chén",
         "1/5 - 1/7 kg",
+        "Phần thịt:",
+        "a) Phần thịt và gia vị ướp nướng:"
     ]
     # "1,5 - 1,7 kg thịt vịt",
     # "1 quả dừa tươi để lấy nước dừa",

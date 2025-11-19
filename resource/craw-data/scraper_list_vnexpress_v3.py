@@ -244,6 +244,19 @@ class VnExpressFullScraper:
 
 def main():
     start_url = "https://vnexpress.net/doi-song/cooking/mon-ngon-hang-ngay-25532"
+    list_url = [
+        {"url": "https://vnexpress.net/doi-song/cooking/mon-tet-25905", "category": "Món tết"},
+        {"url": "https://vnexpress.net/doi-song/cooking/mon-ngon-hang-ngay-25532", "category": "Món ngon hàng ngày"},
+        {"url": "https://vnexpress.net/doi-song/cooking/mon-ngon-ngay-lanh-25839", "category": "Món ngon ngày lạnh"},
+        {"url": "https://vnexpress.net/doi-song/cooking/mon-ngon-cho-cuoi-tuan-25533", "category": "Món ngon cho cuối tuần"},
+        {"url": "https://vnexpress.net/doi-song/cooking/mon-ngon-theo-vung-mien-25534", "category": "Món ngon theo vùng miền"},
+        {"url": "https://vnexpress.net/doi-song/cooking/mon-trang-mieng-giai-khat-25536", "category": "Món tráng miệng, giải khát"},
+        {"url": "https://vnexpress.net/doi-song/cooking/thuc-don-cho-ngay-nang-nong-25535", "category": "Ngày nắng nóng"},
+        {"url": "https://vnexpress.net/doi-song/cooking/thuc-don-hang-ngay-25531", "category": "Thực đơn hàng ngày"},
+        {"url": "https://vnexpress.net/doi-song/cooking/qua-mon-an-vat-25570", "category": "Quà - Món ăn vặt"},
+        {"url": "https://vnexpress.net/doi-song/cooking/bua-sang-don-gian-25574", "category": "Bữa sáng đơn giản"},
+        {"url": "https://vnexpress.net/doi-song/cooking/cac-loai-banh-26379", "category": "Các loại bánh"},
+    ]
     
     # ===== BƯỚC 1: Lấy danh sách URL =====
     logger.info("===== BƯỚC 1: LẤY DANH SÁCH URL =====\n")
