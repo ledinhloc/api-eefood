@@ -14,6 +14,7 @@ import logging
 import time
 import requests
 from enum import Enum
+from typing import List, Dict
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -61,11 +62,13 @@ class VnExpressRecipeScraper:
             self.driver.set_page_load_timeout(5)
             self.driver.set_script_timeout(5)
 
-    def scrape_recipe(self, url: str, category: str = "N/A"):
+    def scrape_recipe(self, url: str, categories: List[str] = None):
         """
         Scrape với tùy chọn Selenium hoặc Requests
         ✅ Thêm tham số category
         """
+        if categories is None:
+            categories = []
         if self.use_selenium:
             soup = self._load_with_selenium(url)
         else:
@@ -74,7 +77,7 @@ class VnExpressRecipeScraper:
         if not soup:
             return None
 
-        recipe = self._parse_recipe(soup, category)  # ✅ Truyền category vào parse
+        recipe = self._parse_recipe(soup, categories)  # ✅ Truyền category vào parse
         return recipe
 
     def _load_with_requests(self, url: str):
@@ -110,7 +113,7 @@ class VnExpressRecipeScraper:
             logger.error(f"❌ Selenium failed: {e}")
             return None
 
-    def _parse_recipe(self, soup, category: str = "N/A"):
+    def _parse_recipe(self, soup, categories: List[str] = None):
         """
         Parse recipe từ soup
         ✅ Thêm tham số category
@@ -121,13 +124,16 @@ class VnExpressRecipeScraper:
             "region": "Việt Nam",
             "imageUrl": "",
             "videoUrl": "",
-            "categories": [category] if category != "N/A" else [],  # ✅ Thêm vào categories
+            "categories": categories, 
             "prepTime": 0,
             "cookTime": 0,
             "difficulty": "MEDIUM",
             "ingredients": [],
             "steps": []
         }
+
+        if categories is None:
+            categories = []
 
         # ===== TITLE =====
         title_elem = soup.find("h1", class_="title-detail")
