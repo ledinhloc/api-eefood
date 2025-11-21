@@ -24,7 +24,7 @@ public class RecipeIndexer {
   /**
    * Khi service khởi động, index toàn bộ dữ liệu recipe hiện có vào Elasticsearch
    */
-  @PostConstruct
+//  @PostConstruct
   public void init() {
     try {
       indexAllRecipes();

@@ -29,7 +29,7 @@ public class RecipeIngredient extends BaseEntity {
   private Ingredient ingredient;
 
   @Min(value = 0)
-  private Integer quantity;
+  private Double quantity;
 
   @Column(nullable = false)
   private String unit;
