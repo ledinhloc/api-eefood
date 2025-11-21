@@ -28,7 +28,7 @@ public class ShoppingIngredient extends BaseEntity {
   private Ingredient ingredient;
 
   @Column(nullable = false)
-  private Integer quantity;
+  private Double quantity;
 
   @Column(nullable = false )
   private String unit;

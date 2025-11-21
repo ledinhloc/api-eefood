@@ -2,10 +2,7 @@ package com.eefood.recipeservice.controller;
 
 import com.eefood.recipeservice.dto.request.RecipeRequest;
 import com.eefood.recipeservice.dto.request.RequestUrl;
-import com.eefood.recipeservice.dto.response.RecipeDetailResponse;
-import com.eefood.recipeservice.dto.response.RecipeResponse;
-import com.eefood.recipeservice.dto.response.RecipeSummaryResponse;
-import com.eefood.recipeservice.dto.response.ResponseData;
+import com.eefood.recipeservice.dto.response.*;
 import com.eefood.recipeservice.enums.Difficulty;
 import com.eefood.recipeservice.enums.ErrorMessage;
 import com.eefood.recipeservice.enums.SuccessMessage;
@@ -39,6 +36,17 @@ public class RecipeController {
 
   private final RecipeService recipeService;
   private final RecipeSearchService recipeSearchService;
+
+  @PostMapping("/import")
+  public ResponseData<List<RecipeResponse>> importRecipes(
+    @RequestBody List<RecipeExtractDTO> listDto) {
+
+    List<RecipeResponse> responses = listDto.stream()
+      .map(recipeService::saveExtractResultWithPost)  // gọi lại hàm đã có
+      .toList();
+
+    return new ResponseData<>(200, "Import success", responses);
+  }
 
   @PostMapping("/extract")
   public ResponseData<RecipeResponse> extract(@RequestBody RequestUrl requestUrl) {
