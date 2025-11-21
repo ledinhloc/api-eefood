@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -13,7 +15,7 @@ public class StepResponse {
   private Long id;
   private Integer stepNumber;
   private String instruction;
-  private String imageUrl;
-  private String videoUrl;
+  private List<String> imageUrls;
+  private List<String> videoUrls;
   private Integer stepTime;
 }
