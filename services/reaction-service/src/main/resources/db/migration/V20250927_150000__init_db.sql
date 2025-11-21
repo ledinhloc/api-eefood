@@ -69,16 +69,16 @@ CREATE TABLE post
 
     -- ====== thông tin recipe ======
     recipe_id     BIGINT,
-    title         VARCHAR(255),
-    description   VARCHAR(500),
-    region        VARCHAR(255),
-    image_url     VARCHAR(500),
+    title         VARCHAR,
+    description   VARCHAR,
+    region        VARCHAR,
+    image_url     VARCHAR,
     prep_time     INTEGER,
     cook_time     INTEGER,
     difficulty    VARCHAR(7),
 
     -- ====== thông tin post ======
-    content       TEXT,
+    content       VARCHAR,
 
     CONSTRAINT pk_post PRIMARY KEY (id)
 );
@@ -87,14 +87,14 @@ CREATE TABLE post
 CREATE TABLE post_recipe_categories
 (
     post_id  BIGINT NOT NULL,
-    category VARCHAR(255),
+    category VARCHAR,
     CONSTRAINT fk_post_recipe_categories_on_post FOREIGN KEY (post_id) REFERENCES post (id) ON DELETE CASCADE
 );
 
 CREATE TABLE post_recipe_ingredient_keywords
 (
     post_id           BIGINT NOT NULL,
-    ingredient_keyword VARCHAR(255),
+    ingredient_keyword VARCHAR,
     CONSTRAINT fk_post_recipe_ingredient_keywords_on_post FOREIGN KEY (post_id) REFERENCES post (id) ON DELETE CASCADE
 );
 

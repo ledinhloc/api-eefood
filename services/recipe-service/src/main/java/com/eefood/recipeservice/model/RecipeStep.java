@@ -8,6 +8,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
+import java.util.List;
+
 @Entity
 @Table(name = "recipe_steps")
 @Getter
@@ -30,9 +32,21 @@ public class RecipeStep extends BaseEntity {
 
   private String instruction;
 
-  private String imageUrl;
+  @ElementCollection
+  @CollectionTable(
+    name = "recipe_step_images",
+    joinColumns = @JoinColumn(name = "recipe_step_id")
+  )
+  @Column(name = "image_url")
+  private List<String> imageUrls;
 
-  private String videoUrl;
+  @ElementCollection
+  @CollectionTable(
+    name = "recipe_step_videos",
+    joinColumns = @JoinColumn(name = "recipe_step_id")
+  )
+  @Column(name = "video_url")
+  private List<String> videoUrls;
 
   private Integer stepTime;
 }

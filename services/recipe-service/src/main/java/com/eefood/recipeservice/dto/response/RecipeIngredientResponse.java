@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @Builder
 public class RecipeIngredientResponse {
   private Long id;           // id của RecipeIngredient
-  private Integer quantity;
+  private Double quantity;
   private String unit;
 
   private IngredientResponse ingredient; // chứa thông tin nguyên liệu
