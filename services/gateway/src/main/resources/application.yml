@@ -95,6 +95,10 @@ spring:
               uri: lb://REACTION-SERVICE
               predicates:
                 - Path=/api/v1/story/**
+            - id: livestreams-reaction-service
+              uri: lb://REACTION-SERVICE
+              predicates:
+                - Path=/api/v1/livestreams/**
     bus:
       enabled: true
     stream:
