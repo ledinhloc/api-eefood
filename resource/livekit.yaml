@@ -1,0 +1,16 @@
+api_key: devkey
+api_secret: secret
+rtc:
+  port_range_start: 50000
+  port_range_end: 50050
+
+turn:
+  enabled: true
+  udp_port: 3478
+
+webhook:
+  api_key: devkey
+  api_secret: secret
+
+room:
+  auto_subscribe: true
