@@ -1,23 +1,21 @@
 package com.eefood.reactionservice.dto.response;
 
+import com.eefood.reactionservice.enums.StoryMode;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
 @Builder
-public class StoryResponse {
+public class StorySettingResponse {
     private Long id;
     private Long userId;
-    private String type;
-    private String contentUrl;
-    private LocalDateTime createdAt;
-    private LocalDateTime expiredAt;
-
-    private boolean isViewed;
+    private StoryMode mode;
+    private List<Long> allowedUserIds;
+    private List<Long> blockedUserIds;
 }

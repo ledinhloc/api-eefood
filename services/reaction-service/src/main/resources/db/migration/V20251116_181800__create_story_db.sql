@@ -30,11 +30,14 @@ CREATE TABLE story_comment (
     is_deleted       BOOLEAN                                 NOT NULL DEFAULT FALSE,
     story_id         BIGINT                                  NOT NULL,
     user_id          BIGINT                                  NOT NULL,
+    parent_id        BIGINT                                  ,
     message          TEXT                                    NOT NULL,
 
     CONSTRAINT pk_story_comment PRIMARY KEY (id),
     CONSTRAINT fk_story_comment_on_story
-       FOREIGN KEY (story_id) REFERENCES story(id) ON DELETE CASCADE
+       FOREIGN KEY (story_id) REFERENCES story(id) ON DELETE CASCADE,
+    CONSTRAINT fk_story_comment_parent
+        FOREIGN KEY (parent_id) REFERENCES story_comment(id) ON DELETE CASCADE
 );
 
 CREATE TABLE story_reaction (
@@ -95,12 +98,26 @@ VALUES
     (3, 5, NOW());
 
 INSERT INTO story_comment (created_at, updated_at, created_by, updated_by, is_deleted,
-                           story_id, user_id, message)
+                           story_id, user_id, message, parent_id)
 VALUES
-    (NOW(), NOW(), 'system', 'system', false, 1, 2, 'Story đẹp quá!'),
-    (NOW(), NOW(), 'system', 'system', false, 1, 3, 'Hình chất lượng ghê'),
-    (NOW(), NOW(), 'system', 'system', false, 2, 1, 'Video xịn thật'),
-    (NOW(), NOW(), 'system', 'system', false, 3, 4, 'View đẹp quá!');
+    (NOW(), NOW(), 'system', 'system', false, 1, 2, 'Story đẹp quá!',NULL),
+    (NOW(), NOW(), 'system', 'system', false, 1, 3, 'Hình chất lượng ghê',NULL),
+    (NOW(), NOW(), 'system', 'system', false, 2, 1, 'Video xịn thật',NULL),
+    (NOW(), NOW(), 'system', 'system', false, 3, 4, 'View đẹp quá!',NULL);
+
+-- Thêm cho comment reply cấp 2
+INSERT INTO story_comment (
+    created_at, updated_at, created_by, updated_by, is_deleted,
+    story_id, user_id, message, parent_id
+) VALUES
+      (NOW(), NOW(), 'system', 'system', false, 1, 20, 'Đồng ý, đẹp thật!', 1),
+      (NOW(), NOW(), 'system', 'system', false, 1, 21, 'Ảnh này ở đâu thế?', 1),
+
+      (NOW(), NOW(), 'system', 'system', false, 1, 22, 'Chuẩn, ảnh chất lượng!', 2),
+
+      (NOW(), NOW(), 'system', 'system', false, 2, 23, 'Máy gì quay mà nét vậy?', 3),
+
+      (NOW(), NOW(), 'system', 'system', false, 3, 24, 'View chill quá!', 4);
 
 INSERT INTO story_reaction (story_id, user_id, reaction_type, created_at)
 VALUES

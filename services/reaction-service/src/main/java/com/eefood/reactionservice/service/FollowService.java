@@ -5,7 +5,9 @@ import com.eefood.reactionservice.dto.response.ResponseData;
 import com.eefood.reactionservice.dto.response.UserInfo;
 import com.eefood.reactionservice.mapper.FollowMapper;
 import com.eefood.reactionservice.model.Follow;
+import com.eefood.reactionservice.model.StorySetting;
 import com.eefood.reactionservice.repository.FollowRepository;
+import com.eefood.reactionservice.repository.StorySettingRepository;
 import com.eefood.reactionservice.repository.httpclient.IamClient;
 import com.eefood.reactionservice.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -30,30 +33,55 @@ public class FollowService {
     private final SecurityUtil securityUtil;
     private final IamClient iamClient;
     private final FollowMapper followMapper;
+    private final StorySettingRepository storySettingRepository;
 
-  public List<Long> getNewFollowings(Long userId) {
+    private void addToAllowedList(Long followerId, Long ownerId) {
+        StorySetting setting = storySettingRepository.findByUserId(ownerId).orElse(null);
+        if (setting == null) return;
+
+        if (setting.getAllowedUserIds() == null) {
+            setting.setAllowedUserIds(new ArrayList<>());
+        }
+
+        if (!setting.getAllowedUserIds().contains(followerId)) {
+            setting.getAllowedUserIds().add(followerId);
+            storySettingRepository.save(setting);
+        }
+    }
+
+    private void removeFromAllowedList(Long followerId, Long ownerId) {
+        StorySetting setting = storySettingRepository.findByUserId(ownerId).orElse(null);
+        if (setting == null || setting.getAllowedUserIds() == null) return;
+
+        if (setting.getAllowedUserIds().contains(followerId)) {
+            setting.getAllowedUserIds().remove(followerId);
+            storySettingRepository.save(setting);
+        }
+    }
+
+    public List<Long> getNewFollowings(Long userId) {
     List<Follow> follows = followRepository.findByFollowerId(userId);
 
     return follows.stream()
       .filter(f -> f.getCreatedAt().isAfter(LocalDateTime.now().minusDays(3)))
       .map(Follow::getFollowingId)
       .toList();
-  }
+    }
 
-  public List<Long> getOldFollowings(Long userId) {
+    public List<Long> getOldFollowings(Long userId) {
     List<Follow> follows = followRepository.findByFollowerId(userId);
 
     return follows.stream()
       .filter(f -> f.getCreatedAt().isBefore(LocalDateTime.now().minusDays(3)))
       .map(Follow::getFollowingId)
       .toList();
-  }
+    }
 
-  public List<Long> getFollowingIds(Long userId) {
+    public List<Long> getFollowingIds(Long userId) {
     return followRepository.findByFollowerId(userId).stream()
       .map(Follow::getFollowingId)
       .toList();
-  }
+    }
 
     @Transactional
     public boolean toggleFollow(Long followingId) {
@@ -66,6 +94,8 @@ public class FollowService {
         var existing = followRepository.findByFollowerIdAndFollowingId(currentUserId, followingId);
 
         if(existing.isPresent()) {
+            // Khi unfollow thì xóa trong allowedUserIds
+            removeFromAllowedList(currentUserId, followingId);
             followRepository.delete(existing.get());
             return false;
         }
@@ -76,6 +106,8 @@ public class FollowService {
                     .createdAt(LocalDateTime.now())
                     .build();
             followRepository.save(follow);
+            // Khi follow thì thêm vào allowedUserIds
+            addToAllowedList(currentUserId, followingId);
             return true;
         }
     }
@@ -92,6 +124,7 @@ public class FollowService {
 
         if(existing.isPresent()) {
             followRepository.delete(existing.get());
+            removeFromAllowedList(currentUserId, followingId);
             return true;
         }
         return false;

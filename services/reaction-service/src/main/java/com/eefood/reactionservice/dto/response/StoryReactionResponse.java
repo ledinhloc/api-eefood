@@ -1,5 +1,6 @@
 package com.eefood.reactionservice.dto.response;
 
+import com.eefood.reactionservice.enums.ReactionType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -8,16 +9,15 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Data
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
 @Builder
-public class StoryResponse {
+public class StoryReactionResponse {
     private Long id;
+    private Long storyId;
     private Long userId;
-    private String type;
-    private String contentUrl;
+    private String username;
+    private String avatarUrl;
+    private ReactionType reactionType;
     private LocalDateTime createdAt;
-    private LocalDateTime expiredAt;
-
-    private boolean isViewed;
 }
