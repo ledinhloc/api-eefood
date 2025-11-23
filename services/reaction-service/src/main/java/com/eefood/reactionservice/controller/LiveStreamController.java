@@ -28,8 +28,7 @@ public class LiveStreamController {
   @PostMapping("/{liveStreamId}/end")
   public ResponseData<LiveStreamResponse> endLiveStream(@PathVariable Long liveStreamId) {
     Long userId = securityUtil.getCurrentUserId();
-    liveStreamService.endLiveStream(liveStreamId, userId);
-    return new ResponseData<>(HttpStatus.OK.value(), "success");
+    return new ResponseData<>(HttpStatus.OK.value(), "success", liveStreamService.endLiveStream(userId, liveStreamId));
   }
 
   @GetMapping("/{liveStreamId}")

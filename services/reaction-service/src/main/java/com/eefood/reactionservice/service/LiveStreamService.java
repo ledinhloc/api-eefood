@@ -66,7 +66,7 @@ public class LiveStreamService {
   }
 
   @Transactional
-  public void endLiveStream(Long liveStreamId, Long userId) {
+  public LiveStreamResponse endLiveStream(Long liveStreamId, Long userId) {
     LiveStream liveStream = findLiveStreamById(liveStreamId);
 
     if (!liveStream.getUserId().equals(userId)) {
@@ -86,6 +86,7 @@ public class LiveStreamService {
     }
 
     log.info("Live stream ended: {}", liveStreamId);
+    return liveStreamMapper.toResponse(liveStream);
   }
 
   @Transactional(readOnly = true)
