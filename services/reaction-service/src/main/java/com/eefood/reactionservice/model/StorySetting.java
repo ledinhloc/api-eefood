@@ -26,6 +26,7 @@ public class StorySetting {
     private Long userId;
 
     @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
     private StoryMode mode;
 
     @ElementCollection
