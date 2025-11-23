@@ -1,19 +1,43 @@
 services:
   livekit:
-    image: livekit/livekit-server:v1.9.4
+    image: livekit/livekit-server:latest
     container_name: livekit
-    # Không cần file config, dùng environment variables
     environment:
+      # Port
+      LIVEKIT_PORT: "7880"
+
+      # RTC Configuration - CRITICAL cho emulator
+      LIVEKIT_RTC_NODE_IP: "10.0.2.2"
+      LIVEKIT_RTC_PORT_RANGE_START: "50000"
+      LIVEKIT_RTC_PORT_RANGE_END: "50100"
+      LIVEKIT_RTC_UDP_PORT: "7882"
+      LIVEKIT_RTC_TCP_PORT: "7881"
+
+      # DISABLE external IP detection
+      LIVEKIT_RTC_USE_EXTERNAL_IP: "false"
+      LIVEKIT_RTC_USE_ICE_LITE: "false"
+
+      # Bind configuration
+      LIVEKIT_BIND_ADDRESSES: "0.0.0.0"
+
+      # API keys
       LIVEKIT_KEYS: "devkey: secret"
-      LIVEKIT_STUN_SERVERS: "stun:stun.l.google.com:19302"
+
+      # Logging (đổi sang debug để troubleshoot)
+      #      LIVEKIT_LOG_LEVEL: "debug"
+
+      # Room settings
+      LIVEKIT_ROOM_AUTO_CREATE: "true"
+      LIVEKIT_ROOM_EMPTY_TIMEOUT: "300"
+      LIVEKIT_ROOM_MAX_PARTICIPANTS: "100"
     ports:
       - "7880:7880"
       - "7881:7881"
-      - "3478:3478/udp"
-      - "50000-50050:50000-50050/udp"
+      - "7882:7882/udp"
+      - "50000-50100:50000-50100/udp"
+    restart: unless-stopped
     networks:
       - microservices-net
-    restart: unless-stopped
 
 
   postgresql:
