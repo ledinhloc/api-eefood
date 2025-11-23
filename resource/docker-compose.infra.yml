@@ -1,4 +1,20 @@
 services:
+  livekit:
+    image: livekit/livekit-server:v1.9.4
+    container_name: livekit
+    # Không cần file config, dùng environment variables
+    environment:
+      LIVEKIT_KEYS: "devkey: secret"
+    ports:
+      - "7880:7880"
+      - "7881:7881"
+      - "3478:3478/udp"
+      - "50000-50050:50000-50050/udp"
+    networks:
+      - microservices-net
+    restart: unless-stopped
+
+
   postgresql:
     container_name: pg_sql
     image: postgres
