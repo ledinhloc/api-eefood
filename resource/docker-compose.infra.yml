@@ -5,6 +5,7 @@ services:
     # Không cần file config, dùng environment variables
     environment:
       LIVEKIT_KEYS: "devkey: secret"
+      LIVEKIT_STUN_SERVERS: "stun:stun.l.google.com:19302"
     ports:
       - "7880:7880"
       - "7881:7881"
