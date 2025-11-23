@@ -8,16 +8,19 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Data
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
 @Builder
-public class StoryResponse {
+public class StoryCommentResponse {
     private Long id;
+    private Long storyId;
     private Long userId;
-    private String type;
-    private String contentUrl;
+    private String message;
     private LocalDateTime createdAt;
-    private LocalDateTime expiredAt;
 
-    private boolean isViewed;
+    private String username;
+    private String email;
+    private String avatarUrl;
+
+    private Long parentId;
 }
