@@ -27,7 +27,6 @@ public class PostIndexer implements CommandLineRunner{
   @Override
   @Transactional(readOnly = true)
   public void run(String... args) throws Exception {
-    clearIndex();
     indexAllPosts();
   }
 

@@ -9,4 +9,5 @@ import java.util.Optional;
 @Repository
 public interface StorySettingRepository extends JpaRepository<StorySetting, Long> {
     Optional<StorySetting> findByUserId(Long userId);
+    void deleteByUserId(Long userId);
 }
