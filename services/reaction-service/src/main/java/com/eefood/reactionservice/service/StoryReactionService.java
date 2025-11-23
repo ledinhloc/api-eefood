@@ -33,6 +33,7 @@ public class StoryReactionService {
     private final NotificationUtils notificationUtils;
     private final StoryReactionMapper storyReactionMapper;
     private final SecurityUtil securityUtil;
+    private final StorySettingService storySettingService;
 
     @Transactional
     public StoryReactionResponse reactToStory(StoryReactionRequest request) {
@@ -41,6 +42,10 @@ public class StoryReactionService {
 
         Story story = storyRepository.findByIdAndIsDeletedFalse(request.getStoryId())
                 .orElseThrow(() -> new RuntimeException("Story not found"));
+
+        if (!storySettingService.canViewStory(userId, story.getUserId())) {
+            throw new RuntimeException("Not allowed to view story");
+        }
 
         StoryReaction existing = storyReactionRepository
                 .findByStoryIdAndUserId(story.getId(), userId)
