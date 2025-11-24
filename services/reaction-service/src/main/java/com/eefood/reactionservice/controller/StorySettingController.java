@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1/story/settings")
 @RequiredArgsConstructor
 public class StorySettingController {
-    private StorySettingService storySettingService;
+    private final StorySettingService storySettingService;
 
     @GetMapping("/{userId}")
     public ResponseData<StorySettingResponse> getSetting(@PathVariable Long userId) {
