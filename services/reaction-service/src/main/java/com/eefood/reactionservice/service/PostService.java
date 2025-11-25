@@ -166,10 +166,11 @@ public class PostService {
 
     //lay thong tin user
     Long currentUserId = securityUtil.getCurrentUserId();
+    log.info(currentUserId.toString());
     ResponseData<UserResponse> userResponse = iamClient.getUserById(currentUserId);
     UserResponse user = userResponse.getData();
     //debug
-//    log.info(user.toString());
+    //log.info(user.toString());
     List<Long> newFollowings = followService.getNewFollowings(userId);
     List<Long> oldFollowings = followService.getOldFollowings(userId);
 
