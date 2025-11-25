@@ -2,15 +2,13 @@ package com.eefood.reactionservice.controller;
 
 import com.eefood.reactionservice.dto.response.LiveStreamResponse;
 import com.eefood.reactionservice.dto.response.ResponseData;
-import com.eefood.reactionservice.model.livestream.LiveStream;
-import com.eefood.reactionservice.service.LiveStreamService;
+import com.eefood.reactionservice.service.livestream.LiveStreamService;
 import com.eefood.reactionservice.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("/api/v1/livestreams")
@@ -19,16 +17,36 @@ public class LiveStreamController {
   private final LiveStreamService liveStreamService;
   private final SecurityUtil securityUtil;
 
-  @PostMapping("/start")
-  public ResponseData<LiveStreamResponse> startLiveStream(@RequestParam String description) {
+  @GetMapping("/check")
+  public ResponseData<LiveStreamResponse> checkUserStream(@RequestParam Long userId) {
+    var response = liveStreamService.checkUserStream(userId);
+    return new ResponseData<>(HttpStatus.OK.value(), "success", response);
+  }
+
+  @PostMapping("/schedule")
+  public ResponseData<LiveStreamResponse> scheduleLive(
+    @RequestParam String description,
+    @RequestParam String scheduledAt
+  ) {
     Long userId = securityUtil.getCurrentUserId();
-    return new ResponseData<>(HttpStatus.OK.value(), "success", liveStreamService.startLiveStream(userId, description));
+    LocalDateTime time = LocalDateTime.parse(scheduledAt);
+    var res = liveStreamService.scheduleLive(userId, description, time);
+    return new ResponseData<>(HttpStatus.OK.value(), "success", res);
+  }
+
+  @PostMapping("/start")
+  public ResponseData<LiveStreamResponse> startLiveStream(
+    @RequestParam(required = false) Long liveStreamId,
+    @RequestParam(required = false) String description
+  ) {
+    Long userId = securityUtil.getCurrentUserId();
+    return new ResponseData<>(HttpStatus.OK.value(), "success", liveStreamService.startLiveStream(userId, liveStreamId, description));
   }
 
   @PostMapping("/{liveStreamId}/end")
   public ResponseData<LiveStreamResponse> endLiveStream(@PathVariable Long liveStreamId) {
     Long userId = securityUtil.getCurrentUserId();
-    return new ResponseData<>(HttpStatus.OK.value(), "success", liveStreamService.endLiveStream(userId, liveStreamId));
+    return new ResponseData<>(HttpStatus.OK.value(), "success", liveStreamService.endLiveStream(liveStreamId, userId));
   }
 
   @GetMapping("/{liveStreamId}")

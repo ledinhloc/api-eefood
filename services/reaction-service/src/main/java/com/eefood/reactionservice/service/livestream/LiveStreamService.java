@@ -1,8 +1,10 @@
-package com.eefood.reactionservice.service;
+package com.eefood.reactionservice.service.livestream;
 
 import com.eefood.reactionservice.config.LiveKitConfig;
 import com.eefood.reactionservice.dto.response.LiveStreamResponse;
+import com.eefood.reactionservice.enums.ErrorMessage;
 import com.eefood.reactionservice.enums.LiveStreamStatus;
+import com.eefood.reactionservice.exception.ExceptionUtil;
 import com.eefood.reactionservice.mapper.LiveStreamMapper;
 import com.eefood.reactionservice.model.livestream.*;
 import com.eefood.reactionservice.repository.livestream.LiveStreamRepository;
@@ -16,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -26,39 +29,90 @@ public class LiveStreamService {
   private final RoomServiceClient roomServiceClient;
   private final LiveKitConfig liveKitConfig;
 
+  @Transactional(readOnly = true)
+  public LiveStreamResponse checkUserStream(Long userId) {
+    LiveStream live = liveStreamRepository
+      .findTopByUserIdAndStatusInOrderByIdDesc(
+        userId,
+        List.of(LiveStreamStatus.SCHEDULED, LiveStreamStatus.LIVE)
+      );
+
+    if (live == null) {
+      return null;
+    }
+
+    LiveStreamResponse res = liveStreamMapper.toResponse(live);
+    return res;
+  }
+
+  public LiveStreamResponse scheduleLive(Long userId, String description, LocalDateTime time) {
+    LiveStream liveStream = new LiveStream();
+    liveStream.setUserId(userId);
+    liveStream.setTitle(description);
+    liveStream.setScheduledAt(time);
+    liveStream.setStatus(LiveStreamStatus.SCHEDULED);
+    liveStreamRepository.save(liveStream);
+    return liveStreamMapper.toResponse(liveStream);
+  }
+
   @Transactional
-  public LiveStreamResponse startLiveStream(Long userId, String requestTitle) {
+  public LiveStreamResponse startLiveStream(Long userId, Long liveStreamId, String requestTitle) {
     try {
+      LiveStream live;
+      //Nếu có id lịch livestream
+      if(liveStreamId != null) {
+        live = liveStreamRepository.findById(liveStreamId).orElseThrow(() -> new RuntimeException("Live Stream Not Found"));
+        if(!live.getUserId().equals(userId)) {
+          throw ExceptionUtil.forbidden(ErrorMessage.ACCESS_DENIED);
+        }
+
+        // Nếu đang LIVE → trả về luôn
+        if (live.getStatus() == LiveStreamStatus.LIVE) {
+          return buildLiveResponse(live, userId);
+        }
+        // Update lịch thành LIVE
+        live.setStatus(LiveStreamStatus.LIVE);
+        live.setStartedAt(LocalDateTime.now());
+        if (requestTitle != null) live.setTitle(requestTitle);
+      }
+      else {
+        //Không có id → check user đang live chưa
+        live = liveStreamRepository.findTopByUserIdAndStatusInOrderByIdDesc(
+          userId,
+          List.of(LiveStreamStatus.LIVE)
+        );
+
+        if (live != null) {
+          return buildLiveResponse(live, userId);
+        }
+
+        // Tạo live mới
+        live = new LiveStream();
+        live.setUserId(userId);
+        live.setTitle(requestTitle);
+        live.setStatus(LiveStreamStatus.LIVE);
+        live.setStartedAt(LocalDateTime.now());
+      }
       String roomName = "live_" + userId + "_" + System.currentTimeMillis();
 
       var roomCall = roomServiceClient.createRoom(roomName);
       var responseRoom = roomCall.execute();
+      if (!responseRoom.isSuccessful()) {
+        throw new RuntimeException("Failed to create LiveKit room: HTTP " + responseRoom.code());
+      }
       var room = responseRoom.body();
 
       if (room == null) {
         throw new RuntimeException("Failed to create LiveKit room");
       }
 
-      // Tạo LiveStream
-      LiveStream liveStream = new LiveStream();
-      liveStream.setTitle(requestTitle);
-      liveStream.setUserId(userId);
-      liveStream.setRoomName(roomName);
-      liveStream.setStatus(LiveStreamStatus.LIVE);
-      liveStream.setStartedAt(LocalDateTime.now());
-      liveStream.setLivekitRoomSid(room.getSid());
+      live.setRoomName(roomName);
+      live.setLivekitRoomSid(room.getSid());
 
-      liveStream = liveStreamRepository.save(liveStream);
+      liveStreamRepository.save(live);
+      log.info("Live stream started: {}", live.getId());
 
-      // Generate token cho streamer
-      String token = generateToken(roomName, userId.toString(), true);
-
-      LiveStreamResponse response = liveStreamMapper.toResponse(liveStream);
-      response.setLivekitToken(token);
-
-      log.info("Live stream started: {}", liveStream.getId());
-      return response;
-
+      return buildLiveResponse(live, userId);
     } catch (Exception e) {
       log.error("Error starting live stream", e);
       throw new RuntimeException("Cannot start live stream: " + e.getMessage());
@@ -69,6 +123,7 @@ public class LiveStreamService {
   public LiveStreamResponse endLiveStream(Long liveStreamId, Long userId) {
     LiveStream liveStream = findLiveStreamById(liveStreamId);
 
+//    System.out.printf("Live stream ended: %s %s\n", liveStream.getUserId(), userId);
     if (!liveStream.getUserId().equals(userId)) {
       throw new RuntimeException("Only stream owner can end the stream");
     }
@@ -98,6 +153,13 @@ public class LiveStreamService {
   public LiveStream findLiveStreamById(Long liveStreamId) {
     return liveStreamRepository.findById(liveStreamId)
       .orElseThrow(() -> new RuntimeException("Live stream not found"));
+  }
+
+  private LiveStreamResponse buildLiveResponse(LiveStream live, Long userId) {
+    String token = generateStreamerToken(live.getRoomName(), userId);
+    LiveStreamResponse res = liveStreamMapper.toResponse(live);
+    res.setLivekitToken(token);
+    return res;
   }
 
   /**
