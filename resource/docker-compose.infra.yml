@@ -7,6 +7,7 @@ services:
       LIVEKIT_PORT: "7880"
 
       # RTC Configuration - CRITICAL cho emulator
+      #10.0.2.2
       LIVEKIT_RTC_NODE_IP: "10.0.2.2"
       LIVEKIT_RTC_PORT_RANGE_START: "50000"
       LIVEKIT_RTC_PORT_RANGE_END: "50100"

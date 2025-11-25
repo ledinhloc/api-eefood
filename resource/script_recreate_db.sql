@@ -3,14 +3,14 @@
 -- recipe_service, notification_service, reaction_service, iam_service
 SELECT pg_terminate_backend(pg_stat_activity.pid)
 FROM pg_stat_activity
-WHERE pg_stat_activity.datname = 'iam_service'
+WHERE pg_stat_activity.datname = 'reaction_service'
   AND pid <> pg_backend_pid();
 
 -- Xóa database nếu tồn tại
-DROP DATABASE IF EXISTS iam_service;
+DROP DATABASE IF EXISTS reaction_service;
 
 -- Tạo database mới với encoding UTF8
-CREATE DATABASE iam_service
+CREATE DATABASE reaction_service
     WITH
     OWNER = postgres
     ENCODING = 'UTF8'
