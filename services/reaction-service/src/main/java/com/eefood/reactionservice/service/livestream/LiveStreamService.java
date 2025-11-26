@@ -121,7 +121,8 @@ public class LiveStreamService {
 
   @Transactional
   public LiveStreamResponse endLiveStream(Long liveStreamId, Long userId) {
-    LiveStream liveStream = findLiveStreamById(liveStreamId);
+    LiveStream liveStream = liveStreamRepository.findById(liveStreamId)
+      .orElseThrow(() -> new RuntimeException("Live stream not found"));;
 
 //    System.out.printf("Live stream ended: %s %s\n", liveStream.getUserId(), userId);
     if (!liveStream.getUserId().equals(userId)) {
@@ -145,14 +146,14 @@ public class LiveStreamService {
   }
 
   @Transactional(readOnly = true)
-  public LiveStreamResponse getLiveStream(Long liveStreamId) {
-    LiveStream liveStream = findLiveStreamById(liveStreamId);
-    return liveStreamMapper.toResponse(liveStream);
-  }
+  public LiveStreamResponse getLiveStream(Long liveStreamId, Long userId) {
+    LiveStream liveStream = liveStreamRepository.findById(liveStreamId)
+      .orElseThrow(() -> new RuntimeException("Live stream not found"));;
 
-  public LiveStream findLiveStreamById(Long liveStreamId) {
-    return liveStreamRepository.findById(liveStreamId)
-      .orElseThrow(() -> new RuntimeException("Live stream not found"));
+    String viewerToken = generateViewerToken(liveStream.getRoomName(),userId);
+    LiveStreamResponse res = liveStreamMapper.toResponse(liveStream);
+    res.setLivekitToken(viewerToken);
+    return res;
   }
 
   private LiveStreamResponse buildLiveResponse(LiveStream live, Long userId) {
