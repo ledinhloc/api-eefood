@@ -5,6 +5,7 @@ import com.eefood.reactionservice.dto.response.ResponseData;
 import com.eefood.reactionservice.dto.response.StoryReactionResponse;
 import com.eefood.reactionservice.enums.ReactionType;
 import com.eefood.reactionservice.service.StoryReactionService;
+import feign.Response;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -20,6 +21,14 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class StoryReactionController {
     private final StoryReactionService storyReactionService;
+
+    @GetMapping("/{storyId}/current")
+    public ResponseData<StoryReactionResponse> getCurrentUserReaction(
+            @PathVariable Long storyId
+    ) {
+        var response = storyReactionService.getUserReactionForStory(storyId);
+        return new ResponseData<>(HttpStatus.OK.value(),"Successfully reacted to story",response);
+    }
 
     @PostMapping
     public ResponseData<StoryReactionResponse> reactToStory(@RequestBody StoryReactionRequest request) {
