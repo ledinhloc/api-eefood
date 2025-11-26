@@ -1,0 +1,51 @@
+package com.eefood.reactionservice.controller;
+
+
+import com.eefood.reactionservice.dto.response.LiveCommentResponse;
+import com.eefood.reactionservice.dto.response.ResponseData;
+import com.eefood.reactionservice.service.livestream.LiveCommentService;
+import com.eefood.reactionservice.util.SecurityUtil;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/v1/livestreams")
+@RequiredArgsConstructor
+public class LiveCommentController {
+
+  private final LiveCommentService commentService;
+  private final SecurityUtil securityUtil;
+
+  @GetMapping("/{liveStreamId}/comments")
+  public ResponseData<List<LiveCommentResponse>> getComments(@PathVariable Long liveStreamId) {
+    return new ResponseData<>(HttpStatus.OK.value(), "success",commentService.getComments(liveStreamId));
+  }
+
+  @PostMapping("/{liveId}/comments")
+  public ResponseData<LiveCommentResponse> createComment(@PathVariable Long liveId,
+                                                         @RequestParam String message) {
+    Long userId = securityUtil.getCurrentUserId();
+    return new ResponseData<>(HttpStatus.OK.value(), "add success",
+      commentService.addComment(liveId, userId, message)
+    );
+  }
+
+  @PutMapping("/comments/{commentId}")
+  public ResponseData<LiveCommentResponse> updateComment(
+    @PathVariable Long commentId,
+    @RequestParam String message
+  ) {
+    return new ResponseData<>(HttpStatus.OK.value(), "update success",
+      commentService.updateComment(commentId, message)
+    );
+  }
+
+  @DeleteMapping("/comments/{commentId}")
+  public ResponseData<Void> deleteComment(@PathVariable Long commentId) {
+    commentService.deleteComment(commentId);
+    return new ResponseData<>(HttpStatus.OK.value(), "delete success");
+  }
+}
