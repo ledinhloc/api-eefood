@@ -35,6 +35,29 @@ public class StoryReactionService {
     private final SecurityUtil securityUtil;
     private final StorySettingService storySettingService;
 
+    public StoryReactionResponse getUserReactionForStory(Long storyId) {
+        Long userId = securityUtil.getCurrentUserId();
+
+        Story story = storyRepository.findById(storyId).orElseThrow(() -> new RuntimeException("Story not found"));
+
+        StoryReaction reaction = storyReactionRepository.findByStoryIdAndUserId(storyId, userId).orElse(null);
+
+        if(reaction == null) {
+            return null;
+        }
+        UserInfo author = iamClient.getUserInfo(reaction.getUserId()).getData();
+
+        return StoryReactionResponse.builder()
+                .id(reaction.getId())
+                .storyId(storyId)
+                .userId(reaction.getUserId())
+                .reactionType(reaction.getReactionType())
+                .avatarUrl(author.getAvatarUrl())
+                .username(author.getUsername())
+                .createdAt(reaction.getCreatedAt())
+                .build();
+    }
+
     @Transactional
     public StoryReactionResponse reactToStory(StoryReactionRequest request) {
         Long userId = securityUtil.getCurrentUserId();
