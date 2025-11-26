@@ -9,11 +9,8 @@ import dev.langchain4j.model.googleai.GoogleAiGeminiChatModel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.scheduling.annotation.Async;
-import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-
 import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
 import javax.imageio.ImageWriteParam;
@@ -22,7 +19,7 @@ import javax.imageio.stream.ImageOutputStream;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.util.Base64;
-import java.util.concurrent.CompletableFuture;
+
 
 @Slf4j
 @Service
