@@ -76,7 +76,8 @@ public enum ErrorMessage {
   ALREADY_EXISTS("Post already exists"),
   DUPLICATE_COLLECTION_NAME("Collection name already exists for this user"),
   ALREADY_DELETED("Already deleted"),
-  INVALID_REQUEST("Invalid request data")
+  INVALID_REQUEST("Invalid request data"),
+  LIVE_STREAM_NOT_FOUND("Livestream not found"),
 
   ;
 
