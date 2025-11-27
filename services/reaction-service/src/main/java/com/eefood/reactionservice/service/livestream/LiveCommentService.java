@@ -35,7 +35,7 @@ public class LiveCommentService {
         .username(user.getUsername())
         .avatarUrl(user.getAvatarUrl())
         .message(c.getMessage())
-        .createdAt(c.getCreatedAt().toString())
+        .createdAt(c.getCreatedAt())
         .build();
     }).toList();
   }
@@ -63,7 +63,7 @@ public class LiveCommentService {
       .username(user.getUsername())
       .avatarUrl(user.getAvatarUrl())
       .message(comment.getMessage())
-      .createdAt(comment.getCreatedAt().toString())
+      .createdAt(comment.getCreatedAt())
       .build();
 
     // Broadcast ra WebSocket cho viewer
@@ -90,7 +90,7 @@ public class LiveCommentService {
       .username(user.getUsername())
       .avatarUrl(user.getAvatarUrl())
       .message(comment.getMessage())
-      .createdAt(comment.getCreatedAt().toString())
+      .createdAt(comment.getCreatedAt())
       .build();
   }
 

@@ -1,5 +1,6 @@
 package com.eefood.reactionservice.dto.response;
 
+import com.eefood.reactionservice.enums.FoodEmotion;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -9,13 +10,16 @@ import java.time.LocalDateTime;
 
 @Data
 @Builder
-@AllArgsConstructor
 @NoArgsConstructor
-public class LiveCommentResponse {
+@AllArgsConstructor
+public class LiveReactionResponse {
   private Long id;
+
+  private Long liveStreamId;
+  private FoodEmotion emotion;
+
   private Long userId;
   private String username;
   private String avatarUrl;
-  private String message;
   private LocalDateTime createdAt;
 }

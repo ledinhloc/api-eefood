@@ -107,7 +107,7 @@ INSERT INTO live_reaction (
     live_stream_id, user_id, emotion, created_at, updated_at, created_by, updated_by, is_deleted
 )
 SELECT
-    1, id, 'LIKE',
+    1, id, 'DELICIOUS',
     NOW(), NOW(),
     'system', 'system', FALSE
 FROM generate_series(1,20) AS id;
