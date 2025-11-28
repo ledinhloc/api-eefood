@@ -1,18 +1,37 @@
 services:
   livekit:
-    image: livekit/livekit-server:v1.9.4
+    image: livekit/livekit-server:latest
     container_name: livekit
-    # Không cần file config, dùng environment variables
     environment:
+      # Port
+      LIVEKIT_PORT: "7880"
+
+      # RTC Configuration - IP máy thật
+      LIVEKIT_RTC_NODE_IP: "172.16.2.240"
+      LIVEKIT_RTC_ANNOUNCE_IP: "172.16.2.240"
+
+      # Port range cho RTC (UDP)
+      LIVEKIT_RTC_PORT_RANGE_START: "50000"
+      LIVEKIT_RTC_PORT_RANGE_END: "50100"
+
+      # ICE Configuration
+      LIVEKIT_RTC_USE_ICE_LITE: "false"
+
+      # API keys
       LIVEKIT_KEYS: "devkey: secret"
+
+      # Room settings
+      LIVEKIT_ROOM_AUTO_CREATE: "true"
+      LIVEKIT_ROOM_EMPTY_TIMEOUT: "300"
+      LIVEKIT_ROOM_MAX_PARTICIPANTS: "100"
+
     ports:
-      - "7880:7880"
-      - "7881:7881"
-      - "3478:3478/udp"
-      - "50000-50050:50000-50050/udp"
+      - "7880:7880"                    # WebSocket
+      - "50000-50100:50000-50100/udp"  # RTC ports
+
+    restart: unless-stopped
     networks:
       - microservices-net
-    restart: unless-stopped
 
 
   postgresql:
