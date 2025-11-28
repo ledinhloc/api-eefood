@@ -1,6 +1,7 @@
 package com.eefood.reactionservice.model;
 
 import com.eefood.reactionservice.enums.Difficulty;
+import com.eefood.reactionservice.enums.PostStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -37,6 +38,12 @@ public class Post extends BaseEntity {
   @Enumerated(EnumType.STRING)
   @Column(length = 7)
   private Difficulty difficulty;
+
+  @Enumerated(EnumType.STRING)
+  @Column(length = 7)
+  private PostStatus status = PostStatus.PENDING;
+
+  private String approvedBy = "AI";
 
   @ElementCollection
   @CollectionTable(name = "post_recipe_categories", joinColumns = @JoinColumn(name = "post_id"))
