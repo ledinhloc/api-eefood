@@ -30,6 +30,7 @@ public class PostAdminSearchService {
             Integer maxCookTime,
             Integer minReactionCount,
             Integer minTotalShares,
+            String status,
             String sortBy,
             Pageable pageable
     ) {
@@ -53,6 +54,10 @@ public class PostAdminSearchService {
 
                             if (userId != null) {
                                 b.filter(f -> f.term(t -> t.field("userId").value(userId)));
+                            }
+
+                            if (status != null && !status.isBlank()) {
+                                b.filter(f -> f.term(t -> t.field("status.keyword").value(status)));
                             }
 
                             if (region != null) {

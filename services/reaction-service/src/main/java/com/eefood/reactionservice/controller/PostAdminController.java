@@ -34,6 +34,7 @@ public class PostAdminController {
             @RequestParam(required = false) Integer maxCookTime,
             @RequestParam(required = false) Integer minReactionCount,
             @RequestParam(required = false) Integer minTotalShares,
+            @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "newest") String sortBy,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size
@@ -44,7 +45,7 @@ public class PostAdminController {
                 keyword, userId, region, difficulty, category,
                 minPrepTime, maxPrepTime, minCookTime, maxCookTime,
                 minReactionCount, minTotalShares,
-                sortBy, pageable
+                status, sortBy, pageable
         );
 
         return new ResponseData<>(

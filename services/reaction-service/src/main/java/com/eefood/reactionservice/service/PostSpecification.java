@@ -1,5 +1,6 @@
 package com.eefood.reactionservice.service;
 
+import com.eefood.reactionservice.enums.PostStatus;
 import com.eefood.reactionservice.model.Post;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -53,6 +54,13 @@ public class PostSpecification {
     return (root, query, cb)->{
       if(recipeId == null) return null;
       return cb.equal(root.get("recipeId"), recipeId);
+    };
+  }
+
+  public static Specification<Post> hasStatus(PostStatus status) {
+    return (root, query, cb) ->{
+      if(status == null) return null;
+      return cb.equal(root.get("status"), status);
     };
   }
 }
