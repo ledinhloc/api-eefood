@@ -4,6 +4,7 @@ import com.eefood.reactionservice.dto.SearchResult;
 import com.eefood.reactionservice.dto.request.PostCreateRequest;
 import com.eefood.reactionservice.dto.response.*;
 import com.eefood.reactionservice.enums.ErrorMessage;
+import com.eefood.reactionservice.enums.PostStatus;
 import com.eefood.reactionservice.exception.ExceptionUtil;
 import com.eefood.reactionservice.mapper.PostMapper;
 import com.eefood.reactionservice.model.Post;
@@ -201,7 +202,8 @@ public class PostService {
     // 3. Lấy Post từ DB theo postIds
     Specification<Post> spec = PostSpecification.isNotDeleted()
       .and(PostSpecification.hasUserId(userId))
-      .and(PostSpecification.hasPostIds(postIds));
+      .and(PostSpecification.hasPostIds(postIds))
+      .and(PostSpecification.hasStatus(PostStatus.APPROVED));
 
     List<Post> posts = postRepo.findAll(spec);
     // 4. Sắp xếp theo thứ tự của postIds (theo ES)
@@ -230,9 +232,12 @@ public class PostService {
           Integer maxCookTime,
           Integer minReactionCount,
           Integer minTotalShares,
+          String status,
           String sortBy,
           Pageable pageable
   ) {
+    log.info("PostIds from query param: {}", status);
+
 
     SearchResult esResult = postAdminSearchService.searchPostIds(
             keyword,
@@ -246,6 +251,7 @@ public class PostService {
             maxCookTime,
             minReactionCount,
             minTotalShares,
+            status,
             sortBy,
             pageable
     );
@@ -261,6 +267,12 @@ public class PostService {
 
     Specification<Post> spec = PostSpecification.isNotDeleted()
             .and(PostSpecification.hasPostIds(postIds));
+
+    if (status != null && !status.isBlank()) {
+      PostStatus postStatus = PostStatus.valueOf(status);
+      log.info("PostStatus from query param: {}", postStatus.name());
+      spec = spec.and(PostSpecification.hasStatus(postStatus));
+    }
 
     List<Post> posts = postRepo.findAll(spec);
 
