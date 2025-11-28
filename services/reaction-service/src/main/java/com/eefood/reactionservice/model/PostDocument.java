@@ -26,6 +26,7 @@ public class PostDocument {
   private Integer prepTime;
   private Integer cookTime;
   private String difficulty;
+  private String status;
 
   private Set<String> recipeCategories = new HashSet<>();
   private Set<String> recipeIngredientKeywords = new HashSet<>();

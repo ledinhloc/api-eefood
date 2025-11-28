@@ -153,7 +153,6 @@ CREATE TABLE collection_post (
      CONSTRAINT fk_collection_post_post FOREIGN KEY (post_id) REFERENCES post (id) ON DELETE CASCADE
 );
 
-
 ALTER TABLE comment
     ADD CONSTRAINT FK_COMMENT_ON_PARENT FOREIGN KEY (parent_id) REFERENCES comment (id);
 
@@ -174,3 +173,9 @@ ALTER TABLE post_reaction
 
 ALTER TABLE share
     ADD CONSTRAINT FK_SHARE_ON_POST FOREIGN KEY (post_id) REFERENCES post (id);
+
+-- Thêm truường vào post
+ALTER TABLE post
+    ADD COLUMN status VARCHAR(10) NOT NULL DEFAULT 'APPROVED';
+ALTER TABLE post
+    ADD COLUMN approved_by VARCHAR(4) DEFAULT 'AI';

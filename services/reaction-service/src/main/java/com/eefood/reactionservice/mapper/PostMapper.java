@@ -26,6 +26,7 @@ public interface PostMapper {
   PostPublishResponse toPublishResponse(Post post);
 
   //els
+  @Mapping(target = "status", expression = "java(post.getStatus() != null ? post.getStatus().name() : null)")
   @Mapping(target = "difficulty", expression = "java(post.getDifficulty() != null ? post.getDifficulty().name() : null)")
   @Mapping(target = "totalReactionCount",
           expression = "java(post.getReactions() != null ? (long) post.getReactions().size() : 0L)")
