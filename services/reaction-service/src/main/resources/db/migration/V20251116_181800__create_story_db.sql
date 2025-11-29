@@ -81,13 +81,13 @@ INSERT INTO story (created_at, updated_at, created_by, updated_by, is_deleted,
                    user_id, type, content_url, expired_at)
 VALUES
     (NOW(), NOW(), 'system', 'system', false, 1, 'IMAGE',
-     'https://example.com/story1.jpg', NOW() + INTERVAL '24 HOURS'),
+     'https://didongviet.vn/dchannel/wp-content/uploads/2023/08/galaxy-hinh-nen-iphone-doc-dep-didongviet@2x-576x1024.jpg', NOW() + INTERVAL '24 HOURS'),
 
-    (NOW(), NOW(), 'system', 'system', false, 2, 'VIDEO',
-     'https://example.com/story2.mp4', NOW() + INTERVAL '24 HOURS'),
+    (NOW(), NOW(), 'system', 'system', false, 2, 'IMAGE',
+     'https://cellphones.com.vn/sforum/wp-content/uploads/2021/02/fantasy-landscape-iPhone-wallpaper-idownloadblog-IEDITWALLS20.11.25104242-@aronvisuals-728x1536-1.jpg', NOW() + INTERVAL '24 HOURS'),
 
     (NOW(), NOW(), 'system', 'system', false, 3, 'IMAGE',
-     'https://example.com/story3.jpg', NOW() + INTERVAL '24 HOURS');
+     'https://cdn2.fptshop.com.vn/unsafe/hinh_nen_iphone_doc_dep_22_a3d94e7220.jpg', NOW() + INTERVAL '24 HOURS');
 
 INSERT INTO story_view (story_id, user_id, created_at)
 VALUES
@@ -110,14 +110,14 @@ INSERT INTO story_comment (
     created_at, updated_at, created_by, updated_by, is_deleted,
     story_id, user_id, message, parent_id
 ) VALUES
-      (NOW(), NOW(), 'system', 'system', false, 1, 20, 'Đồng ý, đẹp thật!', 1),
-      (NOW(), NOW(), 'system', 'system', false, 1, 21, 'Ảnh này ở đâu thế?', 1),
+      (NOW(), NOW(), 'system', 'system', false, 1, 1, 'Đồng ý, đẹp thật!', 1),
+      (NOW(), NOW(), 'system', 'system', false, 1, 2, 'Ảnh này ở đâu thế?', 1),
 
-      (NOW(), NOW(), 'system', 'system', false, 1, 22, 'Chuẩn, ảnh chất lượng!', 2),
+      (NOW(), NOW(), 'system', 'system', false, 1, 3, 'Chuẩn, ảnh chất lượng!', 2),
 
       (NOW(), NOW(), 'system', 'system', false, 2, 23, 'Máy gì quay mà nét vậy?', 3),
 
-      (NOW(), NOW(), 'system', 'system', false, 3, 24, 'View chill quá!', 4);
+      (NOW(), NOW(), 'system', 'system', false, 3, 4, 'View chill quá!', 4);
 
 INSERT INTO story_reaction (story_id, user_id, reaction_type, created_at)
 VALUES
