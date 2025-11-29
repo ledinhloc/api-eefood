@@ -67,7 +67,16 @@ public class PostController {
   @PutMapping("/{id}")
   public ResponseData<PostPublishResponse> updatePost(@PathVariable Long id,  @RequestBody Map<String, String> requestBody) {
     String content = requestBody.get("content");
+    String status = requestBody.get("status");
     PostPublishResponse post = postService.updatePost(id, content);
+    return new ResponseData<>(HttpStatus.OK.value(), "Post updated successfully", post);
+  }
+
+  @PutMapping("/admin/{id}")
+  public ResponseData<PostPublishResponse> updatePostByAdmin(@PathVariable Long id,  @RequestBody Map<String, String> requestBody) {
+    String content = requestBody.get("content");
+    String status = requestBody.get("status");
+    PostPublishResponse post = postService.updatePostByAdmin(id, content,status);
     return new ResponseData<>(HttpStatus.OK.value(), "Post updated successfully", post);
   }
 

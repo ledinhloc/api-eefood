@@ -79,6 +79,9 @@ public class PostService {
       .difficulty(recipe.getDifficulty())
       .recipeCategories(recipe.getRecipeCategories())
       .recipeIngredientKeywords(recipe.getRecipeIngredientKeywords())
+      .status((request.getStatus()!=null && !request.getStatus().isBlank())
+              ? PostStatus.valueOf(request.getStatus())
+              : PostStatus.PENDING)
       .build();
 
     postRepo.save(post);
@@ -96,6 +99,7 @@ public class PostService {
       .countComment(0L)
       .difficulty(recipe.getDifficulty() != null ? recipe.getDifficulty().name() : null)
       .location(recipe.getRegion())
+      .status(post.getStatus().name())
       .prepTime(recipe.getPrepTime() != null ? recipe.getPrepTime().toString() : null)
       .cookTime(recipe.getCookTime() != null ? recipe.getCookTime().toString() : null)
       .build();
@@ -113,6 +117,7 @@ public class PostService {
     }
 
     post.setContent(content);
+    post.setStatus(PostStatus.PENDING);
     postRepo.save(post);
 
     ResponseData<RecipeSummaryResponse> recipeResponse = recipeClient.getRecipeSummary(post.getRecipeId());
@@ -131,11 +136,48 @@ public class PostService {
       .createdAt(post.getCreatedAt())
       .countReaction(countReaction)
       .countComment(countComment)
+      .status(post.getStatus().name())
       .difficulty(recipe != null && recipe.getDifficulty() != null ? recipe.getDifficulty().name() : null)
       .location(recipe != null ? recipe.getRegion() : null)
       .prepTime(recipe != null && recipe.getPrepTime() != null ? recipe.getPrepTime().toString() : null)
       .cookTime(recipe != null && recipe.getCookTime() != null ? recipe.getCookTime().toString() : null)
       .build();
+  }
+
+  public PostPublishResponse updatePostByAdmin(Long id, String content, String status) {
+    Post post = postRepo.findByIdAndIsDeletedFalse(id);
+    if (post == null) {
+      throw ExceptionUtil.notFound(ErrorMessage.POST_NOT_FOUND);
+    }
+
+    post.setContent(content);
+    if(status!= null && !status.isBlank()) {
+      post.setStatus(PostStatus.valueOf(status));
+    }
+    postRepo.save(post);
+
+    ResponseData<RecipeSummaryResponse> recipeResponse = recipeClient.getRecipeSummary(post.getRecipeId());
+    RecipeSummaryResponse recipe = recipeResponse.getData();
+
+    long countReaction = post.getReactions() != null ? post.getReactions().size() : 0;
+    long countComment = post.getComments() != null ? post.getComments().size() : 0;
+
+    return PostPublishResponse.builder()
+            .id(post.getId())
+            .recipeId(post.getRecipeId())
+            .userId(post.getUserId())
+            .title(post.getTitle())
+            .content(post.getContent())
+            .imageUrl(post.getImageUrl())
+            .createdAt(post.getCreatedAt())
+            .countReaction(countReaction)
+            .countComment(countComment)
+            .status(post.getStatus().name())
+            .difficulty(recipe != null && recipe.getDifficulty() != null ? recipe.getDifficulty().name() : null)
+            .location(recipe != null ? recipe.getRegion() : null)
+            .prepTime(recipe != null && recipe.getPrepTime() != null ? recipe.getPrepTime().toString() : null)
+            .cookTime(recipe != null && recipe.getCookTime() != null ? recipe.getCookTime().toString() : null)
+            .build();
   }
 
   public void deletePost(Long id) {
