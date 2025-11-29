@@ -12,6 +12,7 @@ import com.eefood.reactionservice.repository.httpclient.IamClient;
 import com.eefood.reactionservice.repository.livestream.LiveReactionRepository;
 import com.eefood.reactionservice.repository.livestream.LiveStreamRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -23,6 +24,7 @@ public class LiveReactionService {
   private final LiveStreamRepository liveStreamRepository;
   private final IamClient iamClient;
   private final LiveReactionMapper mapper;
+  private final SimpMessagingTemplate messagingTemplate;
 
   public LiveReactionResponse createReaction(Long userId, Long liveId, FoodEmotion emotion) {
     LiveStream liveStream = liveStreamRepository.findById(liveId)
@@ -39,6 +41,13 @@ public class LiveReactionService {
     LiveReactionResponse response = mapper.toResponse(reaction);
     response.setUsername(user.getUsername());
     response.setAvatarUrl(user.getAvatarUrl());
+
+    // Broadcast đến tất cả viewer của live stream
+    messagingTemplate.convertAndSend(
+      "/topic/live-reaction/" + liveId,
+      response
+    );
+
     return response;
   }
 
