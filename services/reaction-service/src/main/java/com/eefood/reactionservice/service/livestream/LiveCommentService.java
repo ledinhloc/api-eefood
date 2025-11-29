@@ -8,11 +8,13 @@ import com.eefood.reactionservice.repository.httpclient.IamClient;
 import com.eefood.reactionservice.repository.livestream.LiveCommentRepository;
 import com.eefood.reactionservice.repository.livestream.LiveStreamRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class LiveCommentService {
@@ -20,6 +22,7 @@ public class LiveCommentService {
   private final LiveCommentRepository commentRepository;
   private final SimpMessagingTemplate messagingTemplate;
   private final IamClient iamClient;
+
 
   public List<LiveCommentResponse> getComments(Long liveStreamId) {
 
@@ -66,11 +69,15 @@ public class LiveCommentService {
       .createdAt(comment.getCreatedAt())
       .build();
 
-    // Broadcast ra WebSocket cho viewer
-    messagingTemplate.convertAndSend(
-      "/topic/live/" + liveStreamId + "/comments",
-      response
-    );
+    try {
+      messagingTemplate.convertAndSend(
+        "/topic/live-comment/" + liveStreamId,
+        response
+      );
+      log.info(" Broadcasted comment id={} to live={}", comment.getId(), liveStreamId);
+    } catch (Exception e) {
+      log.error(" Failed to broadcast comment", e);
+    }
 
     return response;
   }

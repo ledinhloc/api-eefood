@@ -1,5 +1,6 @@
 package com.eefood.reactionservice.config;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
@@ -8,38 +9,29 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 
 @Configuration
 @EnableWebSocketMessageBroker
+@RequiredArgsConstructor
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
-  @Override
-  public void configureMessageBroker(MessageBrokerRegistry config) {
-    // Enable simple broker for topics
-    config.enableSimpleBroker("/topic");
+    private final WebSocketAuthInterceptor webSocketAuthInterceptor;
+    @Override
+    public void registerStompEndpoints(StompEndpointRegistry registry) {
+        // Endpoint để client connect
+        registry.addEndpoint("/ws-reaction")
+                .setAllowedOriginPatterns("*") // Cho phép mọi domain connect (có thể set cụ thể)
+                .addInterceptors(webSocketAuthInterceptor)
+                .setHandshakeHandler(new CustomHandshakeHandler())
+                .withSockJS(); // Hỗ trợ fallback SockJS (trường hợp trình duyệt ko hỗ trợ WS)
+    }
 
-    // Application destination prefix
-    config.setApplicationDestinationPrefixes("/app");
-  }
+    @Override
+    public void configureMessageBroker(MessageBrokerRegistry registry) {
+        // Prefix cho message mà client gửi lên server
+        registry.setApplicationDestinationPrefixes("/app");
 
-  @Override
-  public void registerStompEndpoints(StompEndpointRegistry registry) {
-    // Register STOMP endpoint
-    registry.addEndpoint("/ws/livestream")
-      .setAllowedOriginPatterns("*")
-      .withSockJS();
-  }
+        // Prefix cho message mà server push ra client
+        registry.enableSimpleBroker("/topic", "/queue");
+
+        // Định danh user (khi gửi riêng lẻ)
+        registry.setUserDestinationPrefix("/user");
+    }
 }
-
-/*
- * WebSocket Topics cho Live Stream:
- *
- * 1. Comments (hiển thị 5 message mới nhất):
- *    /topic/livestream/{liveStreamId}/comments
- *
- * 2. Reactions (thả tim):
- *    /topic/livestream/{liveStreamId}/reactions
- *
- * 3. Viewer count (số người xem):
- *    /topic/livestream/{liveStreamId}/viewers
- *
- *
- * Flutter client sẽ subscribe các topics này để nhận real-time updates
- */
