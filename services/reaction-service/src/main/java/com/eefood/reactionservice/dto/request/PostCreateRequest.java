@@ -8,4 +8,5 @@ import lombok.*;
 public class PostCreateRequest {
   private Long recipeId;
   private String content;
+  private String status;
 }

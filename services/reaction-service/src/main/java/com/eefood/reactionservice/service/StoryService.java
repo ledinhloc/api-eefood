@@ -72,6 +72,7 @@ public class StoryService {
                     dto.setViewed(storyViewRepository.existsByStoryIdAndUserId(s.getId(), ownerId));
                     return dto;
                 })
+                .sorted((a, b) -> Boolean.compare(a.isViewed(), b.isViewed()))
                 .toList();
 
         return new UserStoryResponse(
