@@ -8,6 +8,7 @@ import com.eefood.reactionservice.model.StoryView;
 import com.eefood.reactionservice.repository.StoryRepository;
 import com.eefood.reactionservice.repository.StoryViewRepository;
 import com.eefood.reactionservice.repository.httpclient.IamClient;
+import com.eefood.reactionservice.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -26,6 +27,12 @@ public class StoryViewService {
     private final StorySettingService storySettingService;
     private final StoryViewMapper storyViewMapper;
     private final IamClient iamClient;
+    private final SecurityUtil securityUtil;
+
+    public boolean checkView(Long storyId) {
+        Long userId = securityUtil.getCurrentUserId();
+        return storyViewRepository.findByIdAndUserId(storyId,userId).isPresent();
+    }
 
     public void viewStory(Long storyId, Long viewerId) {
         Story story = storyRepository.findById(storyId).orElseThrow(() -> new RuntimeException("Story not found or deleted"));
