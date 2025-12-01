@@ -16,7 +16,6 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.List;
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -72,7 +71,7 @@ public class PostSearchService {
               // 1. Keyword
               if (keyword != null && !keyword.isBlank()) {
                 b.should(sh -> sh.multiMatch(mm -> mm
-                  .fields("title", "content", "recipeIngredientKeywords")
+                  .fields("title^4", "recipeIngredientKeywords")
                   .query(keyword)
                 ));
               }
@@ -93,13 +92,16 @@ public class PostSearchService {
               }
 
               // 5. Lọc theo thời gian nấu
-//              if (maxCookTime != null) {
-//                b.filter(f -> f.range(r -> r
-//                  .field("cookTime")
-//                  .lte(JsonData.of(maxCookTime))
-//                ));
-//              }
-
+              if (maxCookTime != null) {
+                b.filter(filterQuery -> filterQuery
+                  .range(rangeQuery -> rangeQuery
+                    .number(numberQuery -> numberQuery
+                      .field("totalTime")
+                      .lte((double) maxCookTime)
+                    )
+                  )
+                );
+              }
               return b;
             }))
               .functions(fList -> {

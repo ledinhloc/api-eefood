@@ -215,8 +215,7 @@ public class RecipeService {
     String html = cleanHtml(rawHtml);
 
     // PROMPT AI
-    String prompt =
-"""
+    String prompt = """
 You are an advanced Recipe Extraction Engine.
 
 Your task:
@@ -227,24 +226,24 @@ Your task:
 STRICT OUTPUT RULES (MUST FOLLOW EXACTLY):
 1. Output MUST be **pure JSON only**.
 2. Do NOT include any explanation, description, or natural language.
-5. JSON MUST match the EXACT schema below.
-6. All string fields MUST be plain strings. No special formatting.
-7. difficulty MUST be one of: "EASY", "MEDIUM", "HARD".
-8. ingredients[] MUST contain objects { "name", "quantity", "unit" }
-9. steps[] MUST contain objects { "stepNumber", "instruction" }
-10. If a field is missing from HTML, return a reasonable empty value:
+3. JSON MUST match the EXACT schema below.
+4. All string fields MUST be plain strings. No special formatting.
+5. difficulty MUST be one of: "EASY", "MEDIUM", "HARD".
+6. ingredients[] MUST contain objects { "name", "quantity", "unit" } where quantity is a number (can be decimal)
+7. steps[] MUST contain objects { "stepNumber", "instruction", "imageUrls", "videoUrls", "stepTime" }
+8. If a field is missing from HTML, return a reasonable empty value:
    - "" for strings
    - 0 for numbers
    - [] for arrays
-11. Do NOT add comments inside JSON.
-12. Do NOT mix ingredients into categories.
-13.  Ingredients MUST be separated into individual items — never group many ingredients into one string.
-       (Wrong: "Sả, ớt, hành tím, tỏi")
-       (Correct: 4 separate items)
-14. Ingredients MUST NOT include prefix like "Gia vị", "Nguyên liệu", "Mẹo", etc.
-15. Categories MUST be cooking categories (e.g., "Món Việt", "Món gà", "Món kho"), NOT ingredients.
-16. If time is not found, set to 0.
-17. steps[] MUST be separated correctly with actual instructions.
+9. Do NOT add comments inside JSON.
+10. Do NOT mix ingredients into categories.
+11. Ingredients MUST be separated into individual items — never group many ingredients into one string.
+12. Ingredients MUST NOT include prefix like "Gia vị", "Nguyên liệu", "Mẹo", etc.
+13. Categories MUST be cooking categories (e.g., "Món Việt", "Món gà", "Món kho"), NOT ingredients.
+14. If time is not found, set to 0.
+15. steps[] MUST be separated correctly with actual instructions.
+ALWAYS RETURN ONLY PURE JSON. DO NOT USE MARKDOWN, BACKTICKS, OR ANY TEXT OUTSIDE JSON.
+
 
 YOUR OUTPUT JSON SCHEMA (MUST MATCH EXACTLY):
 {
@@ -258,10 +257,10 @@ YOUR OUTPUT JSON SCHEMA (MUST MATCH EXACTLY):
   "cookTime": 0,
   "difficulty": "EASY",
   "ingredients": [
-    { "name": "", "quantity": 0, "unit": "" }
+    { "name": "", "quantity": 0.0, "unit": "" }
   ],
   "steps": [
-    { "stepNumber": 1, "instruction": "", "imageUrl": "","videoUrl": "", "stepTime": 0 }
+    { "stepNumber": 1, "instruction": "", "imageUrls": [], "videoUrls": [], "stepTime": 0 }
   ]
 }
 
@@ -270,8 +269,7 @@ NOW ANALYZE THE FOLLOWING HTML AND RETURN ONLY JSON:
 ===== HTML CONTENT START =====
 %s
 ===== HTML CONTENT END =====
-"""
-            .formatted(html);
+""".formatted(html);
 
 //    log.info("------------"+ prompt);
 
@@ -280,8 +278,7 @@ NOW ANALYZE THE FOLLOWING HTML AND RETURN ONLY JSON:
       .messages(UserMessage.from(prompt))
       .build();
     ChatResponse response = gemini.chat(request);
-    String aiJson = response.aiMessage().text();
-
+    String aiJson = extractJson(response.aiMessage().text());
 
 //    log.info("------------ AiJson: "+ aiJson);
     // PARSE JSON → DTO
@@ -295,9 +292,24 @@ NOW ANALYZE THE FOLLOWING HTML AND RETURN ONLY JSON:
 
     return saveExtractResult(dto, userId);
   }
+
   public Recipe getEntityRecipe(Long id) {
     return recipeRepository.findByIdAndIsDeletedFalse(id)
       .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.RECIPE_NOT_FOUND));
+  }
+
+  private String extractJson(String aiRaw) {
+    if (aiRaw == null || aiRaw.isEmpty()) return "{}";
+
+    // Tìm JSON bắt đầu với { và kết thúc với }
+    int firstBrace = aiRaw.indexOf("{");
+    int lastBrace = aiRaw.lastIndexOf("}");
+    if (firstBrace >= 0 && lastBrace > firstBrace) {
+      return aiRaw.substring(firstBrace, lastBrace + 1).trim();
+    }
+
+    // fallback
+    return aiRaw.trim();
   }
 
   public void deleteRecipeById(Long id) {
