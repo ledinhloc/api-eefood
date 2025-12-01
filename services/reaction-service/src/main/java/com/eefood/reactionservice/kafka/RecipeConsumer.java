@@ -2,8 +2,8 @@ package com.eefood.reactionservice.kafka;
 
 import com.eefood.common.avro.RecipeEvent;
 import com.eefood.reactionservice.model.Post;
-import com.eefood.reactionservice.repository.PostRepository;
-import com.eefood.reactionservice.service.PostIndexer;
+import com.eefood.reactionservice.repository.post.PostRepository;
+import com.eefood.reactionservice.service.post.PostIndexer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
