@@ -4,7 +4,7 @@ import com.eefood.reactionservice.dto.request.CommentReactionRequest;
 import com.eefood.reactionservice.dto.response.CommentReactionResponse;
 import com.eefood.reactionservice.dto.response.ResponseData;
 import com.eefood.reactionservice.enums.ReactionType;
-import com.eefood.reactionservice.service.CommentReactionService;
+import com.eefood.reactionservice.service.comment.CommentReactionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;

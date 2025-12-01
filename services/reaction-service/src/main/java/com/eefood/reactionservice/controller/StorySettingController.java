@@ -3,7 +3,7 @@ package com.eefood.reactionservice.controller;
 import com.eefood.reactionservice.dto.request.StorySettingRequest;
 import com.eefood.reactionservice.dto.response.ResponseData;
 import com.eefood.reactionservice.dto.response.StorySettingResponse;
-import com.eefood.reactionservice.service.StorySettingService;
+import com.eefood.reactionservice.service.story.StorySettingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;

@@ -1,6 +1,6 @@
 package com.eefood.reactionservice.controller;
 
-import com.eefood.reactionservice.service.PostViewLogService;
+import com.eefood.reactionservice.service.post.PostViewLogService;
 import com.eefood.reactionservice.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;

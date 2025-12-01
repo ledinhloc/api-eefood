@@ -2,7 +2,7 @@ package com.eefood.reactionservice.controller;
 
 import com.eefood.reactionservice.dto.response.PostResponse;
 import com.eefood.reactionservice.dto.response.ResponseData;
-import com.eefood.reactionservice.service.PostService;
+import com.eefood.reactionservice.service.post.PostService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
