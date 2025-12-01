@@ -25,6 +25,7 @@ public class PostDocument {
   private String region;
   private Integer prepTime;
   private Integer cookTime;
+  private Integer totalTime;
   private String difficulty;
   private String status;
 
