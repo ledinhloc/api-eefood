@@ -2,8 +2,7 @@ package com.eefood.reactionservice.controller;
 
 import com.eefood.reactionservice.dto.response.FollowResponse;
 import com.eefood.reactionservice.dto.response.ResponseData;
-import com.eefood.reactionservice.dto.response.UserInfo;
-import com.eefood.reactionservice.service.FollowService;
+import com.eefood.reactionservice.service.follow.FollowService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -11,7 +10,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Map;
 
 @RestController

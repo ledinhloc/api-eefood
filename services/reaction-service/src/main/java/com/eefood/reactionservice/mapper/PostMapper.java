@@ -40,6 +40,10 @@ public interface PostMapper {
     target = "totalShares",
     expression = "java(post.getShares() != null ? (long) post.getShares().size() : 0L)"
   )
+  @Mapping(
+          target = "totalComments",
+          expression = "java(post.getComments() != null ? (long) post.getComments().size() : 0L)"
+  )
   PostResponse toResponse(Post post);
 
   // ========== SUPPORT MAPPING METHODS ==========

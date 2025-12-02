@@ -3,7 +3,7 @@ package com.eefood.reactionservice.controller;
 import com.eefood.reactionservice.dto.request.StoryCommentRequest;
 import com.eefood.reactionservice.dto.response.ResponseData;
 import com.eefood.reactionservice.dto.response.StoryCommentResponse;
-import com.eefood.reactionservice.service.StoryCommentService;
+import com.eefood.reactionservice.service.story.StoryCommentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;

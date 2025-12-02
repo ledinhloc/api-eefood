@@ -8925,7 +8925,11 @@ INSERT INTO follow (follower_id, following_id, created_at) VALUES
 -- User 10 follows 8, 1, 2
 (10, 8, now()),
 (10, 1, now()),
-(10, 2, now());
+(10, 2, now()),
+
+(23, 1, now()),
+(23, 2, now()),
+(23, 3, now());
 
 
 SELECT setval('post_id_seq', (SELECT MAX(id) FROM public.post));
