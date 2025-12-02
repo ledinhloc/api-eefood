@@ -55,6 +55,7 @@ public class PostReactionService {
   }
 
   public PostReactionResponse reactToPost(PostReactionRequest request, Long userId) {
+
     UserInfo userInfo = iamClient.getUserInfo(userId).getData();
     Post post =
         postRepository
@@ -98,7 +99,7 @@ public class PostReactionService {
       notificationUtils.sendReactionNotification(
               post.getUserId(),
               userInfo.getUsername(),
-              exitingReaction.getReactionType(),
+              saved.getReactionType(),
               userInfo.getAvatarUrl(),
               true,
               "/posts/" + post.getId(),

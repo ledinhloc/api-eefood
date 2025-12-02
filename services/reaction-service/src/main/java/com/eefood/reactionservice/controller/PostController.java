@@ -9,6 +9,9 @@ import com.eefood.reactionservice.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -106,6 +109,28 @@ public class PostController {
       HttpStatus.OK.value(),
       "Success",
       result
+    );
+  }
+
+  @GetMapping("/my")
+  public ResponseData<Page<PostResponse>> getOwnPosts(
+          @RequestParam Long userId,
+          @RequestParam(defaultValue = "1") int page,
+          @RequestParam(defaultValue = "10") int size,
+          @RequestParam(defaultValue = "createdAt") String sortBy,
+          @RequestParam(defaultValue = "DESC") Sort.Direction direction
+  ) {
+    log.info(userId.toString());
+    Pageable pageable = PageRequest.of(page - 1, size, Sort.by(direction, sortBy));
+    Page<PostResponse> result = postService.getOwnPosts(
+            userId,
+            pageable
+    );
+
+    return new ResponseData<>(
+            HttpStatus.OK.value(),
+            "Success",
+            result
     );
   }
 

@@ -169,7 +169,7 @@ VALUES
     (2, 'CUSTOM_INCLUDE'),
     (3, 'CUSTOM_INCLUDE'),
     (4, 'BLACKLIST'),
-    (5, 'FOLLOWING_ONLY');
+    (23, 'FOLLOWING_ONLY');
 
 INSERT INTO story_setting_whitelist (setting_id, allowed_user_id)
 VALUES
@@ -178,7 +178,9 @@ VALUES
     (5, 1),
     (5, 2),
     (5, 3),
-    (3, 5);
+    (1, 23),
+    (2, 23),
+    (3, 23);
 
 INSERT INTO story_setting_blacklist (setting_id, blocked_user_id)
 VALUES
