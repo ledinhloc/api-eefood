@@ -3,6 +3,7 @@ package com.eefood.iamservice.service;
 import com.eefood.iamservice.dto.request.Credential;
 import com.eefood.iamservice.dto.request.TokenExchangeParam;
 import com.eefood.iamservice.dto.request.UserCreationParam;
+import com.eefood.iamservice.dto.response.SimpleTokenResponse;
 import com.eefood.iamservice.dto.response.TokenExchangeResponse;
 import com.eefood.iamservice.enums.ErrorMessage;
 import com.eefood.iamservice.enums.SuccessMessage;
@@ -45,7 +46,7 @@ public class KeycloakAdminService {
   }
 
   // refresh token
-  public TokenExchangeResponse refreshToken(String refreshToken) {
+  public SimpleTokenResponse refreshToken(String refreshToken) {
     TokenExchangeParam param =
         TokenExchangeParam.builder()
             .grant_type("refresh_token")
@@ -53,7 +54,11 @@ public class KeycloakAdminService {
             .client_secret(clientSecret)
             .refresh_token(refreshToken)
             .build();
-    return keycloakClient.exchangeToken(realm, param);
+    TokenExchangeResponse keycloakRes = keycloakClient.exchangeToken(realm, param);
+     return SimpleTokenResponse.builder()
+       .accessToken(keycloakRes.getAccessToken())
+       .refreshToken(keycloakRes.getRefreshToken())
+       .build();
   }
 
   // login

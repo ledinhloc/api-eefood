@@ -2,6 +2,7 @@ package com.eefood.iamservice.controller;
 
 import com.eefood.iamservice.dto.request.*;
 import com.eefood.iamservice.dto.response.ResponseData;
+import com.eefood.iamservice.dto.response.SimpleTokenResponse;
 import com.eefood.iamservice.dto.response.UserResponse;
 import com.eefood.iamservice.enums.ErrorMessage;
 import com.eefood.iamservice.enums.OtpType;
@@ -43,7 +44,7 @@ public class AuthController {
 
   // refresh token
   @PostMapping("/refresh")
-  public ResponseData<?> refreshToken(@RequestBody RefreshTokenRequest request) {
+  public ResponseData<SimpleTokenResponse> refreshToken(@RequestBody RefreshTokenRequest request) {
     return new ResponseData<>(
         HttpStatus.OK.value(), "Success", keycloakService.refreshToken(request.getRefreshToken()));
   }
