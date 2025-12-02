@@ -247,8 +247,8 @@ public class PostService {
 
     // 3. Lấy Post từ DB theo postIds
     Specification<Post> spec = PostSpecification.isNotDeleted()
-      .and(PostSpecification.hasUserId(userId))
       .and(PostSpecification.hasPostIds(postIds))
+      .and(PostSpecification.hasUserId(userId))
       .and(PostSpecification.hasStatus(PostStatus.APPROVED));
 
     List<Post> posts = postRepo.findAll(spec);
@@ -264,6 +264,27 @@ public class PostService {
     //debug
 //    log.info("----------------" + postResponses.toString());
     return new PageImpl<>(postResponses, PageRequest.of(page - 1, size), total);
+  }
+
+  public Page<PostResponse> getOwnPosts(
+          Long userId,
+          Pageable pageable
+  ) {
+
+    Specification<Post> spec = PostSpecification.isNotDeleted()
+            .and(PostSpecification.hasUserId(userId))
+            .and(PostSpecification.hasStatus(PostStatus.APPROVED));
+
+    Page<Post> pageResult = postRepo.findAll(spec, pageable);
+    List<Post> posts = pageResult.getContent();
+
+    if (posts.isEmpty()) {
+      return new PageImpl<>(List.of(), pageable, 0);
+    }
+
+    List<PostResponse> responses = mapToPostResponse(posts);
+
+    return new PageImpl<>(responses, pageable, pageResult.getTotalElements());
   }
 
   public Page<PostResponse> getAllPostsByAdmin(
