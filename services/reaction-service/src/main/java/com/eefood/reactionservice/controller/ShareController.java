@@ -3,7 +3,7 @@ package com.eefood.reactionservice.controller;
 import com.eefood.reactionservice.dto.request.ShareRequest;
 import com.eefood.reactionservice.dto.response.ResponseData;
 import com.eefood.reactionservice.dto.response.ShareResponse;
-import com.eefood.reactionservice.service.ShareService;
+import com.eefood.reactionservice.service.share.ShareService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;

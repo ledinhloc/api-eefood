@@ -3,7 +3,7 @@ package com.eefood.reactionservice.controller;
 import com.eefood.reactionservice.dto.request.PostReactionRequest;
 import com.eefood.reactionservice.dto.response.PostReactionResponse;
 import com.eefood.reactionservice.dto.response.ResponseData;
-import com.eefood.reactionservice.service.PostReactionService;
+import com.eefood.reactionservice.service.post.PostReactionService;
 import com.eefood.reactionservice.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
