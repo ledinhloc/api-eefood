@@ -9,4 +9,6 @@ import java.util.List;
 @Repository
 public interface StoryCollectionItemRepository extends JpaRepository<StoryCollectionItem, Long> {
     List<StoryCollectionItem> findByCollectionIdOrderByCreatedAtDesc(Long collectionId);
+    List<StoryCollectionItem> findByCollectionUserIdAndStoryIdAndCollectionIsDeletedFalseOrderByCreatedAtDesc(Long userId, Long storyId);
+    List<StoryCollectionItem> findByCollectionId(Long collectionId);
 }
