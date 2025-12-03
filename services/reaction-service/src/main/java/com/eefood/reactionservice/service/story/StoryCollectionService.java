@@ -64,7 +64,10 @@ public class StoryCollectionService {
         if(!sc.getUserId().equals(userId)) {
             throw new RuntimeException("User not authorized to update story collection");
         }
+
         sc.setIsDeleted(true);
+        List<StoryCollectionItem> items = storyCollectionItemRepository.findByCollectionId(id);
+        sc.getItems().removeAll(items);
         storyCollectionRepository.save(sc);
     }
 
@@ -121,5 +124,18 @@ public class StoryCollectionService {
 
         sc.getItems().remove(item);
         storyCollectionRepository.save(sc);
+    }
+
+    public List<StoryCollectionResponse> getCollectionsContainingStory(Long storyId) {
+        Long userId = securityUtil.getCurrentUserId();
+        List<StoryCollectionItem> items = storyCollectionItemRepository
+                .findByCollectionUserIdAndStoryIdAndCollectionIsDeletedFalseOrderByCreatedAtDesc(userId, storyId);
+
+        return items.stream()
+                .map(StoryCollectionItem::getCollection)
+                .filter(collection -> collection != null && Boolean.FALSE.equals(collection.getIsDeleted()))
+                .distinct()
+                .map(storyCollectionMapper::toResponse)
+                .toList();
     }
 }
