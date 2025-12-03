@@ -71,4 +71,10 @@ public class StoryCollectionController {
         storyCollectionService.removeStoryFromCollection(collectionId, storyId);
         return new ResponseData<>(HttpStatus.OK.value(), "Removed story to collection successfully");
     }
+
+    @GetMapping("/containing/{storyId}")
+    public ResponseData<List<StoryCollectionResponse>> getCollectionsContainingStory(@PathVariable Long storyId) {
+        List<StoryCollectionResponse> responses = storyCollectionService.getCollectionsContainingStory(storyId);
+        return new ResponseData<>(HttpStatus.OK.value(), "Successfully", responses);
+    }
 }
