@@ -52,9 +52,9 @@ public class StoryCollectionController {
         return new ResponseData<>(HttpStatus.OK.value(), "Successfully", responses);
     }
 
-    @GetMapping("/{id}")
-    public ResponseData<List<StoryResponse>> getAllStoryCollections(@PathVariable Long id) {
-        List<StoryResponse> storyResponses = storyCollectionService.getStoriesInCollection(id);
+    @GetMapping("/{id}/user/{userId}")
+    public ResponseData<List<StoryResponse>> getAllStoryCollections(@PathVariable Long id, @PathVariable Long userId) {
+        List<StoryResponse> storyResponses = storyCollectionService.getStoriesInCollection(id, userId);
         return new ResponseData<>(HttpStatus.OK.value(), "Successfully", storyResponses);
     }
 
