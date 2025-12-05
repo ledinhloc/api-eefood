@@ -1,5 +1,6 @@
 package com.eefood.recipeservice.service;
 
+
 import com.eefood.recipeservice.dto.response.IngredientResponse;
 import com.eefood.recipeservice.mapper.RecipeMapper;
 import com.eefood.recipeservice.model.Ingredient;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Set;
+
 
 @Service
 @RequiredArgsConstructor
@@ -26,4 +28,5 @@ public class IngredientService {
         Specification<Ingredient> spec = Specification.allOf(IngredientSpecification.hasName(name.trim()));
         return ingredientRepository.findAll(spec, pageable).map(recipeMapper::toResponse);
     }
+
 }

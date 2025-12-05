@@ -7,6 +7,7 @@ import com.eefood.iamservice.dto.request.UserUpdateRequest;
 import com.eefood.iamservice.dto.response.UserInfo;
 import com.eefood.iamservice.dto.response.UserNotificationResponse;
 import com.eefood.iamservice.dto.response.UserResponse;
+import com.eefood.iamservice.dto.response.UserUpdateResponse;
 import com.eefood.iamservice.enums.ErrorMessage;
 import com.eefood.iamservice.enums.Role;
 import com.eefood.iamservice.mapper.UserMapper;
@@ -215,8 +216,10 @@ public class UserService {
     return userResponse;
   }
 
+
   public List<UserNotificationResponse> getUserForNotifications() {
     List<User> response = userRepository.findAllByIsDeletedFalse();
     return response.stream().map(userMapper::toUserNotificationResponse).collect(Collectors.toList());
   }
+
 }

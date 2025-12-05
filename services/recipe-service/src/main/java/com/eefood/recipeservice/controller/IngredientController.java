@@ -15,6 +15,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@RequiredArgsConstructor
+@RequestMapping("/api/v1/ingredients")
+public class IngredientController {
+
+
+@RestController
 @RequestMapping("/api/v1/ingredients")
 @RequiredArgsConstructor
 public class IngredientController {

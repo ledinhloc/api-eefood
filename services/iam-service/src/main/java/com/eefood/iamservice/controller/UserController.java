@@ -7,6 +7,10 @@ import com.eefood.iamservice.dto.response.ResponseData;
 import com.eefood.iamservice.dto.response.UserInfo;
 import com.eefood.iamservice.dto.response.UserNotificationResponse;
 import com.eefood.iamservice.dto.response.UserResponse;
+
+import com.eefood.iamservice.dto.response.UserUpdateResponse;
+import com.eefood.iamservice.enums.ErrorMessage;
+
 import com.eefood.iamservice.enums.SuccessMessage;
 import com.eefood.iamservice.service.UserService;
 import jakarta.validation.Valid;
@@ -103,4 +107,5 @@ public class UserController {
   public ResponseData<List<UserNotificationResponse>> getAllUsers() {
     return new ResponseData<>(HttpStatus.OK.value(), "Success", userService.getUserForNotifications());
   }
+
 }
