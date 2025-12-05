@@ -1,6 +1,5 @@
 package com.eefood.iamservice.service;
 
-import com.eefood.common.avro.FirebaseNotificationEvent;
 import com.eefood.iamservice.dto.request.Credential;
 import com.eefood.iamservice.dto.request.UserCreateRequest;
 import com.eefood.iamservice.dto.request.UserCreationParam;
@@ -10,7 +9,6 @@ import com.eefood.iamservice.dto.response.UserNotificationResponse;
 import com.eefood.iamservice.dto.response.UserResponse;
 import com.eefood.iamservice.enums.ErrorMessage;
 import com.eefood.iamservice.enums.Role;
-import com.eefood.iamservice.kafka.FirebaseNotificationProducer;
 import com.eefood.iamservice.mapper.UserMapper;
 import com.eefood.iamservice.model.User;
 import com.eefood.iamservice.repository.UserRepository;
@@ -39,7 +37,6 @@ public class UserService {
   private final UserRepository userRepository;
   private final UserMapper userMapper;
   private final KeycloakAdminService keycloakAdminService;
-  private final FirebaseNotificationProducer firebaseNotificationProducer;
 
   public UserResponse getUserById(Long id) {
     User user = userRepository.findById(id).orElse(null);
@@ -215,13 +212,6 @@ public class UserService {
     // gan access token, refresh token
     userResponse.setAccessToken(response.getAccessToken());
     userResponse.setRefreshToken(response.getRefreshToken());
-    FirebaseNotificationEvent fcmRequest = FirebaseNotificationEvent.newBuilder()
-            .setId(userResponse.getId())
-            .setEmail(userResponse.getEmail())
-            .setUsername(userResponse.getUsername())
-            .setFcmToken(userResponse.getAccessToken())
-            .build();
-    firebaseNotificationProducer.sendFirebaseRegisterEvent(fcmRequest);
     return userResponse;
   }
 

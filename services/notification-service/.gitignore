@@ -35,5 +35,3 @@ build/
 # Google secrets
 src/main/resources/serviceAccountKey.json
 src/main/resources/google-services.json
-
-

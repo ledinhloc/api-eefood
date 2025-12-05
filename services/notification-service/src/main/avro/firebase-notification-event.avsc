@@ -6,6 +6,6 @@
     { "name": "id", "type": ["null", "long"], "default": null },
     { "name": "email", "type": ["null", "string"], "default": null },
     { "name": "username", "type": ["null", "string"], "default": null },
-    { "name": "fcmToken", "type": ["null", "string"], "default": null }
+    { "name": "fcmToken", "type": ["null", "string"], "default": null },
   ]
 }

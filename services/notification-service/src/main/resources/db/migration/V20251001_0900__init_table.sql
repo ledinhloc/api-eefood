@@ -60,14 +60,3 @@ CREATE TABLE notifications_setting
 
     CONSTRAINT pk_notifications_setting PRIMARY KEY (id)
 );
-
-CREATE TABLE user_fcm_tokens
-(
-    user_id     BIGINT PRIMARY KEY,
-    fcm_token   character varying(500)                NOT NULL,
-    created_at  TIMESTAMP WITHOUT TIME ZONE DEFAULT now(),
-    updated_at  TIMESTAMP WITHOUT TIME ZONE DEFAULT now(),
-    created_by  character varying(255)                NOT NULL,
-    updated_by  character varying(255)                NOT NULL,
-    is_deleted  BOOLEAN DEFAULT FALSE
-);
