@@ -11,7 +11,7 @@ public class NotificationProducer {
     private final KafkaTemplate<String, Object> kafkaTemplate;
     private static final String EMAIL_TOPIC = "notifications.app";
 
-  public void sendNotification(NotificationEvent notification) {
+    public void sendNotification(NotificationEvent notification) {
         kafkaTemplate.send(EMAIL_TOPIC, notification);
     }
 }

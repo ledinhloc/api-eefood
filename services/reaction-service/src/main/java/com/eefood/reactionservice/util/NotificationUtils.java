@@ -76,15 +76,15 @@ public class NotificationUtils {
 
         String type = isPost ? "bài viết" : "bình luận";
         String title = String.format(reactorName + " đã " + reactionText + " %s của bạn", type);
-      NotificationEvent notification = NotificationEvent.newBuilder()
-        .setTitle(title)
-        .setBody("Nhấn vào đây để xem chi tiết bài viết")
-        .setPath(postPath)
-        .setAvatarUrl(avatarUrl)
-        .setPostImageUrl(postImageUrl)
-        .setType("REACTION")
-        .setUserId(receiverId)
-        .build();
+        NotificationEvent notification = NotificationEvent.newBuilder()
+            .setTitle(title)
+            .setBody("Nhấn vào đây để xem chi tiết bài viết")
+            .setPath(postPath)
+            .setAvatarUrl(avatarUrl)
+            .setPostImageUrl(postImageUrl)
+            .setType("REACTION")
+            .setUserId(receiverId)
+            .build();
 
       notificationProducer.sendNotification(notification);
     }
