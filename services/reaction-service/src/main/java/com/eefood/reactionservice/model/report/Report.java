@@ -1,7 +1,8 @@
-package com.eefood.reactionservice.model;
+package com.eefood.reactionservice.model.report;
 
 import com.eefood.reactionservice.enums.ReportStatus;
 import com.eefood.reactionservice.enums.ReportTargetType;
+import com.eefood.reactionservice.model.BaseEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -16,7 +17,8 @@ import lombok.experimental.SuperBuilder;
 @NoArgsConstructor
 @AllArgsConstructor
 @SuperBuilder
-public class Report extends BaseEntity {
+@Inheritance(strategy = InheritanceType.JOINED)
+public abstract class Report extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -25,7 +27,7 @@ public class Report extends BaseEntity {
     @Column(nullable = false)
     private Long reporterId;
 
-    // Loại đối tượng bị report: POST, STORY, COMMENT
+    // Loại đối tượng bị report: POST, STORY, COMMENT, LIVESTREAM,...
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 10)
     private ReportTargetType targetType;
@@ -37,8 +39,4 @@ public class Report extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 10)
     private ReportStatus status = ReportStatus.PENDING;
-
-    // ID của đối tượng bị report
-    @Column(nullable = false)
-    private Long targetId;
 }
