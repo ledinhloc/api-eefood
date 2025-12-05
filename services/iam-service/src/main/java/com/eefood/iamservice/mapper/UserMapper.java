@@ -6,13 +6,11 @@ import com.eefood.iamservice.dto.response.UserInfo;
 import com.eefood.iamservice.dto.response.UserNotificationResponse;
 import com.eefood.iamservice.dto.response.UserResponse;
 import com.eefood.iamservice.model.User;
-import org.mapstruct.BeanMapping;
-import org.mapstruct.Mapper;
-import org.mapstruct.MappingTarget;
-import org.mapstruct.NullValuePropertyMappingStrategy;
+import org.mapstruct.*;
 
 @Mapper(componentModel = "spring")
 public interface UserMapper {
+  @Mapping(target = "createdAt", source = "createdAt")
   UserResponse toUserResponse(User user);
 
   User toUser(UserCreateRequest request);
