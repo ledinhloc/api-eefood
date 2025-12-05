@@ -3,25 +3,22 @@ import com.eefood.reactionservice.dto.request.PostCreateRequest;
 import com.eefood.reactionservice.dto.response.PostPublishResponse;
 import com.eefood.reactionservice.dto.response.PostResponse;
 import com.eefood.reactionservice.dto.response.ResponseData;
-import com.eefood.reactionservice.service.GeminiService;
-import com.eefood.reactionservice.service.PostService;
+import com.eefood.reactionservice.service.ai.GeminiService;
+import com.eefood.reactionservice.service.post.PostService;
 import com.eefood.reactionservice.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.time.Duration;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/api/v1/posts")
@@ -112,6 +109,28 @@ public class PostController {
       HttpStatus.OK.value(),
       "Success",
       result
+    );
+  }
+
+  @GetMapping("/my")
+  public ResponseData<Page<PostResponse>> getOwnPosts(
+          @RequestParam Long userId,
+          @RequestParam(defaultValue = "1") int page,
+          @RequestParam(defaultValue = "10") int size,
+          @RequestParam(defaultValue = "createdAt") String sortBy,
+          @RequestParam(defaultValue = "DESC") Sort.Direction direction
+  ) {
+    log.info(userId.toString());
+    Pageable pageable = PageRequest.of(page - 1, size, Sort.by(direction, sortBy));
+    Page<PostResponse> result = postService.getOwnPosts(
+            userId,
+            pageable
+    );
+
+    return new ResponseData<>(
+            HttpStatus.OK.value(),
+            "Success",
+            result
     );
   }
 

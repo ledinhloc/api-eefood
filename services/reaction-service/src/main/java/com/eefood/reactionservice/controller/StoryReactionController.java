@@ -3,9 +3,7 @@ package com.eefood.reactionservice.controller;
 import com.eefood.reactionservice.dto.request.StoryReactionRequest;
 import com.eefood.reactionservice.dto.response.ResponseData;
 import com.eefood.reactionservice.dto.response.StoryReactionResponse;
-import com.eefood.reactionservice.enums.ReactionType;
-import com.eefood.reactionservice.service.StoryReactionService;
-import feign.Response;
+import com.eefood.reactionservice.service.story.StoryReactionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -13,8 +11,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/story-reactions")

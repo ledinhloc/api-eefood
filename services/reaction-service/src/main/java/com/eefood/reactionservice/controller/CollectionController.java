@@ -2,11 +2,10 @@ package com.eefood.reactionservice.controller;
 import com.eefood.reactionservice.dto.request.PostCollectionsRequest;
 import com.eefood.reactionservice.dto.response.CollectionResponse;
 import com.eefood.reactionservice.dto.response.ResponseData;
-import com.eefood.reactionservice.service.CollectionService;
+import com.eefood.reactionservice.service.collection.CollectionService;
 import com.eefood.reactionservice.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;

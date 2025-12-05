@@ -26,6 +26,7 @@ public interface PostMapper {
   PostPublishResponse toPublishResponse(Post post);
 
   //els
+  @Mapping(target = "totalTime", expression = "java(calculateTotalTime(post))")
   @Mapping(target = "status", expression = "java(post.getStatus() != null ? post.getStatus().name() : null)")
   @Mapping(target = "difficulty", expression = "java(post.getDifficulty() != null ? post.getDifficulty().name() : null)")
   @Mapping(target = "totalReactionCount",
@@ -38,6 +39,10 @@ public interface PostMapper {
   @Mapping(
     target = "totalShares",
     expression = "java(post.getShares() != null ? (long) post.getShares().size() : 0L)"
+  )
+  @Mapping(
+          target = "totalComments",
+          expression = "java(post.getComments() != null ? (long) post.getComments().size() : 0L)"
   )
   PostResponse toResponse(Post post);
 
@@ -76,5 +81,12 @@ public interface PostMapper {
         .map(this::mapCommentResponse)
         .collect(Collectors.toList()))
       .build();
+  }
+
+  default Integer calculateTotalTime(Post post) {
+    Integer prepTime = post.getPrepTime();
+    Integer cookTime = post.getCookTime();
+    if(prepTime == null && cookTime == null) return 0;
+    return (prepTime != null ? prepTime : 0) + (cookTime != null ? cookTime : 0);
   }
 }
