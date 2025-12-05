@@ -38,6 +38,11 @@ public class UserService {
   private final UserMapper userMapper;
   private final KeycloakAdminService keycloakAdminService;
 
+  public UserResponse getUserById(Long id) {
+    User user = userRepository.findById(id).orElse(null);
+    return userMapper.toUserResponse(user);
+  }
+
   /**
    * Lấy thông tin user từ cache hoặc DB.
    * Nếu không có trong cache -> lấy từ DB -> lưu cache.

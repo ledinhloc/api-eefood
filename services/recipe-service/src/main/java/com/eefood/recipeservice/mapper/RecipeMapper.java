@@ -13,9 +13,15 @@ import java.util.Set;
 
 @Mapper(componentModel = "spring")
 public interface RecipeMapper {
+  @Mappings({
+    @Mapping(target = "difficulty", expression = "java(String.valueOf(recipe.getDifficulty()))")
+  })
+  RecipeDocument toDocument(Recipe recipe);
+
 //  @Mapping(target = "ingredients", source = "ingredients", qualifiedByName = "filterDeletedIngredients")
 //  @Mapping(target = "steps", source = "steps", qualifiedByName = "filterDeletedSteps")
   RecipeResponse toResponse(Recipe recipe);
+  RecipeSummaryResponse toSummaryResponse(Recipe recipe);
   RecipeDetailResponse toDetailResponse(Recipe recipe);
 
   StepResponse toResponse(RecipeStep step);

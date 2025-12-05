@@ -16,6 +16,7 @@ import com.eefood.reactionservice.repository.httpclient.IamClient;
 import com.eefood.reactionservice.util.SecurityUtil;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -24,7 +25,7 @@ import com.eefood.reactionservice.dto.response.PostCollectionResponse;
 
 @Service
 @RequiredArgsConstructor
-@Transactional
+@Slf4j
 public class CollectionService {
   private final CollectionRepository collectionRepo;
   private final CollectionPostRepository collectionPostRepo;
@@ -170,32 +171,22 @@ public class CollectionService {
   /** Get all collections by user */
   public List<CollectionResponse> getByUser(Long userId) {
     if (userId == null) throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
-    List<Collection> collections = collectionRepo.findAllByUserIdAndIsDeletedFalse(userId);
+    List<Collection> collections = collectionRepo.findAllByUserIdAndIsDeletedFalseOrderByIdDesc(userId);
     if (collections.isEmpty()) return List.of();
+
+    //sort col post giam dan
+    for(Collection collection: collections){
+      if (collection.getCollectionPosts() != null && !collection.getCollectionPosts().isEmpty()) {
+        collection.getCollectionPosts().sort(
+          Comparator.comparing(CollectionPost::getId).reversed()
+        );
+      }
+    }
 
     //mapper sang dto
     List<CollectionResponse> responses = collections.stream()
       .map(mapper::toDto)
       .toList();
-
-//    // Sort posts in each collection
-//    for (CollectionResponse col : responses) {
-//      List<PostCollectionResponse> posts = col.getPosts();
-//      if (posts != null && !posts.isEmpty()) {
-//        posts.sort(Comparator
-//          .comparing(PostCollectionResponse::getCreatedAt,
-//            Comparator.nullsLast(Comparator.reverseOrder()))
-//          .thenComparing(p -> Optional.ofNullable(p.getTitle()).orElse(""),
-//            String.CASE_INSENSITIVE_ORDER)
-//        );
-//      }
-//    }
-//
-//    // Sort collections by updated time
-//    responses.sort(Comparator.comparing(
-//      CollectionResponse::getUpdatedAt,
-//      Comparator.nullsLast(Comparator.reverseOrder())
-//    ));
 
     //lay danh sach userId trong post
     Set<Long> userIds = responses.stream()
@@ -238,11 +229,15 @@ public class CollectionService {
       .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.COLLECTION_NOT_FOUND));
 
     validateOwner(collection);
-    CollectionResponse response = mapper.toDto(collection);
-    //Nếu collection không có post thì return luôn
-    if (response.getPosts() == null || response.getPosts().isEmpty()) {
-      return response;
+    // Sắp xếp ngay trong entity trước khi map
+    if (collection.getCollectionPosts() != null && !collection.getCollectionPosts().isEmpty()) {
+      collection.getCollectionPosts().sort(
+        Comparator.comparing(CollectionPost::getId).reversed()
+      );
     }
+
+    CollectionResponse response = mapper.toDto(collection);
+
     // Lấy danh sách userId trong các bài post
     Set<Long> userIds = response.getPosts().stream()
       .map(PostCollectionResponse::getUserId)

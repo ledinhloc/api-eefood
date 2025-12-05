@@ -1,12 +1,8 @@
 package com.eefood.reactionservice.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import lombok.experimental.SuperBuilder;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -36,18 +32,23 @@ public class Post extends BaseEntity {
   private String imageUrl;
 
   @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+  @Builder.Default
   private List<Share> shares = new ArrayList<>();
 
   @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+  @Builder.Default
   private List<PostReaction> reactions = new ArrayList<>();
 
   @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+  @Builder.Default
   private List<Comment> comments = new ArrayList<>();
 
   //count
   @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+  @Builder.Default
   private List<PostReactionCount> reactionCounts = new ArrayList<>();
 
   @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+  @Builder.Default
   private List<CollectionPost> collectionPosts = new ArrayList<>();
 }
