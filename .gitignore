@@ -31,7 +31,3 @@ build/
 
 ### VS Code ###
 .vscode/
-
-# Google secrets
-**/services/notification-service/src/main/resources/serviceAccountKey.json
-**/services/notification-service/src/main/resources/google-services.json
