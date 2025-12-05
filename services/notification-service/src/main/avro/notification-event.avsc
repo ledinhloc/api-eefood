@@ -1,0 +1,14 @@
+{
+  "type": "record",
+  "namespace": "com.eefood.common.avro",
+  "name": "NotificationEvent",
+  "fields": [
+    { "name": "title", "type": ["null", "string"], "default": null },
+    { "name": "body", "type": ["null", "string"], "default": null },
+    { "name": "path", "type": ["null", "string"], "default": null },
+    { "name": "avatarUrl", "type": ["null", "string"], "default": null },
+    { "name": "postImageUrl", "type": ["null", "string"], "default": null },
+    { "name": "type", "type": ["null", "string"], "default": null },
+    { "name": "userId", "type": ["null", "long"], "default": null }
+  ]
+}

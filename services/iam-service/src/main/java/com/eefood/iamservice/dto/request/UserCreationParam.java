@@ -1,6 +1,8 @@
 package com.eefood.iamservice.dto.request;
 
 import java.util.List;
+import java.util.Map;
+
 import lombok.*;
 import lombok.experimental.FieldDefaults;
 
@@ -10,11 +12,12 @@ import lombok.experimental.FieldDefaults;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class UserCreationParam {
-    String username;
-    boolean enabled;
-    String email;
-    boolean emailVerified;
-    String firstName;
-    String lastName;
-    List<Credential> credentials;
+  String username;
+  boolean enabled;
+  String email;
+  boolean emailVerified;
+  String firstName;
+  String lastName;
+  List<Credential> credentials;
+  private Map<String, Object> attributes;
 }

@@ -137,6 +137,8 @@ services:
       - "5540:5540"
     depends_on:
       - redis
+    networks:
+      - microservices-net
 
 #  loki:
 #    container_name: loki

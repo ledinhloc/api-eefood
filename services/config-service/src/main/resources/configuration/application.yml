@@ -14,7 +14,7 @@ spring:
   main:
     allow-bean-definition-overriding: true
 
-# security
+  # security
   security:
     oauth2:
       resourceserver:
@@ -27,6 +27,6 @@ idp:
   url: ${env.global.idp.url:http://localhost:9098}
   realm: ${env.global.realm:eefood-realm}
   client-id: ${env.global.idp.client-id:client_backend}
-  client-secret: ${env.global.idp.client-secret:MCKrWc2Ru5WE1TQodq0EKxliT5xe0wqD}
+  client-secret: ${env.global.idp.client-secret:cwWQrCIoC3UU7oGp7HUVIeDjQF3alz5B}
 
 

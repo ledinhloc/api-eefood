@@ -8,18 +8,17 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class OtpResponse {
-    @NotBlank(message = "EMAIL_REQUIRED")
-    @Email(message = "EMAIL_INVALID")
-    String email;
+  @NotBlank(message = "EMAIL_REQUIRED")
+  @Email(message = "EMAIL_INVALID")
+  String email;
 
-    @NotBlank(message = "OTP_REQUIRED")
-    String otpCode;
-    OtpType otpType;
+  @NotBlank(message = "OTP_REQUIRED")
+  String otpCode;
+
+  OtpType otpType;
 }

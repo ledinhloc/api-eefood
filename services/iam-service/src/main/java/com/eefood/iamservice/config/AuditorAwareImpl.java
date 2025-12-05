@@ -13,12 +13,12 @@ public class AuditorAwareImpl implements AuditorAware<String> {
   @Override
   public Optional<String> getCurrentAuditor() {
     Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-    if(authentication == null || !authentication.isAuthenticated()) {
+    if (authentication == null || !authentication.isAuthenticated()) {
       return Optional.of("System");
     }
 
     // Nếu là JWT (Keycloak + OAuth2 Resource Server)
-    if(authentication instanceof JwtAuthenticationToken jwtAuth){
+    if (authentication instanceof JwtAuthenticationToken jwtAuth) {
       Jwt jwt = jwtAuth.getToken();
       String username = jwt.getClaimAsString("preferred_username");
       return Optional.ofNullable(username != null ? username : jwt.getSubject());
@@ -28,3 +28,5 @@ public class AuditorAwareImpl implements AuditorAware<String> {
     return Optional.of(authentication.getName());
   }
 }
+
+

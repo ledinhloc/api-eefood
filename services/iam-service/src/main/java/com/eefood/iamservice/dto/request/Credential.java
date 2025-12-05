@@ -9,7 +9,7 @@ import lombok.experimental.FieldDefaults;
 @Builder
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class Credential {
-    String type;
-    String value;
-    boolean temporary;
+  String type;
+  String value;
+  boolean temporary;
 }

@@ -11,6 +11,6 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class AdminUpdateRequest {
-    private Long id;
-    private Role role;
+  private Long id;
+  private Role role;
 }

@@ -3,88 +3,99 @@ package com.eefood.iamservice.repository.httpclient;
 import com.eefood.iamservice.dto.request.Credential;
 import com.eefood.iamservice.dto.request.TokenExchangeParam;
 import com.eefood.iamservice.dto.request.UserCreationParam;
-import com.eefood.iamservice.dto.response.KeycloakTokenResponse;
 import com.eefood.iamservice.dto.response.TokenExchangeResponse;
-import feign.QueryMap;
+import java.util.List;
+import java.util.Map;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.Map;
-
 @FeignClient(name = "identity-client", url = "${idp.url}")
-public interface KeycloakClient
-{
+public interface KeycloakClient {
 
-    //logout
-    @PostMapping(
-        value = "/realms/{realm}/protocol/openid-connect/logout",
-        consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-    void logout(
-        @PathVariable("realm") String realm,
-        @RequestBody TokenExchangeParam param);
-
-    //lay token keycloak
+  // logout
   @PostMapping(
-    value = "/realms/{realm}/protocol/openid-connect/token",
-    consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+      value = "/realms/{realm}/protocol/openid-connect/logout",
+      consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+  void logout(@PathVariable("realm") String realm, @RequestBody TokenExchangeParam param);
+
+  // lay token keycloak
+  @PostMapping(
+      value = "/realms/{realm}/protocol/openid-connect/token",
+      consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
   TokenExchangeResponse exchangeToken(
-    @PathVariable("realm") String realm,
-    @RequestBody TokenExchangeParam param);
+      @PathVariable("realm") String realm, @RequestBody TokenExchangeParam param);
 
   // Tạo user (admin)
   @PostMapping(value = "/admin/realms/{realm}/users", consumes = MediaType.APPLICATION_JSON_VALUE)
-  ResponseEntity<?> createUser(@RequestHeader("authorization") String token,
-                               @PathVariable("realm") String realm,
-                               @RequestBody UserCreationParam param);
+  ResponseEntity<?> createUser(
+      @RequestHeader("authorization") String token,
+      @PathVariable("realm") String realm,
+      @RequestBody UserCreationParam param);
 
   // Cập nhật user representation (PUT)
-  @PutMapping(value = "/admin/realms/{realm}/users/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
-  ResponseEntity<Void> updateUser(@RequestHeader("Authorization") String token,
-                                  @PathVariable("realm") String realm,
-                                  @PathVariable("id") String id,
-                                  @RequestBody Map<String, Object> userRepresentation);
+  @PutMapping(
+      value = "/admin/realms/{realm}/users/{id}",
+      consumes = MediaType.APPLICATION_JSON_VALUE)
+  ResponseEntity<Void> updateUser(
+      @RequestHeader("Authorization") String token,
+      @PathVariable("realm") String realm,
+      @PathVariable("id") String id,
+      @RequestBody Map<String, Object> userRepresentation);
 
   // Tìm users theo email (GET /admin/realms/{realm}/users?email=...)
   @GetMapping(value = "/admin/realms/{realm}/users", produces = MediaType.APPLICATION_JSON_VALUE)
-  List<Map<String, Object>> findUsersByEmail(@RequestHeader("Authorization") String token,
-                                             @PathVariable("realm") String realm,
-                                             @RequestParam("email") String email);
+  List<Map<String, Object>> findUsersByEmail(
+      @RequestHeader("Authorization") String token,
+      @PathVariable("realm") String realm,
+      @RequestParam("email") String email);
 
   // Lấy user representation theo id
-  @GetMapping(value = "/admin/realms/{realm}/users/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
-  Map<String, Object> getUserById(@RequestHeader("Authorization") String token,
-                                  @PathVariable("realm") String realm,
-                                  @PathVariable("id") String id);
+  @GetMapping(
+      value = "/admin/realms/{realm}/users/{id}",
+      produces = MediaType.APPLICATION_JSON_VALUE)
+  Map<String, Object> getUserById(
+      @RequestHeader("Authorization") String token,
+      @PathVariable("realm") String realm,
+      @PathVariable("id") String id);
 
   // Reset password (PUT /admin/realms/{realm}/users/{id}/reset-password)
-  @PutMapping(value = "/admin/realms/{realm}/users/{id}/reset-password", consumes = MediaType.APPLICATION_JSON_VALUE)
-  ResponseEntity<Void> resetPassword(@RequestHeader("Authorization") String token,
-                                     @PathVariable("realm") String realm,
-                                     @PathVariable("id") String id,
-                                     @RequestBody Credential payload);
-// Lấy role representation theo tên role
-  @GetMapping(value = "/admin/realms/{realm}/roles/{roleName}", produces = MediaType.APPLICATION_JSON_VALUE)
-  Map<String, Object> getRoleByName(@RequestHeader("Authorization") String token,
-                                    @PathVariable("realm") String realm,
-                                    @PathVariable("roleName") String roleName);
+  @PutMapping(
+      value = "/admin/realms/{realm}/users/{id}/reset-password",
+      consumes = MediaType.APPLICATION_JSON_VALUE)
+  ResponseEntity<Void> resetPassword(
+      @RequestHeader("Authorization") String token,
+      @PathVariable("realm") String realm,
+      @PathVariable("id") String id,
+      @RequestBody Credential payload);
+
+  // Lấy role representation theo tên role
+  @GetMapping(
+      value = "/admin/realms/{realm}/roles/{roleName}",
+      produces = MediaType.APPLICATION_JSON_VALUE)
+  Map<String, Object> getRoleByName(
+      @RequestHeader("Authorization") String token,
+      @PathVariable("realm") String realm,
+      @PathVariable("roleName") String roleName);
 
   // Thêm role realm vào user (role-mappings)
-  @PostMapping(value = "/admin/realms/{realm}/users/{id}/role-mappings/realm", consumes = MediaType.APPLICATION_JSON_VALUE)
-  ResponseEntity<Void> addRealmRoleMappingsToUser(@RequestHeader("Authorization") String token,
-                                                  @PathVariable("realm") String realm,
-                                                  @PathVariable("id") String id,
-                                                  @RequestBody List<Map<String, Object>> roles);
+  @PostMapping(
+      value = "/admin/realms/{realm}/users/{id}/role-mappings/realm",
+      consumes = MediaType.APPLICATION_JSON_VALUE)
+  ResponseEntity<Void> addRealmRoleMappingsToUser(
+      @RequestHeader("Authorization") String token,
+      @PathVariable("realm") String realm,
+      @PathVariable("id") String id,
+      @RequestBody List<Map<String, Object>> roles);
 
   // Xóa role realm từ user (role-mappings)
-  @DeleteMapping(value = "/admin/realms/{realm}/users/{id}/role-mappings/realm", consumes = MediaType.APPLICATION_JSON_VALUE)
-  ResponseEntity<Void> deleteRealmRoleMappingsFromUser(@RequestHeader("Authorization") String token,
-                                                       @PathVariable("realm") String realm,
-                                                       @PathVariable("id") String id,
-                                                       @RequestBody List<Map<String, Object>> roles);
-
- 
+  @DeleteMapping(
+      value = "/admin/realms/{realm}/users/{id}/role-mappings/realm",
+      consumes = MediaType.APPLICATION_JSON_VALUE)
+  ResponseEntity<Void> deleteRealmRoleMappingsFromUser(
+      @RequestHeader("Authorization") String token,
+      @PathVariable("realm") String realm,
+      @PathVariable("id") String id,
+      @RequestBody List<Map<String, Object>> roles);
 }
-
