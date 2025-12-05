@@ -107,9 +107,7 @@ public class RecipeController {
   @PutMapping("/{id}")
   public ResponseData<RecipeResponse> updateRecipe(@PathVariable Long id,
                                      @RequestBody RecipeRequest request) {
-    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-    String authorId = authentication.getName();
-    var result = recipeService.updateRecipe(id, request, authorId);
+    var result = recipeService.updateRecipe(id, request);
     return new ResponseData<>(HttpStatus.OK.value(), "Success", result);
 
   }

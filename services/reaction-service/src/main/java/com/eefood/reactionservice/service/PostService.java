@@ -4,6 +4,7 @@ import com.eefood.reactionservice.dto.request.PostCreateRequest;
 import com.eefood.reactionservice.dto.response.*;
 import com.eefood.reactionservice.enums.ErrorMessage;
 import com.eefood.reactionservice.exception.ExceptionUtil;
+import com.eefood.reactionservice.mapper.PostMapper;
 import com.eefood.reactionservice.model.Post;
 import com.eefood.reactionservice.repository.PostRepository;
 import com.eefood.reactionservice.repository.httpclient.IamClient;
@@ -12,13 +13,17 @@ import com.eefood.reactionservice.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -31,60 +36,19 @@ public class PostService {
   private final PostSearchService postSearchService;
   private final RecipeClient recipeClient;
   private final SecurityUtil securityUtil;
+  private final GeminiService geminiService;
+  private final FollowService followService;
+  private final PostAdminSearchService postAdminSearchService;
 
   public List<PostPublishResponse> getPostsPublishByUser() {
     Long userId = securityUtil.getCurrentUserId();
     List<Post> posts = postRepo.findAllByUserIdAndIsDeletedFalse(userId);
 
     if (posts.isEmpty()) return List.of();
-
-    // Lấy danh sách recipeId
-    List<Long> recipeIds = posts.stream()
-      .map(Post::getRecipeId)
-      .distinct()
-      .toList();
-
-    // Gọi sang recipe-service để lấy thông tin tóm tắt
-    Map<Long, RecipeSummaryResponse> recipeMap = recipeIds.isEmpty()
-      ? Map.of()
-      : recipeIds.stream()
-      .map(id -> {
-        try {
-          ResponseData<RecipeSummaryResponse> res = recipeClient.getRecipeSummary(id);
-          return Map.entry(id, res.getData());
-        } catch (Exception e) {
-          log.error("Failed to get recipe summary for recipeId={}: {}", id, e.getMessage());
-          return null;
-        }
-      })
-      .filter(Objects::nonNull)
-      .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-
-    // Map sang response DTO
-    return posts.stream().map(post -> {
-      RecipeSummaryResponse recipe = recipeMap.get(post.getRecipeId());
-
-      long countReaction = post.getReactions() != null ? post.getReactions().size() : 0;
-      long countComment = post.getComments() != null ? post.getComments().size() : 0;
-
-      return PostPublishResponse.builder()
-        .id(post.getId())
-        .recipeId(post.getRecipeId())
-        .userId(post.getUserId())
-        .title(post.getTitle())
-        .content(post.getContent())
-        .imageUrl(post.getImageUrl())
-        .createdAt(post.getCreatedAt())
-        .countReaction(countReaction)
-        .countComment(countComment)
-        .difficulty(recipe != null && recipe.getDifficulty() != null ? recipe.getDifficulty().name() : null)
-        .location(recipe != null ? recipe.getRegion() : null)
-        .prepTime(recipe != null && recipe.getPrepTime() != null ? recipe.getPrepTime().toString() : null)
-        .cookTime(recipe != null && recipe.getCookTime() != null ? recipe.getCookTime().toString() : null)
-        .build();
-    }).collect(Collectors.toList());
+    return posts.stream()
+      .map(postMapper::toPublishResponse)
+      .collect(Collectors.toList());
   }
-
 
   public PostPublishResponse createPost(PostCreateRequest request) {
     Long currentUserId = securityUtil.getCurrentUserId();
@@ -103,10 +67,18 @@ public class PostService {
 
     Post post = Post.builder()
       .userId(currentUserId)
-      .recipeId(request.getRecipeId())
       .content(request.getContent())
+      //thong tin recipe
+      .recipeId(request.getRecipeId())
       .title(recipe.getTitle())
+      .description(recipe.getDescription())
+      .region(recipe.getRegion())
       .imageUrl(recipe.getImageUrl())
+      .prepTime(recipe.getPrepTime())
+      .cookTime(recipe.getCookTime())
+      .difficulty(recipe.getDifficulty())
+      .recipeCategories(recipe.getRecipeCategories())
+      .recipeIngredientKeywords(recipe.getRecipeIngredientKeywords())
       .build();
 
     postRepo.save(post);
@@ -187,68 +159,145 @@ public class PostService {
     Long userId,
     String region,
     String difficulty,
-    Pageable pageable) {
-    List<Long> recipeIds = List.of();
-    //kiem tra loc
-    boolean hasRecipeFilter =
-      (keyword != null && !keyword.isBlank()) ||
-        (region != null && !region.isBlank()) ||
-        (difficulty != null && !difficulty.isBlank());
+    String category,
+    Integer maxCookTime,
+    int page,
+    int size
+    ) {
 
-    // chỉ gọi sang recipe-service khi có tiêu chí lọc
-    if (hasRecipeFilter) {
-      try {
-        ResponseData<List<Long>> response = recipeClient.searchRecipeIds(keyword, region, difficulty);
-        recipeIds = response.getData() != null ? response.getData() : List.of();
-        log.info("Filtered recipe IDs: {}", recipeIds);
-      } catch (Exception e) {
-        log.error("Error calling recipe service: {}", e.getMessage());
-      }
+    //lay thong tin user
+    Long currentUserId = securityUtil.getCurrentUserId();
+    ResponseData<UserResponse> userResponse = iamClient.getUserById(currentUserId);
+    UserResponse user = userResponse.getData();
+    //debug
+//    log.info(user.toString());
+    List<Long> newFollowings = followService.getNewFollowings(userId);
+    List<Long> oldFollowings = followService.getOldFollowings(userId);
+
+
+    //Lấy danh sách postIds từ Elasticsearch
+    List<Long> postIds = postSearchService.searchPostIds(
+      keyword,
+      region,
+      difficulty,
+      category,
+      maxCookTime,
+      user,
+      newFollowings,
+      oldFollowings,
+      page,
+      size
+    );
+    //debug
+    log.info("----------------PostIds : " + postIds.toString());
+
+    if (postIds.isEmpty()) {
+      return new PageImpl<>(List.of());
     }
 
-    // Tìm theo nội dung bài viết (content)
-    List<Long> postIdsFromES = List.of();
-    if (keyword != null && !keyword.isBlank()) {
-      postIdsFromES = postSearchService.searchPostIdsByContent(keyword);
-      log.info("Filtered post IDs from Elasticsearch (content): {}", postIdsFromES);
-    }
-
-    // Kết hợp điều kiện
+    // 3. Lấy Post từ DB theo postIds
     Specification<Post> spec = PostSpecification.isNotDeleted()
-      .and(PostSpecification.hasUserId(userId));
+      .and(PostSpecification.hasUserId(userId))
+      .and(PostSpecification.hasPostIds(postIds));
 
-    if (!recipeIds.isEmpty() && !postIdsFromES.isEmpty()) {
-      spec = spec.and(
-        PostSpecification.hasRecipeIds(recipeIds)
-          .or(PostSpecification.hasPostIds(postIdsFromES))
-      );
-    } else if (!recipeIds.isEmpty()) {
-      spec = spec.and(PostSpecification.hasRecipeIds(recipeIds));
-    } else if (!postIdsFromES.isEmpty()) {
-      spec = spec.and(PostSpecification.hasPostIds(postIdsFromES));
-    }
+    List<Post> posts = postRepo.findAll(spec);
+    // 4. Sắp xếp theo thứ tự của postIds (theo ES)
+    Map<Long, Post> postMap = posts.stream()
+      .collect(Collectors.toMap(Post::getId, p -> p));
 
-    Page<Post> posts = postRepo.findAll(spec, pageable);
-    return mapToPostResponse(posts);
+    List<Post> orderedPosts = postIds.stream()
+      .map(postMap::get)
+      .filter(Objects::nonNull)
+      .toList();
+    List<PostResponse> postResponses = mapToPostResponse(orderedPosts);
+    //debug
+//    log.info("----------------" + postResponses.toString());
+    return new PageImpl<>(postResponses, PageRequest.of(page - 1, size), postIds.size());
   }
 
-  private Page<PostResponse> mapToPostResponse(Page<Post> posts) {
-    //lay thong tin user
+  public Page<PostResponse> getAllPostsByAdmin(
+          String keyword,
+          Long userId,
+          String region,
+          String difficulty,
+          String category,
+          Integer minPrepTime,
+          Integer maxPrepTime,
+          Integer minCookTime,
+          Integer maxCookTime,
+          Integer minReactionCount,
+          Integer minTotalShares,
+          String sortBy,
+          Pageable pageable
+  ) {
+    // Lấy danh sách postId từ Elasticsearch, đã paginate
+    Page<Long> esPage = postAdminSearchService.searchPostIds(
+            keyword,
+            region,
+            difficulty,
+            category,
+            minPrepTime,
+            maxPrepTime,
+            minCookTime,
+            maxCookTime,
+            minReactionCount,
+            minTotalShares,
+            sortBy,
+            pageable
+    );
+
+    List<Long> postIds = esPage.getContent();
+    long total = esPage.getTotalElements();
+    log.info("--------------PostIds : " + total);
+
+
+    if (postIds.isEmpty()) {
+      return new PageImpl<>(List.of(), pageable, 0);
+    }
+
+    // Lấy Post từ DB theo postIds
+    Specification<Post> spec = PostSpecification.isNotDeleted()
+            .and(PostSpecification.hasUserId(userId))
+            .and(PostSpecification.hasPostIds(postIds));
+
+    List<Post> posts = postRepo.findAll(spec);
+
+    // Sắp xếp theo thứ tự ES trả về
+    Map<Long, Post> postMap = posts.stream()
+            .collect(Collectors.toMap(Post::getId, p -> p));
+
+    List<Post> orderedPosts = postIds.stream()
+            .map(postMap::get)
+            .filter(Objects::nonNull)
+            .toList();
+
+    // Chuyển sang response
+    List<PostResponse> responses = mapToPostResponse(orderedPosts);
+
+    return new PageImpl<>(responses, pageable, total);
+  }
+
+  private List<PostResponse> mapToPostResponse(List<Post> posts) {
+    // Lấy thông tin user
     List<Long> userIds = posts.stream().map(Post::getUserId).distinct().toList();
     List<UserInfo> userInfos = iamClient.getUserInfoBatch(userIds).getData();
-    Map<Long, UserInfo> userInfoMap = userInfos.stream().collect(Collectors.toMap(UserInfo::getId, u -> u));
+    Map<Long, UserInfo> userInfoMap = userInfos.stream()
+      .collect(Collectors.toMap(UserInfo::getId, u -> u));
 
-    return posts.map(post ->{
-      PostResponse response = postMapper.toResponse(post);
-      UserInfo userInfo = userInfoMap.get(post.getUserId());
-      if(userInfo != null){
-        response.setUsername(userInfo.getUsername());
-        response.setEmail(userInfo.getEmail());
-        response.setAvatarUrl(userInfo.getAvatarUrl());
-      }
-      return response;
-    });
+    return posts.stream()
+      .map(post -> {
+        PostResponse response = postMapper.toResponse(post);
+        UserInfo userInfo = userInfoMap.get(post.getUserId());
+        if (userInfo != null) {
+          response.setUsername(userInfo.getUsername());
+          response.setEmail(userInfo.getEmail());
+          response.setAvatarUrl(userInfo.getAvatarUrl());
+        }
+        return response;
+      })
+      .toList();
   }
+
   public PostResponse getPostById(Long id) {
     Post post = postRepo.findByIdAndIsDeletedFalse(id);
     if (post == null) {

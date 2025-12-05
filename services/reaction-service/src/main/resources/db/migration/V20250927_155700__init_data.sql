@@ -1,20 +1,233 @@
--- =============================
--- Bảng post
--- =============================
-INSERT INTO post (created_at, updated_at, created_by, updated_by, is_deleted, user_id, recipe_id, title, content, image_url)
-VALUES
-    (NOW(), NOW(), 'hoanganh', 'hoanganh', false, 1, 7, 'Bún bò Huế', 'Tô bún bò cay nồng chuẩn vị miền Trung', 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQq6UpPrSe9eYszz1gC0GUFxGepOZvX5hKkIw&s'),
-    (NOW(), NOW(), 'ngocmai', 'ngocmai', false, 2, 5, 'Cơm tấm Sài Gòn', 'Sườn nướng, bì, chả trứng thơm ngon', 'https://file.hstatic.net/1000394081/article/com-tam_e03b4325c9914def9d66619930a73432.jpg'),
-    (NOW(), NOW(), 'phuonglinh', 'phuonglinh', false, 3, 1, 'Phở bò Hà Nội', 'Nước dùng trong, thơm mùi quế hồi', 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ5ffKuq9DTyRpBOg8ZGP01aszcSZcJ9fQXDw&s'),
-    (NOW(), NOW(), 'quanghuy', 'quanghuy', false, 4, 2, 'Bánh mì trứng ốp la', 'Bữa sáng nhanh gọn nhưng đủ chất', 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR_BEyGNxXtr_7w8z-sVo0SushqWzwSvB6xiQ&s'),
-    (NOW(), NOW(), 'lananh', 'lananh', false, 5, 3, 'Gỏi cuốn tôm thịt', 'Món ăn nhẹ, thanh mát, ít dầu mỡ', 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT5kk3PGeI2UfstwOYq5tb15E1Bbsn53I6v_Q&s'),
-    (NOW(), NOW(), 'minhtri', 'minhtri', false, 6, 8, 'Chả giò miền Nam', 'Giòn rụm, nhân thịt băm thơm phức', 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTZt5emkGhgPt-K26Cq2oqT0HC0B4jtCm7xVQ&s'),
-    (NOW(), NOW(), 'hoangphuc', 'hoangphuc', false, 7, 9, 'Bánh xèo tôm thịt', 'Vỏ vàng giòn, ăn cùng rau sống và nước mắm chua ngọt', 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTQ2xosMlmOO05CRIspcYSrhvll2HTwnRYBYw&s'),
-    (NOW(), NOW(), 'thanhha', 'thanhha', false, 8, 10, 'Cao lầu Hội An', 'Mì vàng dai, thịt xá xíu đậm vị', 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQNsIEhWInFKJj4j9XcMgtvL9LNYCWv_kIkLQ&s'),
-    (NOW(), NOW(), 'kimthao', 'kimthao', false, 9, 11, 'Bánh cuốn Thanh Trì', 'Bột gạo mỏng mịn, nhân thịt mộc nhĩ', 'https://static.vinwonders.com/production/banh-cuon-thanh-tri-banner.jpeg'),
-    (NOW(), NOW(), 'tuananh', 'tuananh', false, 10, 12, 'Xôi xéo Hà Nội', 'Xôi nếp vàng ươm, thơm hành phi', 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTLXHCgHafFLTjysi9B5c1qDkgbYs_ef_qGvw&s');
 
 -- =============================
+-- Bảng post (CẬP NHẬT với đầy đủ thông tin recipe)
+-- =============================
+INSERT INTO post (created_at, updated_at, created_by, updated_by, is_deleted, user_id, recipe_id, title, description, region, image_url, prep_time, cook_time, difficulty, content)
+VALUES
+    -- Post 1: Bún bò Huế (recipe_id = 7)
+    (NOW(), NOW(), 'hoanganh', 'hoanganh', false, 1, 7,
+     'Bún bò Huế',
+     'Món bún cay nồng, đặc trưng vị Huế',
+     'Miền Trung',
+     'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQq6UpPrSe9eYszz1gC0GUFxGepOZvX5hKkIw&s',
+     30, 120, 'MEDIUM',
+     'Tô bún bò cay nồng chuẩn vị miền Trung'),
+
+    -- Post 2: Cơm tấm Sài Gòn (recipe_id = 5)
+    (NOW(), NOW(), 'ngocmai', 'ngocmai', false, 2, 5,
+     'Cơm tấm Sài Gòn',
+     'Cơm tấm sườn bì chả',
+     'Sài Gòn',
+     'https://file.hstatic.net/1000394081/article/com-tam_e03b4325c9914def9d66619930a73432.jpg',
+     25, 40, 'MEDIUM',
+     'Sườn nướng, bì, chả trứng thơm ngon'),
+
+    -- Post 3: Phở bò Hà Nội (recipe_id = 1)
+    (NOW(), NOW(), 'phuonglinh', 'phuonglinh', false, 3, 1,
+     'Phở bò Hà Nội',
+     'Món phở truyền thống Việt Nam',
+     'Hà Nội',
+     'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ5ffKuq9DTyRpBOg8ZGP01aszcSZcJ9fQXDw&s',
+     30, 120, 'MEDIUM',
+     'Nước dùng trong, thơm mùi quế hồi'),
+
+    -- Post 4: Bánh mì trứng ốp la (recipe_id = 2)
+    (NOW(), NOW(), 'quanghuy', 'quanghuy', false, 4, 2,
+     'Bánh mì trứng ốp la',
+     'Bánh mì kẹp đặc trưng',
+     'Sài Gòn',
+     'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR_BEyGNxXtr_7w8z-sVo0SushqWzwSvB6xiQ&s',
+     15, 10, 'EASY',
+     'Bữa sáng nhanh gọn nhưng đủ chất'),
+
+    -- Post 5: Gỏi cuốn tôm thịt (recipe_id = 3)
+    (NOW(), NOW(), 'lananh', 'lananh', false, 5, 3,
+     'Gỏi cuốn tôm thịt',
+     'Cuốn tôm thịt với rau sống',
+     'Nam Bộ',
+     'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT5kk3PGeI2UfstwOYq5tb15E1Bbsn53I6v_Q&s',
+     20, 0, 'EASY',
+     'Món ăn nhẹ, thanh mát, ít dầu mỡ'),
+
+    -- Post 6: Chả giò miền Nam (recipe_id = 8)
+    (NOW(), NOW(), 'minhtri', 'minhtri', false, 6, 8,
+     'Chả giò miền Nam',
+     'Món chiên giòn rụm, nhân thịt băm thơm phức',
+     'Miền Nam',
+     'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTZt5emkGhgPt-K26Cq2oqT0HC0B4jtCm7xVQ&s',
+     25, 15, 'MEDIUM',
+     'Giòn rụm, nhân thịt băm thơm phức'),
+
+    -- Post 7: Bánh xèo tôm thịt (recipe_id = 9)
+    (NOW(), NOW(), 'hoangphuc', 'hoangphuc', false, 7, 9,
+     'Bánh xèo tôm thịt',
+     'Vỏ vàng giòn, nhân tôm thịt, ăn cùng rau sống',
+     'Miền Trung',
+     'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTQ2xosMlmOO05CRIspcYSrhvll2HTwnRYBYw&s',
+     30, 20, 'MEDIUM',
+     'Vỏ vàng giòn, ăn cùng rau sống và nước mắm chua ngọt'),
+
+    -- Post 8: Cao lầu Hội An (recipe_id = 10)
+    (NOW(), NOW(), 'thanhha', 'thanhha', false, 8, 10,
+     'Cao lầu Hội An',
+     'Mì vàng dai, thịt xá xíu đậm vị',
+     'Miền Trung',
+     'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQNsIEhWInFKJj4j9XcMgtvL9LNYCWv_kIkLQ&s',
+     25, 35, 'MEDIUM',
+     'Mì vàng dai, thịt xá xíu đậm vị'),
+
+    -- Post 9: Bánh cuốn Thanh Trì (recipe_id = 11)
+    (NOW(), NOW(), 'kimthao', 'kimthao', false, 9, 11,
+     'Bánh cuốn Thanh Trì',
+     'Món bánh mềm mịn, nhân thịt mộc nhĩ',
+     'Miền Bắc',
+     'https://static.vinwonders.com/production/banh-cuon-thanh-tri-banner.jpeg',
+     20, 20, 'MEDIUM',
+     'Bột gạo mỏng mịn, nhân thịt mộc nhĩ'),
+
+    -- Post 10: Xôi xéo Hà Nội (recipe_id = 12)
+    (NOW(), NOW(), 'tuananh', 'tuananh', false, 10, 12,
+     'Xôi xéo Hà Nội',
+     'Xôi nếp vàng ươm, thơm hành phi',
+     'Miền Bắc',
+     'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTLXHCgHafFLTjysi9B5c1qDkgbYs_ef_qGvw&s',
+     15, 30, 'EASY',
+     'Xôi nếp vàng ươm, thơm hành phi');
+
+-- =============================
+-- Bảng post_recipe_categories
+-- Trích xuất từ recipe_category table
+-- =============================
+-- Post 1: Bún bò Huế (recipe_id = 7) -> categories: 2 (Món nước), 1 (Món chính)
+INSERT INTO post_recipe_categories (post_id, category)
+VALUES
+    (1, 'Món nước'),
+    (1, 'Món chính');
+
+-- Post 2: Cơm tấm (recipe_id = 5) -> categories: 1 (Món chính), 4 (Món đường phố), 3 (Món ăn sáng)
+INSERT INTO post_recipe_categories (post_id, category)
+VALUES
+    (2, 'Món chính'),
+    (2, 'Món đường phố'),
+    (2, 'Món ăn sáng');
+
+-- Post 3: Phở bò (recipe_id = 1) -> categories: 1 (Món chính), 2 (Món nước), 3 (Món ăn sáng)
+INSERT INTO post_recipe_categories (post_id, category)
+VALUES
+    (3, 'Món chính'),
+    (3, 'Món nước'),
+    (3, 'Món ăn sáng');
+
+-- Post 4: Bánh mì (recipe_id = 2) -> categories: 1 (Món chính), 3 (Món ăn sáng), 4 (Món đường phố)
+INSERT INTO post_recipe_categories (post_id, category)
+VALUES
+    (4, 'Món chính'),
+    (4, 'Món ăn sáng'),
+    (4, 'Món đường phố');
+
+-- Post 5: Gỏi cuốn (recipe_id = 3) -> categories: 6 (Món cuốn), 1 (Món chính)
+INSERT INTO post_recipe_categories (post_id, category)
+VALUES
+    (5, 'Món cuốn'),
+    (5, 'Món chính');
+
+-- Post 6: Chả giò (recipe_id = 8) -> categories: 1 (Món chính), 4 (Món đường phố)
+INSERT INTO post_recipe_categories (post_id, category)
+VALUES
+    (6, 'Món chính'),
+    (6, 'Món đường phố');
+
+-- Post 7: Bánh xèo (recipe_id = 9) -> categories: 1 (Món chính), 4 (Món đường phố)
+INSERT INTO post_recipe_categories (post_id, category)
+VALUES
+    (7, 'Món chính'),
+    (7, 'Món đường phố');
+
+-- Post 8: Cao lầu (recipe_id = 10) -> categories: 1 (Món chính)
+INSERT INTO post_recipe_categories (post_id, category)
+VALUES
+    (8, 'Món chính');
+
+-- Post 9: Bánh cuốn (recipe_id = 11) -> categories: 3 (Món ăn sáng), 1 (Món chính)
+INSERT INTO post_recipe_categories (post_id, category)
+VALUES
+    (9, 'Món ăn sáng'),
+    (9, 'Món chính');
+
+-- Post 10: Xôi xéo (recipe_id = 12) -> categories: 3 (Món ăn sáng), 5 (Món tráng miệng)
+INSERT INTO post_recipe_categories (post_id, category)
+VALUES
+    (10, 'Món ăn sáng'),
+    (10, 'Món tráng miệng');
+
+-- =============================
+-- Bảng post_recipe_ingredient_keywords
+-- Trích xuất từ recipe_ingredients -> ingredients
+-- =============================
+-- Post 1: Bún bò Huế (recipe_id = 7) -> ingredients: Bún tươi, Thịt bò, Nước dùng
+INSERT INTO post_recipe_ingredient_keywords (post_id, ingredient_keyword)
+VALUES
+    (1, 'Bún tươi'),
+    (1, 'Thịt bò'),
+    (1, 'Nước dùng');
+
+-- Post 2: Cơm tấm (recipe_id = 5) -> ingredients: Thịt heo, Nước mắm
+INSERT INTO post_recipe_ingredient_keywords (post_id, ingredient_keyword)
+VALUES
+    (2, 'Thịt heo'),
+    (2, 'Nước mắm');
+
+-- Post 3: Phở bò (recipe_id = 1) -> ingredients: Bánh phở, Thịt bò, Nước dùng
+INSERT INTO post_recipe_ingredient_keywords (post_id, ingredient_keyword)
+VALUES
+    (3, 'Bánh phở'),
+    (3, 'Thịt bò'),
+    (3, 'Nước dùng');
+
+-- Post 4: Bánh mì (recipe_id = 2) -> ingredients: Bánh mì, Thịt heo, Chả lụa
+INSERT INTO post_recipe_ingredient_keywords (post_id, ingredient_keyword)
+VALUES
+    (4, 'Bánh mì'),
+    (4, 'Thịt heo'),
+    (4, 'Chả lụa');
+
+-- Post 5: Gỏi cuốn (recipe_id = 3) -> ingredients: Rau sống, Thịt heo
+INSERT INTO post_recipe_ingredient_keywords (post_id, ingredient_keyword)
+VALUES
+    (5, 'Rau sống'),
+    (5, 'Thịt heo');
+
+-- Post 6: Chả giò (recipe_id = 8) -> ingredients: Thịt heo, Rau sống
+INSERT INTO post_recipe_ingredient_keywords (post_id, ingredient_keyword)
+VALUES
+    (6, 'Thịt heo'),
+    (6, 'Rau sống');
+
+-- Post 7: Bánh xèo (recipe_id = 9) -> ingredients: Bột bánh xèo, Tôm, Rau sống
+INSERT INTO post_recipe_ingredient_keywords (post_id, ingredient_keyword)
+VALUES
+    (7, 'Bột bánh xèo'),
+    (7, 'Tôm'),
+    (7, 'Rau sống');
+
+-- Post 8: Cao lầu (recipe_id = 10) -> ingredients: Mì Cao Lầu, Thịt heo
+INSERT INTO post_recipe_ingredient_keywords (post_id, ingredient_keyword)
+VALUES
+    (8, 'Mì Cao Lầu'),
+    (8, 'Thịt heo');
+
+-- Post 9: Bánh cuốn (recipe_id = 11) -> ingredients: Thịt heo, Rau sống
+INSERT INTO post_recipe_ingredient_keywords (post_id, ingredient_keyword)
+VALUES
+    (9, 'Thịt heo'),
+    (9, 'Rau sống');
+
+-- Post 10: Xôi xéo (recipe_id = 12) -> ingredients: Đậu xanh, Hành phi
+INSERT INTO post_recipe_ingredient_keywords (post_id, ingredient_keyword)
+VALUES
+    (10, 'Đậu xanh'),
+    (10, 'Hành phi');
+
 -- Bảng comment
 -- =============================
 INSERT INTO comment (created_at, updated_at, created_by, updated_by, is_deleted, user_id, parent_id, content, post_id)
@@ -154,54 +367,53 @@ INSERT INTO collection_post (collection_id, post_id, created_at) VALUES
     (2, 9, NOW()),
     (2, 10, NOW());
 
-INSERT INTO follow (created_by, is_deleted, updated_at, updated_by, follower_id, following_id)
-VALUES
--- User 1 follows users 2, 3, 4
-('system', false, now(), 'system', 1, 2),
-('system', false, now(), 'system', 1, 3),
-('system', false, now(), 'system', 1, 4),
+INSERT INTO follow (follower_id, following_id, created_at) VALUES
+-- User 1 follows 2, 3, 4
+(1, 2, now()),
+(1, 3, now()),
+(1, 4, now()),
 
--- User 2 follows users 1, 5, 6
-('system', false, now(), 'system', 2, 1),
-('system', false, now(), 'system', 2, 5),
-('system', false, now(), 'system', 2, 6),
+-- User 2 follows 1, 5, 6
+(2, 1, now()),
+(2, 5, now()),
+(2, 6, now()),
 
--- User 3 follows users 1, 7, 8
-('system', false, now(), 'system', 3, 1),
-('system', false, now(), 'system', 3, 7),
-('system', false, now(), 'system', 3, 8),
+-- User 3 follows 1, 7, 8
+(3, 1, now()),
+(3, 7, now()),
+(3, 8, now()),
 
--- User 4 follows users 2, 9, 10
-('system', false, now(), 'system', 4, 2),
-('system', false, now(), 'system', 4, 9),
-('system', false, now(), 'system', 4, 10),
+-- User 4 follows 2, 9, 10
+(4, 2, now()),
+(4, 9, now()),
+(4, 10, now()),
 
--- User 5 follows users 3, 11, 12
-('system', false, now(), 'system', 5, 3),
-('system', false, now(), 'system', 5, 11),
-('system', false, now(), 'system', 5, 12),
+-- User 5 follows 3, 11, 12
+(5, 3, now()),
+(5, 11, now()),
+(5, 12, now()),
 
--- User 6 follows users 4, 13, 14
-('system', false, now(), 'system', 6, 4),
-('system', false, now(), 'system', 6, 13),
-('system', false, now(), 'system', 6, 14),
+-- User 6 follows 4, 13, 14
+(6, 4, now()),
+(6, 13, now()),
+(6, 14, now()),
 
--- User 7 follows users 5, 15, 16
-('system', false, now(), 'system', 7, 5),
-('system', false, now(), 'system', 7, 15),
-('system', false, now(), 'system', 7, 16),
+-- User 7 follows 5, 15, 16
+(7, 5, now()),
+(7, 15, now()),
+(7, 16, now()),
 
--- User 8 follows users 6, 17, 18
-('system', false, now(), 'system', 8, 6),
-('system', false, now(), 'system', 8, 17),
-('system', false, now(), 'system', 8, 18),
+-- User 8 follows 6, 17, 18
+(8, 6, now()),
+(8, 17, now()),
+(8, 18, now()),
 
--- User 9 follows users 7, 19, 20
-('system', false, now(), 'system', 9, 7),
-('system', false, now(), 'system', 9, 19),
-('system', false, now(), 'system', 9, 20),
+-- User 9 follows 7, 19, 20
+(9, 7, now()),
+(9, 19, now()),
+(9, 20, now()),
 
--- User 10 follows users 8, 1, 2
-('system', false, now(), 'system', 10, 8),
-('system', false, now(), 'system', 10, 1),
-('system', false, now(), 'system', 10, 2);
+-- User 10 follows 8, 1, 2
+(10, 8, now()),
+(10, 1, now()),
+(10, 2, now());

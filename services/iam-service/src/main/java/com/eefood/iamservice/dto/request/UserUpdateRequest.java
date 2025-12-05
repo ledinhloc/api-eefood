@@ -21,6 +21,7 @@ public class UserUpdateRequest {
   Gender gender;
   JsonNode address;
   String avatarUrl;
+  String backgroundUrl;
   List<String> allergies;
   List<String> eatingPreferences;
 }

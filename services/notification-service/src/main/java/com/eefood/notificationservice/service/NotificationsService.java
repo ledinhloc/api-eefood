@@ -48,7 +48,7 @@ public class NotificationsService {
 
         boolean hasUserId = request.getUserId() != null;
         Long userId = null;
-        NotificationsType type = NotificationsType.valueOf(request.getType());;
+        NotificationsType type = NotificationsType.valueOf(request.getType());
 
         if(hasUserId) {
             userId = request.getUserId();

@@ -1,8 +1,8 @@
 package com.eefood.reactionservice.util;
 
-import com.eefood.reactionservice.dto.request.NotificationRequest;
+import com.eefood.common.avro.NotificationEvent;
 import com.eefood.reactionservice.enums.ReactionType;
-import com.eefood.reactionservice.producer.NotificationProducer;
+import com.eefood.reactionservice.kafka.NotificationProducer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -10,6 +10,29 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class NotificationUtils {
     private final NotificationProducer notificationProducer;
+
+    /**
+     * Gửi thông báo khi người dùng reply vào comment của người khác.
+     */
+    public void sendReplyNotification(Long receiverId,
+                                      String replierName,
+                                      String body,
+                                      String avatarUrl,
+                                      String postPath,
+                                      String postImageUrl) {
+        NotificationEvent notification = NotificationEvent.newBuilder()
+                .setTitle(replierName + " đã trả lời bình luận của bạn")
+                .setBody(body)
+                .setPath(postPath)
+                .setAvatarUrl(avatarUrl)
+                .setPostImageUrl(postImageUrl)
+                .setType("REPLY")
+                .setUserId(receiverId)
+                .build();
+
+        notificationProducer.sendNotification(notification);
+    }
+
 
     /**
      * Gửi thông báo khi người dùng bình luận bài viết.
@@ -20,15 +43,15 @@ public class NotificationUtils {
                                         String avatarUrl,
                                         String postPath,
                                         String postImageUrl) {
-        NotificationRequest notification = NotificationRequest.builder()
-                .title(commenterName + " đã bình luận bài viết của bạn")
-                .body(body)
-                .path(postPath)
-                .avatarUrl(avatarUrl)
-                .postImageUrl(postImageUrl)
-                .type("COMMENT")
-                .userId(receiverId)
-                .build();
+      NotificationEvent notification = NotificationEvent.newBuilder()
+        .setTitle(commenterName + " đã bình luận bài viết của bạn")
+        .setBody(body)
+        .setPath(postPath)
+        .setAvatarUrl(avatarUrl)
+        .setPostImageUrl(postImageUrl)
+        .setType("COMMENT")
+        .setUserId(receiverId)
+        .build();
 
         notificationProducer.sendNotification(notification);
     }
@@ -53,16 +76,16 @@ public class NotificationUtils {
 
         String type = isPost ? "bài viết" : "bình luận";
         String title = String.format(reactorName + " đã " + reactionText + " %s của bạn", type);
-        NotificationRequest notification = NotificationRequest.builder()
-                .title(title)
-                .body("Nhấn vào đây để xem chi tiết bài viết")
-                .path(postPath)
-                .avatarUrl(avatarUrl)
-                .postImageUrl(postImageUrl)
-                .type("REACTION")
-                .userId(receiverId)
-                .build();
+      NotificationEvent notification = NotificationEvent.newBuilder()
+        .setTitle(title)
+        .setBody("Nhấn vào đây để xem chi tiết bài viết")
+        .setPath(postPath)
+        .setAvatarUrl(avatarUrl)
+        .setPostImageUrl(postImageUrl)
+        .setType("REACTION")
+        .setUserId(receiverId)
+        .build();
 
-        notificationProducer.sendNotification(notification);
+      notificationProducer.sendNotification(notification);
     }
 }

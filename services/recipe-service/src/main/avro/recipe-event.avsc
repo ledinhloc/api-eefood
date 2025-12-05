@@ -1,0 +1,17 @@
+{
+  "type": "record",
+  "name": "RecipeEvent",
+  "namespace": "com.eefood.common.avro",
+  "fields": [
+    { "name": "id", "type": "long" },
+    { "name": "title", "type": "string" },
+    { "name": "description", "type": "string" },
+    { "name": "region", "type": ["null", "string"], "default": null },
+    { "name": "imageUrl", "type": ["null", "string"], "default": null },
+    { "name": "prepTime", "type": ["null", "int"], "default": null },
+    { "name": "cookTime", "type": ["null", "int"], "default": null },
+    { "name": "difficulty", "type": ["null", "string"], "default": null },
+    { "name": "categories", "type": { "type": "array", "items": "string" }, "default": [] },
+    { "name": "ingredientKeywords", "type": { "type": "array", "items": "string" }, "default": [] }
+  ]
+}
