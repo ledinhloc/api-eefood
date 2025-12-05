@@ -12,8 +12,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.stream.Collectors;
 import java.util.ArrayList;
 import java.util.List;
+
 
 @Service
 @RequiredArgsConstructor
@@ -31,6 +34,10 @@ public class CategoryService {
         Specification<Category> spec = (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
+            if (name != null && !name.isBlank()) {
+                predicate = cb.and(predicate,
+                        cb.like(cb.lower(root.get("description")), "%" + name.trim().toLowerCase() + "%"));
+            }
             // dùng field actual trên entity: "description"
             Expression<String> descLower = cb.lower(root.get("description").as(String.class));
             predicates.add(cb.like(descLower, "%" + name.trim().toLowerCase() + "%"));
@@ -40,4 +47,5 @@ public class CategoryService {
 
         return categoryRepository.findAll(spec, pageable).map(recipeMapper::toResponse);
     }
+
 }
