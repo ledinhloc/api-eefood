@@ -10,18 +10,13 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
-@Entity
-@Table(name = "report")
 @Getter
 @Setter
+@MappedSuperclass
 @NoArgsConstructor
 @AllArgsConstructor
 @SuperBuilder
-@Inheritance(strategy = InheritanceType.JOINED)
 public abstract class Report extends BaseEntity {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
 
     // Người báo cáo
     @Column(nullable = false)
