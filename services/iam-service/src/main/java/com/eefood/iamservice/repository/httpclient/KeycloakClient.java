@@ -26,7 +26,7 @@ public interface KeycloakClient {
       consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
   TokenExchangeResponse exchangeToken(
       @PathVariable("realm") String realm, @RequestBody TokenExchangeParam param);
-
+  
   // Tạo user (admin)
   @PostMapping(value = "/admin/realms/{realm}/users", consumes = MediaType.APPLICATION_JSON_VALUE)
   ResponseEntity<?> createUser(

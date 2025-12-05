@@ -1,6 +1,7 @@
 package com.eefood.recipeservice.service;
 
 import com.eefood.common.avro.RecipeEvent;
+import com.eefood.recipeservice.dto.request.PostCreateRequest;
 import com.eefood.recipeservice.dto.request.RecipeIngredientRequest;
 import com.eefood.recipeservice.dto.request.RecipeRequest;
 import com.eefood.recipeservice.dto.request.RecipeStepRequest;
@@ -16,16 +17,31 @@ import com.eefood.recipeservice.repository.IngredientRepository;
 import com.eefood.recipeservice.repository.RecipeRepository;
 import com.eefood.recipeservice.repository.RecipeStepRepository;
 import com.eefood.recipeservice.repository.httpclient.IamClient;
+import com.eefood.recipeservice.repository.httpclient.ReactionClient;
+import com.eefood.recipeservice.util.SecurityUtil;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.langchain4j.data.message.UserMessage;
+import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.googleai.GoogleAiGeminiChatModel;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 @Slf4j
 @Service
@@ -39,7 +55,246 @@ public class RecipeService {
   private final IamClient iamClient;
   private final RecipeIndexer recipeIndexer;
   private final RecipeProducer recipeProducer;
+  private final SecurityUtil securityUtil;
+  private final GoogleAiGeminiChatModel gemini;
+  private final ObjectMapper objectMapper = new ObjectMapper();
 
+  private final ReactionClient reactionClient;
+  private static final int MIN_USER_ID = 1;
+  private static final int MAX_USER_ID = 20;
+  private static final Random random = new Random();
+
+  public RecipeResponse saveExtractResultWithPost(RecipeExtractDTO dto) {
+
+    long randomUserId = MIN_USER_ID + random.nextLong(MAX_USER_ID - MIN_USER_ID + 1);
+    //Lưu recipe
+    RecipeResponse recipeResponse = saveExtractResult(dto, randomUserId);
+    createPostAsync(recipeResponse.getId(), randomUserId, dto.getTitle());
+    return recipeResponse;
+  }
+
+  //  Tạo post bất đồng bộ
+  private void createPostAsync(Long recipeId, Long userId, String recipeTitle) {
+    SecurityContext context = SecurityContextHolder.getContext();
+
+    CompletableFuture.runAsync(() -> {
+      try {
+        // Set SecurityContext vào thread mới
+        SecurityContextHolder.setContext(context);
+        createPostForUser(recipeId, userId, recipeTitle);
+      } finally {
+        SecurityContextHolder.clearContext();
+      }
+    });
+  }
+
+  private void createPostForUser(Long recipeId, Long userId, String recipeTitle) {
+    try {
+      PostCreateRequest postRequest = PostCreateRequest.builder()
+        .recipeId(recipeId)
+        .content("Cùng thử nấu " + recipeTitle )
+        .build();
+
+      // Gọi Post Service qua Feign Client với userId
+      reactionClient.createPost(postRequest, userId);
+
+      log.info("----Created post for recipe: {} user: {}", recipeId, userId);
+    } catch (Exception e) {
+      log.error("----Failed to create post for recipe: {} user: {}: {}",
+        recipeId, userId, e.getMessage());
+    }
+  }
+
+  public RecipeResponse saveExtractResult(RecipeExtractDTO dto, Long userId) {
+    /** tạo mới Category
+     * neu cate ton tai -> lay id
+     * neu chua ton tai -> tao roi lay id
+     * */
+    List<Long> categoryIds = dto.getCategories().stream()
+      .map(c -> categoryRepository.findByDescriptionIgnoreCase(c)
+        .orElseGet(() -> {
+          Category newC = new Category();
+          newC.setDescription(c);
+          return categoryRepository.save(newC);
+        }).getId()
+      ).toList();
+
+    //tạo mới Ingredient
+    List<RecipeIngredientRequest> ingredientRequests =
+      dto.getIngredients().stream().map(i -> {
+
+        Ingredient ingredient = ingredientRepository.findByNameIgnoreCase(i.getName())
+          .orElseGet(() -> {
+            Ingredient newIng = new Ingredient();
+            newIng.setName(i.getName());
+            return ingredientRepository.save(newIng);
+          });
+
+        return RecipeIngredientRequest.builder()
+          .ingredientId(ingredient.getId())
+          .name(i.getName())
+          .quantity(i.getQuantity())
+          .unit(i.getUnit())
+          .build();
+      }).toList();
+
+    // Map sang RecipeRequest
+    RecipeRequest req = RecipeRequest.builder()
+      .title(dto.getTitle())
+      .description(dto.getDescription())
+      .region(dto.getRegion())
+      .imageUrl(dto.getImageUrl())
+      .videoUrl(dto.getVideoUrl())
+      .prepTime(dto.getPrepTime())
+      .cookTime(dto.getCookTime())
+      .difficulty(Difficulty.valueOf(dto.getDifficulty().toUpperCase()))
+      .categoryIds(categoryIds)
+      .ingredients(ingredientRequests)
+      .steps(dto.getSteps())
+      .build();
+    // SAVE RECIPE
+    return createRecipe(req, userId);
+  }
+
+  private static final Set<String> ALLOWED_TAGS = Set.of(
+    "p","div","span","img","video","source","iframe",
+    "ul","ol","li","h1","h2","h3","h4",
+    "strong","b","i","em","u","br","a",
+    "section","article","header","main","figure",
+    "table","tbody","thead","tr","td","th"
+  );
+
+  private String cleanHtml(String html) {
+    Document doc = Jsoup.parse(html);
+
+    // Remove junk
+    doc.select("script, style, svg, noscript, meta, link").remove();
+
+    // Sanitize media tags
+    doc.select("img, video, source, iframe").forEach(tag -> {
+      String src = tag.attr("abs:src");
+      tag.clearAttributes();
+      if (!src.isEmpty()) tag.attr("src", src);
+    });
+
+    // WHITELIST — safe unwrap
+    List<Element> elements = new ArrayList<>(doc.body().select("*"));
+
+    for (Element el : elements) {
+      String tag = el.tagName();
+
+      // Skip root nodes
+      if (el.parent() == null || tag.equals("body") || tag.equals("html"))
+        continue;
+
+      if (!ALLOWED_TAGS.contains(tag)) {
+        el.unwrap(); // Remove tag but KEEP TEXT
+      }
+    }
+
+    return doc.body().html();
+  }
+
+  /** Lấy nội dung HTML bằng Jsoup */
+  private String fetchWebContent(String url) {
+    try {
+      return Jsoup.connect(url)
+        .userAgent("Mozilla/5.0")
+        .timeout(10000)
+        .get()
+        .html(); // dùng .html() nếu cần đầy đủ HTML
+    } catch (Exception e) {
+      throw new RuntimeException("Fetch thất bại: " + e.getMessage());
+    }
+  }
+
+  public RecipeResponse extractAndCreate(String url) {
+    // FETCH HTML CONTENT
+//    String html = fetchWebContent(url);
+    String rawHtml = fetchWebContent(url);
+    String html = cleanHtml(rawHtml);
+
+    // PROMPT AI
+    String prompt =
+"""
+You are an advanced Recipe Extraction Engine.
+
+Your task:
+- Read and analyze the HTML content provided below.
+- Extract ONLY the relevant recipe information.
+- Ignore all unrelated content such as ads, banners, user comments, tracking scripts, stylesheets.
+
+STRICT OUTPUT RULES (MUST FOLLOW EXACTLY):
+1. Output MUST be **pure JSON only**.
+2. Do NOT include any explanation, description, or natural language.
+5. JSON MUST match the EXACT schema below.
+6. All string fields MUST be plain strings. No special formatting.
+7. difficulty MUST be one of: "EASY", "MEDIUM", "HARD".
+8. ingredients[] MUST contain objects { "name", "quantity", "unit" }
+9. steps[] MUST contain objects { "stepNumber", "instruction" }
+10. If a field is missing from HTML, return a reasonable empty value:
+   - "" for strings
+   - 0 for numbers
+   - [] for arrays
+11. Do NOT add comments inside JSON.
+12. Do NOT mix ingredients into categories.
+13.  Ingredients MUST be separated into individual items — never group many ingredients into one string.
+       (Wrong: "Sả, ớt, hành tím, tỏi")
+       (Correct: 4 separate items)
+14. Ingredients MUST NOT include prefix like "Gia vị", "Nguyên liệu", "Mẹo", etc.
+15. Categories MUST be cooking categories (e.g., "Món Việt", "Món gà", "Món kho"), NOT ingredients.
+16. If time is not found, set to 0.
+17. steps[] MUST be separated correctly with actual instructions.
+
+YOUR OUTPUT JSON SCHEMA (MUST MATCH EXACTLY):
+{
+  "title": "",
+  "description": "",
+  "region": "",
+  "imageUrl": "",
+  "videoUrl": "",
+  "categories": [],
+  "prepTime": 0,
+  "cookTime": 0,
+  "difficulty": "EASY",
+  "ingredients": [
+    { "name": "", "quantity": 0, "unit": "" }
+  ],
+  "steps": [
+    { "stepNumber": 1, "instruction": "", "imageUrl": "","videoUrl": "", "stepTime": 0 }
+  ]
+}
+
+NOW ANALYZE THE FOLLOWING HTML AND RETURN ONLY JSON:
+
+===== HTML CONTENT START =====
+%s
+===== HTML CONTENT END =====
+"""
+            .formatted(html);
+
+//    log.info("------------"+ prompt);
+
+    // Gửi prompt đến Gemini
+    ChatRequest request = ChatRequest.builder()
+      .messages(UserMessage.from(prompt))
+      .build();
+    ChatResponse response = gemini.chat(request);
+    String aiJson = response.aiMessage().text();
+
+
+//    log.info("------------ AiJson: "+ aiJson);
+    // PARSE JSON → DTO
+    RecipeExtractDTO dto;
+    try{
+      dto = objectMapper.readValue(aiJson, RecipeExtractDTO.class);
+    }catch (JsonProcessingException e){
+        throw new RuntimeException("AI trả JSON sai format: " + e.getMessage());
+    }
+    Long userId = securityUtil.getCurrentUserId();
+
+    return saveExtractResult(dto, userId);
+  }
   public Recipe getEntityRecipe(Long id) {
     return recipeRepository.findByIdAndIsDeletedFalse(id)
       .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.RECIPE_NOT_FOUND));
@@ -262,8 +517,8 @@ public class RecipeService {
 
         step.setStepNumber(stepReq.getStepNumber());
         step.setInstruction(stepReq.getInstruction());
-        step.setImageUrl(stepReq.getImageUrl());
-        step.setVideoUrl(stepReq.getVideoUrl());
+        step.setImageUrls(stepReq.getImageUrls());
+        step.setVideoUrls(stepReq.getVideoUrls());
         step.setStepTime(stepReq.getStepTime());
         stepRepository.save(step);
       }

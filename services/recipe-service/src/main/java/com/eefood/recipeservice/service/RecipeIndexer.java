@@ -24,7 +24,7 @@ public class RecipeIndexer {
   /**
    * Khi service khởi động, index toàn bộ dữ liệu recipe hiện có vào Elasticsearch
    */
-  @PostConstruct
+//  @PostConstruct
   public void init() {
     try {
       indexAllRecipes();
@@ -80,6 +80,13 @@ public class RecipeIndexer {
       log.info("Deleted recipe {} from Elasticsearch", recipeId);
     }catch (IOException e) {
       log.error("Error deleting recipe {}: {}", recipeId, e.getMessage());
+    }
+  }
+
+  private void clearIndex() throws IOException {
+    if (client.indices().exists(e -> e.index("recipes")).value()) {
+      client.indices().delete(d -> d.index("recipes"));
+      log.warn("Deleted old index 'recipes' before re-indexing");
     }
   }
 

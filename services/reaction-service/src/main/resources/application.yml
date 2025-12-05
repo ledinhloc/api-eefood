@@ -7,6 +7,15 @@ server:
         same-site: strict
         http-only: true
 
+livekit:
+  api:
+    key: ${LIVEKIT_API_KEY:devkey}
+    secret: ${LIVEKIT_API_SECRET:secret}
+  ws:
+    url: ${LIVEKIT_WS_URL:ws://127.0.0.1:7880}
+  http:
+    url: ${LIVEKIT_HTTP_URL:http://127.0.0.1:7880}
+
 elasticsearch:
   url: ${ELASTICSEARCH_URL}
   api-key: ${ELASTICSEARCH_API_KEY}

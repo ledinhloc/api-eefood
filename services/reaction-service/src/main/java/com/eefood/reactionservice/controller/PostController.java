@@ -5,7 +5,9 @@ import com.eefood.reactionservice.dto.response.PostResponse;
 import com.eefood.reactionservice.dto.response.ResponseData;
 import com.eefood.reactionservice.service.GeminiService;
 import com.eefood.reactionservice.service.PostService;
+import com.eefood.reactionservice.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -24,9 +26,27 @@ import java.util.concurrent.TimeUnit;
 @RestController
 @RequestMapping("/api/v1/posts")
 @RequiredArgsConstructor
+@Slf4j
 public class PostController {
   private final PostService postService;
   private final GeminiService geminiService;
+  private final SecurityUtil securityUtil;
+
+  @PostMapping("/import")
+  public ResponseData<PostPublishResponse> importPost(@RequestBody PostCreateRequest request, @RequestParam Long userId) {
+    PostPublishResponse post = postService.createPost(request, userId);
+    log.info("-----import success postId: " + post.getId()+ ", recipeId"+ post.getRecipeId() + " " + post.getTitle());
+    return new ResponseData<>(HttpStatus.CREATED.value(), "Post created successfully", post);
+  }
+
+  @PostMapping
+  public ResponseData<PostPublishResponse> createPost(@RequestBody PostCreateRequest request) {
+    //Dùng userId từ header
+    Long postUserId = securityUtil.getCurrentUserId();
+    PostPublishResponse post = postService.createPost(request, postUserId);
+    log.info("-----user insert success postId: " + post.getId()+ ", recipeId"+ post.getRecipeId() + " " + post.getTitle());
+    return new ResponseData<>(HttpStatus.CREATED.value(), "Post created successfully", post);
+  }
 
   @PostMapping(value = "/get-keyword", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ResponseData<String> getKeyword(@RequestParam MultipartFile image) {
@@ -44,16 +64,19 @@ public class PostController {
     return new ResponseData<>(HttpStatus.OK.value(), "Success", result);
   }
 
-  @PostMapping
-  public ResponseData<PostPublishResponse> createPost(@RequestBody PostCreateRequest request) {
-    PostPublishResponse post = postService.createPost(request);
-    return new ResponseData<>(HttpStatus.CREATED.value(), "Post created successfully", post);
-  }
-
   @PutMapping("/{id}")
   public ResponseData<PostPublishResponse> updatePost(@PathVariable Long id,  @RequestBody Map<String, String> requestBody) {
     String content = requestBody.get("content");
+    String status = requestBody.get("status");
     PostPublishResponse post = postService.updatePost(id, content);
+    return new ResponseData<>(HttpStatus.OK.value(), "Post updated successfully", post);
+  }
+
+  @PutMapping("/admin/{id}")
+  public ResponseData<PostPublishResponse> updatePostByAdmin(@PathVariable Long id,  @RequestBody Map<String, String> requestBody) {
+    String content = requestBody.get("content");
+    String status = requestBody.get("status");
+    PostPublishResponse post = postService.updatePostByAdmin(id, content,status);
     return new ResponseData<>(HttpStatus.OK.value(), "Post updated successfully", post);
   }
 
@@ -97,6 +120,4 @@ public class PostController {
     PostResponse post = postService.getPostById(id);
     return new ResponseData<>(HttpStatus.OK.value(), "Success", post);
   }
-
-
 }

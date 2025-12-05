@@ -1,0 +1,141 @@
+{
+  "title": "Cách làm bún gạo xào chay mềm tơi, thấm vị hài hòa",
+  "description": "Bún gạo mềm tơi, thấm vị hài hòa, các rau củ quả chín tới, màu sắc tươi mới, không bị ra nước. Một món ăn thanh đạm lại đầy đủ dinh dưỡng.",
+  "region": "Việt Nam",
+  "imageUrl": "https://i1-giadinh.vnecdn.net/2022/08/08/Thnhphm33-1659943507-8301-1659943657.jpg?w=0&h=0&q=100&dpr=2&fit=crop&s=8faL2z52gttxS_VjqJDrcw",
+  "videoUrl": "",
+  "categories": [
+    "Cơm Hàng Ngày",
+    "Việt Nam"
+  ],
+  "prepTime": 20,
+  "cookTime": 20,
+  "difficulty": "MEDIUM",
+  "ingredients": [
+    {
+      "name": "bún gạo khô",
+      "quantity": 250,
+      "unit": "g"
+    },
+    {
+      "name": "đậu phụ",
+      "quantity": 5,
+      "unit": "miếng"
+    },
+    {
+      "name": "cà rốt",
+      "quantity": 1,
+      "unit": "củ"
+    },
+    {
+      "name": "hành tây",
+      "quantity": 1,
+      "unit": "củ"
+    },
+    {
+      "name": "(bát) giá đỗ",
+      "quantity": 1,
+      "unit": "chén"
+    },
+    {
+      "name": "bắp cải",
+      "quantity": 0.25,
+      "unit": "cây"
+    },
+    {
+      "name": "hành lá",
+      "quantity": 1,
+      "unit": "nắm"
+    },
+    {
+      "name": "ớt chuông xanh",
+      "quantity": 0.5,
+      "unit": "quả"
+    },
+    {
+      "name": "ớt chuông đỏ",
+      "quantity": 0.5,
+      "unit": "quả"
+    },
+    {
+      "name": "hành khô",
+      "quantity": 4,
+      "unit": "củ"
+    },
+    {
+      "name": "Gia vị",
+      "quantity": 1,
+      "unit": ""
+    },
+    {
+      "name": "Dầu ăn",
+      "quantity": 1,
+      "unit": ""
+    }
+  ],
+  "steps": [
+    {
+      "stepNumber": 1,
+      "instruction": "Đậu phụ chiên vàng giòn, cắt miếng dài. Ớt chuông đỏ, ớt chuông xanh cắt sợi dài. Cà rốt cắt sợi. Hành tây cắt lát dài. Bắp cải cắt sợi. Hành lá cắt khúc. Tùy theo sở thích thay đổi rau củ quả phù hợp theo mùa.",
+      "imageUrls": [
+        "https://i1-giadinh.vnecdn.net/2022/08/08/Buoc-1-1-1816-1659943656.jpg?w=680&h=0&q=100&dpr=1&fit=crop&s=c8fsIGKo3lXrTbuVRfGQ4A"
+      ],
+      "videoUrls": [],
+      "stepTime": 10
+    },
+    {
+      "stepNumber": 2,
+      "instruction": "Làm hỗn hợp nước sốt để xào bún chay gồm 2 muỗng canh nước tương, 1 muỗng canh đường, 1 muỗng canh nước hàng, 1 muỗng cà phê muối, 1 muỗng cà phê hạt nêm chay, 1 muỗng cà phê giấm và 1/2 chén nước. Khuấy đều cho tan.",
+      "imageUrls": [
+        "https://i1-giadinh.vnecdn.net/2022/08/08/Buoc-2-2-6505-1659943656.jpg?w=680&h=0&q=100&dpr=1&fit=crop&s=A_b8m9rBWkjkY8TysXztsw"
+      ],
+      "videoUrls": [],
+      "stepTime": 10
+    },
+    {
+      "stepNumber": 3,
+      "instruction": "Bún gạo ngâm nước nóng 6-7 phút hoặc trụng sơ cho nở mềm. Vớt ra rửa lại cho ráo nước, trộn chút dầu ăn để không bị dính chùm và bóng mướt.",
+      "imageUrls": [
+        "https://i1-giadinh.vnecdn.net/2022/08/08/Buoc-3-3-9187-1659943656.jpg?w=680&h=0&q=100&dpr=1&fit=crop&s=1MzzjE_7Rt2OCq7FOXaIsA"
+      ],
+      "videoUrls": [],
+      "stepTime": 10
+    },
+    {
+      "stepNumber": 4,
+      "instruction": "Phi thơm 1/2 lượng hành khô băm. Hạ lửa nhỏ, cho 1/2 lượng nước sốt vào chảo đảo đều, thêm khoảng 1/3 bát nước lạnh vào. Cho bún gạo vào, đảo đều cho gia vị quyện đều vào sợi bún gạo. Sau 2 - 3 phút thì múc ra để riêng.",
+      "imageUrls": [
+        "https://i1-giadinh.vnecdn.net/2022/08/08/Buoc-4-4-9118-1659943656.jpg?w=680&h=0&q=100&dpr=1&fit=crop&s=lGM6aWA6L20FKM1p3_ucOA"
+      ],
+      "videoUrls": [],
+      "stepTime": 10
+    },
+    {
+      "stepNumber": 5,
+      "instruction": "Phi thơm 1/2 lượng hành khô còn lại, cho rau củ quả (cà rốt, bắp cải, ớt chuông và hành tây) vào, trút 1/2 lượng nước sốt còn lại và xào trên lửa lớn cho chín tới. Thêm đậu phụ chiên vào đảo cho thấm vị.",
+      "imageUrls": [
+        "https://i1-giadinh.vnecdn.net/2022/08/08/Buoc-5-5-4726-1659943657.jpg?w=680&h=0&q=100&dpr=1&fit=crop&s=kyAeNLdDZaN8NeAikYHrPw"
+      ],
+      "videoUrls": [],
+      "stepTime": 10
+    },
+    {
+      "stepNumber": 6,
+      "instruction": "Cuối cùng trút phần bún gạo đã xào vào trộn đều, nêm nếm lại gia vị cho vừa miệng, cho hành lá cắt khúc, rắc chút hạt tiêu và múc ra thưởng thức nóng.",
+      "imageUrls": [
+        "https://i1-giadinh.vnecdn.net/2022/08/08/Buoc-6-6-2093-1659943657.jpg?w=680&h=0&q=100&dpr=1&fit=crop&s=xeuKSqKtTJwpRQxjYFsYFg"
+      ],
+      "videoUrls": [],
+      "stepTime": 10
+    },
+    {
+      "stepNumber": 7,
+      "instruction": "Yêu cầu thành phẩm: Bún gạo mềm tơi nhưng không nhão, thấm vị hài hòa, các rau củ quả chín tới, màu sắc tươi mới, không bị ra nước.",
+      "imageUrls": [
+        "https://i1-giadinh.vnecdn.net/2022/08/08/Thanh-pham-3-3-7795-1659943657.jpg?w=680&h=0&q=100&dpr=1&fit=crop&s=pQvVkpJdmDiBbp4LYTMANA"
+      ],
+      "videoUrls": [],
+      "stepTime": 10
+    }
+  ]
+}

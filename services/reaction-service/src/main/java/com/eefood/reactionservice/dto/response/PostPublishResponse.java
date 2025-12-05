@@ -25,4 +25,5 @@ public class PostPublishResponse {
   private String cookTime;
   private Long countReaction;
   private Long countComment;
+  private String status;
 }

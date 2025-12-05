@@ -16,7 +16,7 @@ public class ShoppingIngredientDto {
   private Long ingredientId;
   private String ingredientName;
   private String image;
-  private Integer quantity;
+  private Double quantity;
   private String unit;
   private Boolean purchased;
 

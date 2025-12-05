@@ -1,6 +1,7 @@
 package com.eefood.reactionservice.service;
 
 import co.elastic.clients.elasticsearch.ElasticsearchClient;
+import com.eefood.reactionservice.enums.PostStatus;
 import com.eefood.reactionservice.mapper.PostMapper;
 import com.eefood.reactionservice.model.Post;
 import com.eefood.reactionservice.model.PostDocument;
@@ -27,6 +28,7 @@ public class PostIndexer implements CommandLineRunner{
   @Override
   @Transactional(readOnly = true)
   public void run(String... args) throws Exception {
+    clearIndex();
     indexAllPosts();
   }
 
@@ -55,6 +57,7 @@ public class PostIndexer implements CommandLineRunner{
   public void saveOrUpdatePost(Post post){
     try{
       PostDocument doc = postMapper.toDocument(post);
+
       client.index(i-> i
         .index("posts")
         .id(String.valueOf(doc.getId()))

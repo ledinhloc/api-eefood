@@ -1,8 +1,10 @@
 package com.eefood.reactionservice.service;
 
+import com.eefood.reactionservice.dto.SearchResult;
 import com.eefood.reactionservice.dto.request.PostCreateRequest;
 import com.eefood.reactionservice.dto.response.*;
 import com.eefood.reactionservice.enums.ErrorMessage;
+import com.eefood.reactionservice.enums.PostStatus;
 import com.eefood.reactionservice.exception.ExceptionUtil;
 import com.eefood.reactionservice.mapper.PostMapper;
 import com.eefood.reactionservice.model.Post;
@@ -50,9 +52,7 @@ public class PostService {
       .collect(Collectors.toList());
   }
 
-  public PostPublishResponse createPost(PostCreateRequest request) {
-    Long currentUserId = securityUtil.getCurrentUserId();
-
+  public PostPublishResponse createPost(PostCreateRequest request, Long userId) {
     boolean exists = postRepo.existsByRecipeIdAndIsDeletedFalse(request.getRecipeId());
     if (exists) {
       throw ExceptionUtil.conflict(ErrorMessage.ALREADY_EXISTS);
@@ -66,7 +66,7 @@ public class PostService {
     }
 
     Post post = Post.builder()
-      .userId(currentUserId)
+      .userId(userId)
       .content(request.getContent())
       //thong tin recipe
       .recipeId(request.getRecipeId())
@@ -79,6 +79,9 @@ public class PostService {
       .difficulty(recipe.getDifficulty())
       .recipeCategories(recipe.getRecipeCategories())
       .recipeIngredientKeywords(recipe.getRecipeIngredientKeywords())
+      .status((request.getStatus()!=null && !request.getStatus().isBlank())
+              ? PostStatus.valueOf(request.getStatus())
+              : PostStatus.PENDING)
       .build();
 
     postRepo.save(post);
@@ -96,6 +99,7 @@ public class PostService {
       .countComment(0L)
       .difficulty(recipe.getDifficulty() != null ? recipe.getDifficulty().name() : null)
       .location(recipe.getRegion())
+      .status(post.getStatus().name())
       .prepTime(recipe.getPrepTime() != null ? recipe.getPrepTime().toString() : null)
       .cookTime(recipe.getCookTime() != null ? recipe.getCookTime().toString() : null)
       .build();
@@ -113,6 +117,7 @@ public class PostService {
     }
 
     post.setContent(content);
+    post.setStatus(PostStatus.PENDING);
     postRepo.save(post);
 
     ResponseData<RecipeSummaryResponse> recipeResponse = recipeClient.getRecipeSummary(post.getRecipeId());
@@ -131,11 +136,48 @@ public class PostService {
       .createdAt(post.getCreatedAt())
       .countReaction(countReaction)
       .countComment(countComment)
+      .status(post.getStatus().name())
       .difficulty(recipe != null && recipe.getDifficulty() != null ? recipe.getDifficulty().name() : null)
       .location(recipe != null ? recipe.getRegion() : null)
       .prepTime(recipe != null && recipe.getPrepTime() != null ? recipe.getPrepTime().toString() : null)
       .cookTime(recipe != null && recipe.getCookTime() != null ? recipe.getCookTime().toString() : null)
       .build();
+  }
+
+  public PostPublishResponse updatePostByAdmin(Long id, String content, String status) {
+    Post post = postRepo.findByIdAndIsDeletedFalse(id);
+    if (post == null) {
+      throw ExceptionUtil.notFound(ErrorMessage.POST_NOT_FOUND);
+    }
+
+    post.setContent(content);
+    if(status!= null && !status.isBlank()) {
+      post.setStatus(PostStatus.valueOf(status));
+    }
+    postRepo.save(post);
+
+    ResponseData<RecipeSummaryResponse> recipeResponse = recipeClient.getRecipeSummary(post.getRecipeId());
+    RecipeSummaryResponse recipe = recipeResponse.getData();
+
+    long countReaction = post.getReactions() != null ? post.getReactions().size() : 0;
+    long countComment = post.getComments() != null ? post.getComments().size() : 0;
+
+    return PostPublishResponse.builder()
+            .id(post.getId())
+            .recipeId(post.getRecipeId())
+            .userId(post.getUserId())
+            .title(post.getTitle())
+            .content(post.getContent())
+            .imageUrl(post.getImageUrl())
+            .createdAt(post.getCreatedAt())
+            .countReaction(countReaction)
+            .countComment(countComment)
+            .status(post.getStatus().name())
+            .difficulty(recipe != null && recipe.getDifficulty() != null ? recipe.getDifficulty().name() : null)
+            .location(recipe != null ? recipe.getRegion() : null)
+            .prepTime(recipe != null && recipe.getPrepTime() != null ? recipe.getPrepTime().toString() : null)
+            .cookTime(recipe != null && recipe.getCookTime() != null ? recipe.getCookTime().toString() : null)
+            .build();
   }
 
   public void deletePost(Long id) {
@@ -167,16 +209,17 @@ public class PostService {
 
     //lay thong tin user
     Long currentUserId = securityUtil.getCurrentUserId();
+    log.info(currentUserId.toString());
     ResponseData<UserResponse> userResponse = iamClient.getUserById(currentUserId);
     UserResponse user = userResponse.getData();
     //debug
-//    log.info(user.toString());
+    //log.info(user.toString());
     List<Long> newFollowings = followService.getNewFollowings(userId);
     List<Long> oldFollowings = followService.getOldFollowings(userId);
 
 
     //Lấy danh sách postIds từ Elasticsearch
-    List<Long> postIds = postSearchService.searchPostIds(
+    SearchResult esResult = postSearchService.searchPostIds(
       keyword,
       region,
       difficulty,
@@ -188,6 +231,9 @@ public class PostService {
       page,
       size
     );
+
+    List<Long> postIds = esResult.getIds();
+    long total = esResult.getTotal();
     //debug
     log.info("----------------PostIds : " + postIds.toString());
 
@@ -198,7 +244,8 @@ public class PostService {
     // 3. Lấy Post từ DB theo postIds
     Specification<Post> spec = PostSpecification.isNotDeleted()
       .and(PostSpecification.hasUserId(userId))
-      .and(PostSpecification.hasPostIds(postIds));
+      .and(PostSpecification.hasPostIds(postIds))
+      .and(PostSpecification.hasStatus(PostStatus.APPROVED));
 
     List<Post> posts = postRepo.findAll(spec);
     // 4. Sắp xếp theo thứ tự của postIds (theo ES)
@@ -212,7 +259,7 @@ public class PostService {
     List<PostResponse> postResponses = mapToPostResponse(orderedPosts);
     //debug
 //    log.info("----------------" + postResponses.toString());
-    return new PageImpl<>(postResponses, PageRequest.of(page - 1, size), postIds.size());
+    return new PageImpl<>(postResponses, PageRequest.of(page - 1, size), total);
   }
 
   public Page<PostResponse> getAllPostsByAdmin(
@@ -227,12 +274,16 @@ public class PostService {
           Integer maxCookTime,
           Integer minReactionCount,
           Integer minTotalShares,
+          String status,
           String sortBy,
           Pageable pageable
   ) {
-    // Lấy danh sách postId từ Elasticsearch, đã paginate
-    Page<Long> esPage = postAdminSearchService.searchPostIds(
+    log.info("PostIds from query param: {}", status);
+
+
+    SearchResult esResult = postAdminSearchService.searchPostIds(
             keyword,
+            userId,
             region,
             difficulty,
             category,
@@ -242,27 +293,31 @@ public class PostService {
             maxCookTime,
             minReactionCount,
             minTotalShares,
+            status,
             sortBy,
             pageable
     );
 
-    List<Long> postIds = esPage.getContent();
-    long total = esPage.getTotalElements();
+    List<Long> postIds = esResult.getIds();
+    long total = esResult.getTotal();
     log.info("--------------PostIds : " + total);
-
+    log.info("PostIds from ES: {}", postIds);
 
     if (postIds.isEmpty()) {
       return new PageImpl<>(List.of(), pageable, 0);
     }
 
-    // Lấy Post từ DB theo postIds
     Specification<Post> spec = PostSpecification.isNotDeleted()
-            .and(PostSpecification.hasUserId(userId))
             .and(PostSpecification.hasPostIds(postIds));
+
+    if (status != null && !status.isBlank()) {
+      PostStatus postStatus = PostStatus.valueOf(status);
+      log.info("PostStatus from query param: {}", postStatus.name());
+      spec = spec.and(PostSpecification.hasStatus(postStatus));
+    }
 
     List<Post> posts = postRepo.findAll(spec);
 
-    // Sắp xếp theo thứ tự ES trả về
     Map<Long, Post> postMap = posts.stream()
             .collect(Collectors.toMap(Post::getId, p -> p));
 
@@ -271,7 +326,6 @@ public class PostService {
             .filter(Objects::nonNull)
             .toList();
 
-    // Chuyển sang response
     List<PostResponse> responses = mapToPostResponse(orderedPosts);
 
     return new PageImpl<>(responses, pageable, total);
