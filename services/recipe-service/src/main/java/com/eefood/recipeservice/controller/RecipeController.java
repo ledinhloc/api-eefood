@@ -1,11 +1,19 @@
 package com.eefood.recipeservice.controller;
 
 import com.eefood.recipeservice.dto.request.RecipeRequest;
+import com.eefood.recipeservice.dto.response.RecipeDetailResponse;
 import com.eefood.recipeservice.dto.response.RecipeResponse;
+import com.eefood.recipeservice.dto.response.RecipeSummaryResponse;
 import com.eefood.recipeservice.dto.response.ResponseData;
 import com.eefood.recipeservice.enums.Difficulty;
+import com.eefood.recipeservice.enums.ErrorMessage;
+import com.eefood.recipeservice.enums.SuccessMessage;
+import com.eefood.recipeservice.model.Recipe;
+import com.eefood.recipeservice.service.RecipeSearchService;
 import com.eefood.recipeservice.service.RecipeService;
+import com.eefood.recipeservice.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
+import com.eefood.recipeservice.exception.ExceptionUtil;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -18,6 +26,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -25,8 +34,47 @@ import java.util.List;
 @RequestMapping("/api/v1/recipes")
 @RequiredArgsConstructor
 public class RecipeController {
+  private final SecurityUtil securityUtil;
 
   private final RecipeService recipeService;
+  private final RecipeSearchService recipeSearchService;
+
+  @GetMapping("/summary/{id}")
+  public ResponseData<RecipeSummaryResponse> getRecipeSummary(@PathVariable Long id) {
+    return new ResponseData<>(HttpStatus.OK.value(), "Get success", recipeService.getRecipeSummaryById(id));
+  }
+
+  @GetMapping("/search-ids")
+  public ResponseData<List<Long>> searchRecipeIds(
+    @RequestParam(required = false) String keyword,
+    @RequestParam(required = false) String region,
+    @RequestParam(required = false) String difficulty
+  ){
+    List<Long> ids = recipeSearchService.searchRecipeIds(keyword, region, difficulty);
+    return new ResponseData<>(HttpStatus.OK.value(), "Success", ids);
+  }
+
+  @GetMapping("/detail/{id}")
+  public ResponseData<RecipeDetailResponse> getRecipeDetail(@PathVariable Long id) {
+    return new ResponseData<>(HttpStatus.OK.value(), "Success", recipeService.getRecipeDetail(id));
+  }
+
+  @DeleteMapping("/{id}")
+  public ResponseData<Void> deleteRecipe(@PathVariable Long id) {
+    //kiem tra quyen la ADMIN hoac la user da tao
+    Long currentUserId = securityUtil.getCurrentUserId();
+    boolean isAdmin = securityUtil.hasRole("ADMIN");
+    Recipe recipe = recipeService.getEntityRecipe(id);
+
+    if (!isAdmin && !recipe.getAuthorId().equals(currentUserId)) {
+      throw ExceptionUtil.forbidden(ErrorMessage.ACCESS_DENIED);
+    }
+
+    //xoa recipe
+    recipeService.deleteRecipeById(id);
+    return new ResponseData<>(HttpStatus.OK.value(), SuccessMessage.DELETE_SUCCESS.getMessage());
+  }
+
   @GetMapping
   public ResponseData<Page<RecipeResponse>> searchService(
     @RequestParam(required = false) String title,
@@ -50,23 +98,24 @@ public class RecipeController {
   }
 
   @PostMapping
-  public RecipeResponse createRecipe(@RequestBody RecipeRequest request) {
-    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-    String authorId = authentication.getName();
-    return recipeService.createRecipe(request, authorId);
+  public ResponseData<RecipeResponse> createRecipe(@RequestBody RecipeRequest request) {
+    Long authorId = securityUtil.getCurrentUserId();
+    var result = recipeService.createRecipe(request, authorId);
+    return new ResponseData<>(HttpStatus.OK.value(), "Success", result);
   }
 
   @PutMapping("/{id}")
-  public RecipeResponse updateRecipe(@PathVariable Long id,
+  public ResponseData<RecipeResponse> updateRecipe(@PathVariable Long id,
                                      @RequestBody RecipeRequest request) {
     Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
     String authorId = authentication.getName();
-    return recipeService.updateRecipe(id, request, authorId);
+    var result = recipeService.updateRecipe(id, request, authorId);
+    return new ResponseData<>(HttpStatus.OK.value(), "Success", result);
+
   }
 
-  @GetMapping("/my/{authId}")
+  @GetMapping("/my")
   public ResponseData<Page<RecipeResponse>> getMyRecipes(
-    @PathVariable Long authId,
     @RequestParam(required = false) String title,
     @RequestParam(required = false) String description,
     @RequestParam(required = false) String region,
@@ -77,11 +126,10 @@ public class RecipeController {
     @RequestParam(defaultValue = "createdAt") String sortBy,
     @RequestParam(defaultValue = "DESC") Sort.Direction direction
     ) {
-//    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-//    String authId = authentication.getName(); // authId trong JWT
+    Long userId = securityUtil.getCurrentUserId();
 
     Pageable pageable = PageRequest.of(page - 1, size, Sort.by(direction, sortBy));
-    var result = recipeService.searchRecipes(title, description, region, difficulty, categoryId, authId,pageable);
+    var result = recipeService.searchRecipes(title, description, region, difficulty, categoryId, userId,pageable);
     return new ResponseData<>(HttpStatus.OK.value(), "Success", result);
   }
 }

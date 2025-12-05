@@ -1,7 +1,85 @@
+server:
+  port: 8095
+  servlet:
+    context-path: /
+    session:
+      cookie:
+        same-site: strict
+        http-only: true
+
+elasticsearch:
+  url: ${ELASTICSEARCH_URL}
+  api-key: ${ELASTICSEARCH_API_KEY}
+
 spring:
   application:
     name: reaction-service
   config:
     import: optional:configserver:http://localhost:8888
+
+  datasource:
+    url: ${env.iam.datasource.url:jdbc:postgresql://localhost:5435/reaction_service}
+    username: ${env.iam.datasource.username:postgres}
+    password: ${env.iam.datasource.password:postgres}
+    hikari:
+      connection-timeout: 5000       # Timeout khi lấy connection (5s)
+      validation-timeout: 3000
+      maximum-pool-size: 10
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        envers:
+          audit_table_suffix: _aud
+          store_data_at_delete: true
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include:
+          - refresh       # Cho phép gọi /actuator/refresh để nạp lại cấu hình (dùng với Spring Cloud Config)
+          - health        # Cho phép truy cập endpoint /actuator/health để kiểm tra tình trạng ứng dụng
+          - info          # Cho phép truy cập /actuator/info để xem thông tin ứng dụng
+          - metrics       # Cho phép truy cập /actuator/metrics để xem tất cả metric hiện có
+          - prometheus    # Cho phép Prometheus scrape metrics tại /actuator/prometheus
+
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http:
+          server:
+            requests: true
+
+  observations:
+    key-values:
+      application: iam-service # Gắn nhãn `application=iam-service` vào tất cả metric
+
+logging:
+  level:
+    root: INFO
+    # Log feign chi tiết
+    feign: DEBUG
+    feign.client: DEBUG
+
+
+
+
+
 
 

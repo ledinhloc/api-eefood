@@ -8,6 +8,7 @@ import java.util.Set;
 
 import lombok.*;
 import lombok.experimental.SuperBuilder;
+import org.hibernate.annotations.SQLRestriction;
 
 @Entity
 @Table(name = "recipes")
@@ -20,27 +21,19 @@ public class Recipe extends BaseEntity {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
-
   private Long authorId;
-
   @Column(nullable = false)
-  private String title;
-
-  private String description;
-
-  private String region;
-
+  private String title;//lọc theo
+  private String description;//lọc theo
+  private String region;//lọc theo
   private String imageUrl;
-
   private String videoUrl;
-
   private Integer prepTime;
-
   private Integer cookTime;
 
   @Enumerated(EnumType.STRING)
   @Column(length = 7)
-  private Difficulty difficulty;
+  private Difficulty difficulty;//lọc theo
 
   @ManyToMany
   @JoinTable(
@@ -52,10 +45,12 @@ public class Recipe extends BaseEntity {
 
   @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
   @Builder.Default
+  @SQLRestriction("is_deleted = false")
   private Set<RecipeStep> steps = new HashSet<>();
 
   @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
   @Builder.Default
+  @SQLRestriction("is_deleted = false")
   private Set<RecipeIngredient> ingredients = new HashSet<>();
 
   public void addStep(RecipeStep step) {

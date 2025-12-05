@@ -4,6 +4,8 @@ import com.eefood.iamservice.dto.request.Credential;
 import com.eefood.iamservice.dto.request.UserCreateRequest;
 import com.eefood.iamservice.dto.request.UserCreationParam;
 import com.eefood.iamservice.dto.request.UserUpdateRequest;
+import com.eefood.iamservice.dto.response.UserInfo;
+import com.eefood.iamservice.dto.response.UserNotificationResponse;
 import com.eefood.iamservice.dto.response.UserResponse;
 import com.eefood.iamservice.enums.ErrorMessage;
 import com.eefood.iamservice.enums.Role;
@@ -13,9 +15,15 @@ import com.eefood.iamservice.repository.UserRepository;
 import com.eefood.iamservice.utils.ExceptionUtil;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -29,6 +37,29 @@ public class UserService {
   private final UserRepository userRepository;
   private final UserMapper userMapper;
   private final KeycloakAdminService keycloakAdminService;
+
+  public UserResponse getUserById(Long id) {
+    User user = userRepository.findById(id).orElse(null);
+    return userMapper.toUserResponse(user);
+  }
+
+  /**
+   * Lấy thông tin user từ cache hoặc DB.
+   * Nếu không có trong cache -> lấy từ DB -> lưu cache.
+   */
+  @Cacheable(value = "userInfoCache", key = "#userId")
+  public UserInfo getUserInfo(Long userId) {
+    log.info("Fetching user {} from DB...", userId);
+    return userRepository.findByIdAndIsDeletedFalse(userId)
+      .map(userMapper::toResponse)
+      .orElse(null);
+  }
+
+  // Xóa cache khi user thay đổi hoặc bị xóa
+  @CacheEvict(value = "userInfoCache", key = "#userId")
+  public void evictUserCache(Long userId) {
+    log.info("Evict cache for user {}", userId);
+  }
 
   // lay user dang login
   public UserResponse getCurrentUser() {
@@ -96,6 +127,8 @@ public class UserService {
       }
       userMapper.updateUserFromRequest(request, user);
       User updateUser = userRepository.save(user);
+
+      evictUserCache(updateUser.getId());
       return userMapper.toUserResponse(updateUser);
     } catch (Exception e) {
       throw ExceptionUtil.badRequest(ErrorMessage.FAIL_UPDATE_USER);
@@ -158,6 +191,7 @@ public class UserService {
     userRepository.save(user);
 
     keycloakAdminService.disableUserInKeycloak(user.getAuthId());
+    evictUserCache(userId);
   }
 
   private String extractUserId(ResponseEntity<?> response) {
@@ -179,5 +213,10 @@ public class UserService {
     userResponse.setAccessToken(response.getAccessToken());
     userResponse.setRefreshToken(response.getRefreshToken());
     return userResponse;
+  }
+
+  public List<UserNotificationResponse> getUserForNotifications() {
+    List<User> response = userRepository.findAllByIsDeletedFalse();
+    return response.stream().map(userMapper::toUserNotificationResponse).collect(Collectors.toList());
   }
 }

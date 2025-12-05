@@ -62,19 +62,19 @@ services:
     networks:
       - microservices-net
 
-  schema-registry:
-    image: confluentinc/cp-schema-registry:7.5.0
-    container_name: schema_registry
-    depends_on:
-      - kafka
-    ports:
-      - "8086:8081"
-    environment:
-      SCHEMA_REGISTRY_HOST_NAME: schema-registry
-      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'kafka:29092'
-      SCHEMA_REGISTRY_LISTENERS: http://schema-registry:8081
-    networks:
-      - microservices-net
+#  schema-registry:
+#    image: confluentinc/cp-schema-registry:7.5.0
+#    container_name: schema_registry
+#    depends_on:
+#      - kafka
+#    ports:
+#      - "8086:8081"
+#    environment:
+#      SCHEMA_REGISTRY_HOST_NAME: schema-registry
+#      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'kafka:29092'
+#      SCHEMA_REGISTRY_LISTENERS: http://schema-registry:8081
+#    networks:
+#      - microservices-net
 
 
   kafka-ui:
@@ -137,6 +137,8 @@ services:
       - "5540:5540"
     depends_on:
       - redis
+    networks:
+      - microservices-net
 
 #  loki:
 #    container_name: loki

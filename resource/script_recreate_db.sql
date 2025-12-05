@@ -1,17 +1,15 @@
--- Định nghĩa biến cho tên database
-\set db_name 'iam_service'
-
--- Ngắt kết nối tất cả session đang dùng DB (nếu có)
+-- Ngắt kết nối tất cả session đang dùng DB iam_service (nếu có)
+-- vì PostgreSQL không cho DROP DATABASE khi đang có kết nối active
 SELECT pg_terminate_backend(pg_stat_activity.pid)
 FROM pg_stat_activity
-WHERE pg_stat_activity.datname = :'db_name'
+WHERE pg_stat_activity.datname = 'recipe_service'
   AND pid <> pg_backend_pid();
 
 -- Xóa database nếu tồn tại
-DROP DATABASE IF EXISTS :db_name;
+DROP DATABASE IF EXISTS recipe_service;
 
 -- Tạo database mới với encoding UTF8
-CREATE DATABASE :db_name
+CREATE DATABASE recipe_service
     WITH
     OWNER = postgres
     ENCODING = 'UTF8'

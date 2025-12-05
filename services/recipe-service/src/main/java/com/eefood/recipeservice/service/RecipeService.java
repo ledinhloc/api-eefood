@@ -3,16 +3,20 @@ package com.eefood.recipeservice.service;
 import com.eefood.recipeservice.dto.request.RecipeIngredientRequest;
 import com.eefood.recipeservice.dto.request.RecipeRequest;
 import com.eefood.recipeservice.dto.request.RecipeStepRequest;
-import com.eefood.recipeservice.dto.response.RecipeResponse;
+import com.eefood.recipeservice.dto.response.*;
 import com.eefood.recipeservice.enums.Difficulty;
+import com.eefood.recipeservice.enums.ErrorMessage;
+import com.eefood.recipeservice.exception.ExceptionUtil;
 import com.eefood.recipeservice.mapper.RecipeMapper;
 import com.eefood.recipeservice.model.*;
 import com.eefood.recipeservice.repository.CategoryRepository;
 import com.eefood.recipeservice.repository.IngredientRepository;
 import com.eefood.recipeservice.repository.RecipeRepository;
 import com.eefood.recipeservice.repository.RecipeStepRepository;
+import com.eefood.recipeservice.repository.httpclient.IamClient;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -21,7 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.stream.Collectors;
-
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class RecipeService {
@@ -30,6 +34,29 @@ public class RecipeService {
   private final CategoryRepository categoryRepository;
   private final RecipeMapper recipeMapper;
   private final IngredientRepository ingredientRepository;
+  private final IamClient iamClient;
+  private final RecipeIndexer recipeIndexer;
+
+  public Recipe getEntityRecipe(Long id) {
+    return recipeRepository.findByIdAndIsDeletedFalse(id)
+      .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.RECIPE_NOT_FOUND));
+  }
+
+  public void deleteRecipeById(Long id) {
+    Recipe recipe =
+        recipeRepository
+            .findByIdAndIsDeletedFalse(id)
+            .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.RECIPE_NOT_FOUND));
+
+    recipe.setIsDeleted(true);
+    //xoa step
+    recipe.getSteps().forEach(step -> step.setIsDeleted(true));
+    //xoa ingredient
+    recipe.getIngredients().forEach(ingredient -> ingredient.setIsDeleted(true));
+    recipeRepository.save(recipe);
+    //delete els
+    recipeIndexer.deleteRecipe(id);
+  }
 
   @Transactional(readOnly = true)
   public Page<RecipeResponse> searchRecipes(
@@ -48,7 +75,6 @@ public class RecipeService {
       RecipeSpecification.hasRegion(region),
       RecipeSpecification.hasDifficulty(difficulty),
       RecipeSpecification.hasCategoryId(categoryId),
-      RecipeSpecification.withFetchJoin(),
       RecipeSpecification.hasAuthor(authorId)
     );
     return recipeRepository.findAll(spec, pageable).map(recipeMapper::toResponse);
@@ -56,13 +82,53 @@ public class RecipeService {
 
   @Transactional(readOnly = true)
   public RecipeResponse getRecipeById(Long id) {
-    Recipe recipe = recipeRepository.findById(id)
-      .orElseThrow(() -> new EntityNotFoundException("Recipe not found"));
+    Recipe recipe = recipeRepository.findByIdAndIsDeletedFalse(id)
+      .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.RECIPE_NOT_FOUND));
     return recipeMapper.toResponse(recipe);
   }
 
+  @Transactional(readOnly = true)
+  public RecipeSummaryResponse getRecipeSummaryById(Long id) {
+    Recipe recipe = recipeRepository.findByIdAndIsDeletedFalse(id)
+      .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.RECIPE_NOT_FOUND));
+    return recipeMapper.toSummaryResponse(recipe);
+  }
+
+  public RecipeDetailResponse getRecipeDetail(Long id) {
+    Recipe recipe = recipeRepository.findByIdAndIsDeletedFalse(id)
+      .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.RECIPE_NOT_FOUND));
+    RecipeDetailResponse recipeResponse = recipeMapper.toDetailResponse(recipe);
+
+    // --- Lấy thông tin user ---
+    UserInfo userInfo = iamClient.getUserInfo(recipe.getAuthorId()).getData();
+    recipeResponse.setUserId(userInfo.getId());
+    recipeResponse.setUsername(userInfo.getUsername());
+    recipeResponse.setEmail(userInfo.getEmail());
+    recipeResponse.setAvatarUrl(userInfo.getAvatarUrl());
+
+    // --- Sắp xếp steps theo stepNumber ---
+    if (recipeResponse.getSteps() != null) {
+      recipeResponse.setSteps(
+        recipeResponse.getSteps().stream()
+          .sorted(Comparator.comparingInt(StepResponse::getStepNumber))
+          .toList()
+      );
+    }
+
+    // --- Sắp xếp ingredients theo id ---
+    if (recipeResponse.getIngredients() != null) {
+      recipeResponse.setIngredients(
+        recipeResponse.getIngredients().stream()
+          .sorted(Comparator.comparingLong(RecipeIngredientResponse::getId))
+          .toList()
+      );
+    }
+
+    return recipeResponse;
+  }
+
   @Transactional
-  public RecipeResponse createRecipe(RecipeRequest request, String currentUser) {
+  public RecipeResponse createRecipe(RecipeRequest request, Long currentUser) {
     Recipe recipe = recipeMapper.toEntity(request);
 
     // set categories
@@ -87,13 +153,16 @@ public class RecipeService {
         recipe.addStep(step);
       }
     }
+    recipe.setAuthorId(currentUser);
     Recipe saved = recipeRepository.save(recipe);
+    //luu els
+    recipeIndexer.saveOrUpdateRecipe(saved);
     return recipeMapper.toResponse(saved);
   }
 
   @Transactional
   public RecipeResponse updateRecipe(Long id, RecipeRequest request, String currentUser) {
-    Recipe recipe = recipeRepository.findById(id)
+    Recipe recipe = recipeRepository.findByIdAndIsDeletedFalse(id)
       .orElseThrow(() -> new EntityNotFoundException("Recipe not found"));
 
     recipe.setTitle(request.getTitle());
@@ -108,7 +177,60 @@ public class RecipeService {
 
     // update categories
     List<Category> categories = categoryRepository.findAllById(request.getCategoryIds());
-//    recipe.setCategories(categories);
+    recipe.setCategories(new HashSet<>(categories));
+    /* ========== UPDATE INGREDIENTS ========== */
+    List<Long> requestIngredientIds = request.getIngredients().stream()
+            .map(RecipeIngredientRequest::getId)
+            .filter(Objects::nonNull)
+            .toList();
+
+    // lấy danh sách ingredients hiện có trong recipe
+    Set<RecipeIngredient> existingIngredients = recipe.getIngredients();
+
+    // soft delete ingredient không có trong request
+    for (RecipeIngredient ri : existingIngredients) {
+      if (ri.getId() != null && !requestIngredientIds.contains(ri.getId())) {
+        ri.setIsDeleted(true);
+        ri.setUpdatedBy(currentUser);
+      }
+    }
+
+    // update or create ingredients
+    for (RecipeIngredientRequest ingReq : request.getIngredients()) {
+      if (ingReq.getId() == null) {
+        // thêm mới
+        RecipeIngredient newIng = recipeMapper.toEntity(ingReq);
+        Ingredient ingredient = ingredientRepository.findById(ingReq.getIngredientId())
+                .orElseThrow(() -> new EntityNotFoundException("Ingredient not found with id: " + ingReq.getIngredientId()));
+        newIng.setIngredient(ingredient);
+        newIng.setRecipe(recipe);
+        newIng.setCreatedBy(currentUser);
+        newIng.setUpdatedBy(currentUser);
+        recipe.addIngredient(newIng);
+      } else {
+        // update
+        RecipeIngredient ri = existingIngredients.stream()
+                .filter(e -> e.getId().equals(ingReq.getId()))
+                .findFirst()
+                .orElseThrow(() -> new EntityNotFoundException("RecipeIngredient not found"));
+
+        if (Boolean.TRUE.equals(ri.getIsDeleted())) {
+          ri.setIsDeleted(false);
+          ri.setUpdatedBy(currentUser);
+        }
+
+        ri.setQuantity(ingReq.getQuantity());
+        ri.setUnit(ingReq.getUnit());
+        ri.setUpdatedBy(currentUser);
+
+        // nếu ingredientId thay đổi → update reference
+        if (!ri.getIngredient().getId().equals(ingReq.getIngredientId())) {
+          Ingredient ingredient = ingredientRepository.findById(ingReq.getIngredientId())
+                  .orElseThrow(() -> new EntityNotFoundException("Ingredient not found with id: " + ingReq.getIngredientId()));
+          ri.setIngredient(ingredient);
+        }
+      }
+    }
 
     // update steps
     List<Long> requestStepIds = request.getSteps().stream()
@@ -138,6 +260,13 @@ public class RecipeService {
       } else {
         RecipeStep step = stepRepository.findById(stepReq.getId())
           .orElseThrow(() -> new EntityNotFoundException("Step not found"));
+
+        // khôi phục nếu trước đó bị xóa mềm
+        if (Boolean.TRUE.equals(step.getIsDeleted())) {
+          step.setIsDeleted(false);
+          step.setUpdatedBy(currentUser);
+        }
+
         step.setStepNumber(stepReq.getStepNumber());
         step.setInstruction(stepReq.getInstruction());
         step.setImageUrl(stepReq.getImageUrl());
@@ -147,7 +276,7 @@ public class RecipeService {
         stepRepository.save(step);
       }
     }
-
+    recipeIndexer.saveOrUpdateRecipe(recipe);
     return recipeMapper.toResponse(recipe);
   }
 }
