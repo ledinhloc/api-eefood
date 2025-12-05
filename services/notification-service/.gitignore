@@ -32,7 +32,8 @@ build/
 ### VS Code ###
 .vscode/
 
-**/google-services.json
-**/serviceAccountKey.json
+# Google secrets
+src/main/resources/serviceAccountKey.json
+src/main/resources/google-services.json
 
 
