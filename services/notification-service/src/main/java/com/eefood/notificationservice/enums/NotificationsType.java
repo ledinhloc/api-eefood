@@ -7,6 +7,6 @@ public enum NotificationsType {
     SYSTEM, // Hệ thống
     SAVE_RECIPE, // Khi lưu vào shopping list
     SHARE_RECIPE, // Khi share công thức
-    WELCOME, // Chào mừng mỗi khi đăng nhập
-    RECIPE_OF_THE_DAY //Gợi ý công thức trong ngày.
+    WELCOME,
+    RECOMMEND_RECIPE,
 }

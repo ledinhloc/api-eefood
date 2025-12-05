@@ -44,12 +44,12 @@ public class ShoppingController {
     return  new ResponseData<>(HttpStatus.OK.value(), "Success", shoppingListService.updateServings(userId, itemId, servings));
   }
 
-  @PutMapping("/ingredient/{ingredientId}/purchased")
+  @PutMapping("/ingredient/purchased")
   public ResponseData<Void> togglePurchased(
-    @PathVariable Long ingredientId,
+    @RequestParam List<Long> ingredientIds,
     @RequestParam Boolean purchased) {
     Long userId = securityUtil.getCurrentUserId();
-    shoppingListService.togglePurchased(userId, ingredientId, purchased);
+    shoppingListService.togglePurchased(userId, ingredientIds, purchased);
     return new ResponseData<>(HttpStatus.OK.value(), "Success");
   }
 

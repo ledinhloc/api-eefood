@@ -58,7 +58,13 @@ public enum ErrorMessage {
 
 
   //Recipe service
-  RECIPE_NOT_FOUND("Recipe not found or already deleted");
+  RECIPE_NOT_FOUND("Recipe not found or already deleted"),
+
+  //ingre
+  INGREDIENT_SHOPPING_NOT_FOUND("Ingredient not found"),
+  SHOPPING_ITEM_NOT_FOUND("Shopping Item not found"),
+  SHOPPING_ITEM_MORE("Expected 1 ShoppingItem but found more than one item");
+
 
   private final String message;
 

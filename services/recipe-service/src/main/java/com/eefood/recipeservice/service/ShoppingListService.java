@@ -2,6 +2,8 @@ package com.eefood.recipeservice.service;
 
 import com.eefood.recipeservice.dto.ShoppingIngredientDto;
 import com.eefood.recipeservice.dto.ShoppingItemDto;
+import com.eefood.recipeservice.enums.ErrorMessage;
+import com.eefood.recipeservice.exception.ExceptionUtil;
 import com.eefood.recipeservice.mapper.ShoppingListMapper;
 import com.eefood.recipeservice.model.Recipe;
 import com.eefood.recipeservice.model.RecipeIngredient;
@@ -27,13 +29,13 @@ public class ShoppingListService {
   //them mon an vao shopping list
   @Transactional
   public ShoppingItemDto addRecipe(Long userId, Long recipeId, int servings) {
-    Recipe recipe = recipeRepo.findById(recipeId)
-      .orElseThrow(() -> new RuntimeException("Recipe not found"));
+    Recipe recipe = recipeRepo.findByIdAndIsDeletedFalse(recipeId)
+      .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.RECIPE_NOT_FOUND));
 
     List<ShoppingItem> items = itemRepo.findAllItems(userId, recipeId);
 
     if(items.size()>1){
-      throw new RuntimeException("Expected 1 ShoppingItem but found more than one item");
+      throw ExceptionUtil.badRequest(ErrorMessage.SHOPPING_ITEM_MORE);
     }
 
     ShoppingItem currentItem;
@@ -106,42 +108,50 @@ public class ShoppingListService {
     ShoppingItem item =
         itemRepo
             .findByIdAndUserIdAndIsDeletedFalse(itemId, userId)
-            .orElseThrow(() -> new RuntimeException("Item not found"));
+            .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.SHOPPING_ITEM_NOT_FOUND));
     item.setIsDeleted(true);
     item.getIngredients().forEach(i -> i.setIsDeleted(true));
+    itemRepo.save(item);
   }
 
   // Thay đổi khẩu phần (update số lượng nguyên liệu theo servings mới)
   @Transactional
   public ShoppingItemDto updateServings(Long userId, Long itemId, Integer newServings) {
     ShoppingItem item = itemRepo.findByIdAndUserIdAndIsDeletedFalse(itemId, userId)
-      .orElseThrow(() -> new RuntimeException("Item not found"));
+      .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.SHOPPING_ITEM_NOT_FOUND));
 
     int oldServings = item.getServings();
     item.setServings(newServings);
 
     for (ShoppingIngredient ing : item.getIngredients()) {
-      int basePerServing = ing.getQuantity() / oldServings;
-      ing.setQuantity(basePerServing * newServings);
+      double basePerServing = (double) ing.getQuantity() / oldServings;
+      ing.setQuantity((int) Math.round(basePerServing * newServings));
     }
 
+    itemRepo.save(item);
     return mapper.toDto(item);
   }
 
   //Tích chọn mua nguyen lieu
   @Transactional
-  public void togglePurchased(Long userId, Long ingredientId, Boolean purchased){
-    ShoppingIngredient ing = ingredientRepo.findById(ingredientId)
-      .orElseThrow(() -> new RuntimeException("Ingredient not found"));
-    if(!ing.getShoppingItem().getUserId().equals(userId)){
-      throw new RuntimeException("Not authorized");
+  public void togglePurchased(Long userId, List<Long> ingredientIds, Boolean purchased){
+    List<ShoppingIngredient> ingredients = ingredientRepo.findAllByIdInAndIsDeletedFalse(ingredientIds);
+    if(ingredients.size() != ingredientIds.size()){
+      throw ExceptionUtil.notFound(ErrorMessage.INGREDIENT_SHOPPING_NOT_FOUND);
     }
-    ing.setPurchased(purchased);
+
+    for(ShoppingIngredient ing : ingredients){
+      if(!ing.getShoppingItem().getUserId().equals(userId)){
+        throw ExceptionUtil.forbidden(ErrorMessage.ACCESS_DENIED);
+      }
+      ing.setPurchased(purchased);
+    }
+    ingredientRepo.saveAll(ingredients);
   }
 
   //get theo recipe
   public List<ShoppingItemDto> getByRecipe(Long userId) {
-    return mapper.toItemDtoList(itemRepo.findAllByUserIdAndIsDeletedFalse(userId));
+    return mapper.toItemDtoList(itemRepo.findAllActiveByUserIdOrderByRecipeTitle(userId));
   }
 
   //get theo nguyen lieu
