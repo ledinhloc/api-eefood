@@ -4,16 +4,19 @@ import com.eefood.iamservice.dto.request.*;
 import com.eefood.iamservice.dto.response.ResponseData;
 import com.eefood.iamservice.dto.response.SimpleTokenResponse;
 import com.eefood.iamservice.dto.response.UserResponse;
-import com.eefood.iamservice.enums.ErrorMessage;
-import com.eefood.iamservice.enums.OtpType;
-import com.eefood.iamservice.enums.SuccessMessage;
+import com.eefood.iamservice.enums.*;
 import com.eefood.iamservice.service.AuthService;
 import com.eefood.iamservice.service.KeycloakAdminService;
 import com.eefood.iamservice.service.OtpService;
 import com.eefood.iamservice.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -24,6 +27,23 @@ public class AuthController {
   private final OtpService otpService;
   private final UserService userService;
   private final KeycloakAdminService keycloakService;
+
+  @PreAuthorize("hasRole('ADMIN')")
+  @GetMapping
+  public ResponseData<Page<UserResponse>> getUsers(
+    @RequestParam(defaultValue = "0") int page,
+    @RequestParam(defaultValue = "10") int size,
+    @RequestParam(defaultValue = "") String search,
+    @RequestParam(required = false) Role role,
+    @RequestParam(required = false) Provider provider,
+    @RequestParam(defaultValue = "username") String sortBy,
+    @RequestParam(defaultValue = "asc") String direction
+  ) {
+    Sort sort = Sort.by(direction.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC, sortBy);
+    Pageable pageable = PageRequest.of(page, size, sort);
+    Page<UserResponse> users = userService.getUsers(search, role, provider, pageable);
+    return new ResponseData<>(200, "Success", users);
+  }
 
   @PostMapping("/google-login")
   public ResponseData<?> loginWithGoogle(@Valid @RequestBody GoogleLoginRequest request) {
