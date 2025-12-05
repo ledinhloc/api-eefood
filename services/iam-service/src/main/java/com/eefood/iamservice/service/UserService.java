@@ -8,6 +8,7 @@ import com.eefood.iamservice.dto.response.UserInfo;
 import com.eefood.iamservice.dto.response.UserNotificationResponse;
 import com.eefood.iamservice.dto.response.UserResponse;
 import com.eefood.iamservice.enums.ErrorMessage;
+import com.eefood.iamservice.enums.Provider;
 import com.eefood.iamservice.enums.Role;
 import com.eefood.iamservice.mapper.UserMapper;
 import com.eefood.iamservice.model.User;
@@ -24,11 +25,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 @RequiredArgsConstructor
 @Service
@@ -37,6 +41,18 @@ public class UserService {
   private final UserRepository userRepository;
   private final UserMapper userMapper;
   private final KeycloakAdminService keycloakAdminService;
+
+  public Page<UserResponse> getUsers(String search, Role role, Provider provider, Pageable pageable) {
+    Specification<User> spec = (root, query, cb) -> cb.conjunction();
+
+    spec = spec.and(UserSpecification.notDeleted())
+      .and(UserSpecification.searchByUsernameOrEmail(search))
+      .and(UserSpecification.filterByRole(role))
+      .and(UserSpecification.filterByProvider(provider));
+
+    Page<User> users = userRepository.findAll(spec, pageable);
+    return users.map(userMapper::toUserResponse);
+  }
 
   public UserResponse getUserById(Long id) {
     User user = userRepository.findById(id).orElse(null);
@@ -100,6 +116,7 @@ public class UserService {
                             .temporary(false)
                             .value(request.getPassword())
                             .build()))
+              .attributes(Map.of("userId", String.valueOf(savedUser.getId())))
                 .build());
 
     // Extract userId

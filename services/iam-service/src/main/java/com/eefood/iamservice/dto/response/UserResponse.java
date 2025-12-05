@@ -3,6 +3,7 @@ package com.eefood.iamservice.dto.response;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -28,6 +29,7 @@ public class UserResponse {
   private List<String> allergies;
   private List<String> eatingPreferences;
   private List<String> dietaryPreferences;
+  private LocalDateTime createdAt;
   private String accessToken;
   private String refreshToken;
 }
