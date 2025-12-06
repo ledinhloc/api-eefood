@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -26,9 +27,17 @@ public class AdminController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/reports")
-    public ResponseData<List<ReportResponse>> listAll() {
-        return new ResponseData<>(200, "Success", reportService.getAllReports());
+    public ResponseData<Page<ReportResponse>> listAll(
+            @RequestParam(defaultValue = "POST") String type,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "DESC") Sort.Direction direction
+    ) {
+        Pageable pageable = PageRequest.of(page - 1, size, Sort.by(direction, sortBy));
+        return new ResponseData<>(200, "Success", reportService.getAllReports(type, pageable));
     }
+
 
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/reports/{id}")

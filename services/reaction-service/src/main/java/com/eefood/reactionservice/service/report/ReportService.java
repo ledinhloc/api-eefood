@@ -4,6 +4,7 @@ import com.eefood.reactionservice.dto.request.ReportRequest;
 import com.eefood.reactionservice.dto.response.ReportResponse;
 import com.eefood.reactionservice.dto.response.StoryResponse;
 import com.eefood.reactionservice.enums.ReportStatus;
+import com.eefood.reactionservice.enums.ReportTargetType;
 import com.eefood.reactionservice.mapper.ReportMapper;
 import com.eefood.reactionservice.model.Comment;
 import com.eefood.reactionservice.model.Post;
@@ -18,6 +19,8 @@ import com.eefood.reactionservice.repository.report.ReportStoryRepository;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -125,14 +128,21 @@ public class ReportService {
                 .orElse(null);
     }
 
-    public List<ReportResponse> getAllReports() {
-        List<ReportResponse> result = new ArrayList<>();
+    public Page<ReportResponse> getAllReports(String type, Pageable pageable) {
+        ReportTargetType typeReport = ReportTargetType.valueOf(type);
 
-        reportPostRepository.findAll().forEach(r -> result.add(reportMapper.toResponse(r)));
-        reportCommentRepository.findAll().forEach(r -> result.add(reportMapper.toResponse(r)));
-        reportStoryRepository.findAll().forEach(r -> result.add(reportMapper.toResponse(r)));
-
-        return result;
+        if (ReportTargetType.POST.equals(typeReport)) {
+            return reportPostRepository.findAll(pageable)
+                    .map(reportMapper::toResponse);
+        }
+        else if (ReportTargetType.COMMENT.equals(typeReport)) {
+            return reportCommentRepository.findAll(pageable)
+                    .map(reportMapper::toResponse);
+        }
+        else {
+            return reportStoryRepository.findAll(pageable)
+                    .map(reportMapper::toResponse);
+        }
     }
 
     public ReportResponse updateStatus(Long id, ReportStatus status) {
