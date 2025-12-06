@@ -111,6 +111,10 @@ spring:
               uri: lb://REACTION-SERVICE
               predicates:
                 - Path=/api/v1/story-collection/**
+            - id: report-reaction-service
+              uri: lb://REACTION-SERVICE
+              predicates:
+                - Path=/api/v1/reports/**
     bus:
       enabled: true
     stream:
