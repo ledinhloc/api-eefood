@@ -1,0 +1,16 @@
+{
+  "type": "record",
+  "name": "PostApprovalResult",
+  "namespace": "com.eefood.common.avro",
+  "fields": [
+    { "name": "postId", "type": "long" },
+    { "name": "recipeId", "type": "long" },
+    { "name": "userId", "type": "long" },
+    { "name": "status", "type": "string" },
+    { "name": "reason", "type": ["null", "string"], "default": null },
+    { "name": "confidence", "type": ["null", "double"], "default": null },
+    { "name": "processedAt", "type": "long" },
+    { "name": "recipeTitle", "type": ["null", "string"], "default": null },
+    { "name": "recipeImageUrl", "type": ["null", "string"], "default": null }
+  ]
+}

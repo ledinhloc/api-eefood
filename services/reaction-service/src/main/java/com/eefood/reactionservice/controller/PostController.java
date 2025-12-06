@@ -38,7 +38,6 @@ public class PostController {
 
   @PostMapping
   public ResponseData<PostPublishResponse> createPost(@RequestBody PostCreateRequest request) {
-    //Dùng userId từ header
     Long postUserId = securityUtil.getCurrentUserId();
     PostPublishResponse post = postService.createPost(request, postUserId);
     log.info("-----user insert success postId: " + post.getId()+ ", recipeId"+ post.getRecipeId() + " " + post.getTitle());

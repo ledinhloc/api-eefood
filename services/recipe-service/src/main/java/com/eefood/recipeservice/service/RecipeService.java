@@ -25,6 +25,7 @@ import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.googleai.GoogleAiGeminiChatModel;
+import feign.utils.ExceptionUtils;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -63,6 +64,11 @@ public class RecipeService {
   private static final int MIN_USER_ID = 1;
   private static final int MAX_USER_ID = 20;
   private static final Random random = new Random();
+
+  public Recipe findById(Long recipeId) {
+    return recipeRepository.findByIdAndIsDeletedFalse(recipeId)
+      .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.RECIPE_NOT_FOUND));
+  }
 
   public RecipeResponse saveExtractResultWithPost(RecipeExtractDTO dto) {
 
