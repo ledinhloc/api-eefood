@@ -17,7 +17,6 @@ import lombok.experimental.SuperBuilder;
 @AllArgsConstructor
 @SuperBuilder
 public abstract class Report extends BaseEntity {
-
     // Người báo cáo
     @Column(nullable = false)
     private Long reporterId;

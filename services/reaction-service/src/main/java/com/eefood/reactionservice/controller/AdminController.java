@@ -1,24 +1,41 @@
 package com.eefood.reactionservice.controller;
 
 import com.eefood.reactionservice.dto.response.PostResponse;
+import com.eefood.reactionservice.dto.response.ReportResponse;
 import com.eefood.reactionservice.dto.response.ResponseData;
+import com.eefood.reactionservice.enums.ReportStatus;
 import com.eefood.reactionservice.service.post.PostService;
+import com.eefood.reactionservice.service.report.ReportService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/admin")
 @RequiredArgsConstructor
-public class PostAdminController {
+public class AdminController {
     private final PostService postService;
+    private final ReportService reportService;
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/reports")
+    public ResponseData<List<ReportResponse>> listAll() {
+        return new ResponseData<>(200, "Success", reportService.getAllReports());
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/reports/{id}")
+    public ResponseData<ReportResponse> updateStatus(@PathVariable Long id, @RequestBody Map<String, String> requestBody) {
+        String status = requestBody.get("status");
+        return new ResponseData<>(200, "Resolved", reportService.updateStatus(id, ReportStatus.valueOf(status)));
+    }
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/posts")
