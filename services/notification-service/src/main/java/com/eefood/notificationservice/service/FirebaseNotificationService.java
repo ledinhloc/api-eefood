@@ -1,8 +1,10 @@
 package com.eefood.notificationservice.service;
 import com.eefood.notificationservice.dto.request.NotificationRequest;
+import com.eefood.notificationservice.dto.request.UserNotificationResquest;
 import com.eefood.notificationservice.dto.response.NotificationResponse;
 import com.eefood.notificationservice.model.UserFcmToken;
 import com.eefood.notificationservice.repository.UserFcmTokenRepository;
+import com.eefood.notificationservice.repository.httpclient.IamClient;
 import com.google.firebase.messaging.*;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -22,6 +25,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class FirebaseNotificationService {
     private final ConcurrentHashMap<Long, String> userFcmTokens = new ConcurrentHashMap<>();
     private final UserFcmTokenRepository userFcmTokenRepository;
+    private final IamClient iamClient;
 
     public void preloadCache() {
         userFcmTokenRepository.findAll()
@@ -44,16 +48,18 @@ public class FirebaseNotificationService {
             return;
         }
         userFcmTokens.put(userId, token);
-        Optional<UserFcmToken> userFcmToken = userFcmTokenRepository.findById(userId);
-        if (userFcmToken.isPresent()) {
-            UserFcmToken userFcmTokenEntity = userFcmToken.get();
+        Optional<UserFcmToken> existingToken = userFcmTokenRepository.findById(userId);
+        if (existingToken.isPresent()) {
+            UserFcmToken userFcmTokenEntity = existingToken.get();
             userFcmTokenEntity.setFcmToken(token);
             userFcmTokenRepository.save(userFcmTokenEntity);
+        } else {
+            userFcmTokenRepository.save(
+                    UserFcmToken.builder()
+                            .userId(userId)
+                            .fcmToken(token)
+                            .build());
         }
-        userFcmTokenRepository.save(
-                UserFcmToken.builder().userId(userId)
-                        .fcmToken(token)
-                        .build());
         log.info("Registered FCM token for user {}: {}", userId, token);
     }
 
@@ -92,6 +98,54 @@ public class FirebaseNotificationService {
 
         } catch (FirebaseMessagingException e) {
             log.error("Failed to send FCM to userId={}, error={}", userId, e.getMessage());
+        }
+    }
+
+    public void sendNotificationToAdmin(List<Long> userIds, NotificationResponse response) {
+        if (userIds == null || userIds.isEmpty()) {
+            log.warn("UserId list is empty, skip sending group notification");
+            return;
+        }
+
+        // Lấy token từ cache
+        List<String> tokens = userIds.stream()
+                .map(userFcmTokens::get)
+                .filter(token -> token != null && !token.isBlank())
+                .toList();
+
+        if (tokens.isEmpty()) {
+            log.warn("No valid FCM tokens found for given userIds");
+            return;
+        }
+
+        // Chia batch (max 500 token/batch)
+        List<List<String>> batches = partition(tokens, 500);
+
+        for (List<String> batch : batches) {
+            MulticastMessage message = MulticastMessage.builder()
+                    .setNotification(Notification.builder()
+                            .setTitle(response.getTitle())
+                            .setBody(response.getBody())
+                            .build())
+                    .putAllData(Map.of(
+                            "title", response.getTitle(),
+                            "body", response.getBody(),
+                            "type", response.getType(),
+                            "path", response.getPath(),
+                            "avatarUrl", response.getAvatarUrl(),
+                            "postImageUrl", response.getPostImageUrl(),
+                            "isRead", String.valueOf(response.isRead())
+                    ))
+                    .addAllTokens(batch)
+                    .build();
+
+            try {
+                BatchResponse result = FirebaseMessaging.getInstance().sendMulticast(message);
+                log.info("Group notification sent: {} tokens, success={}, failure={}",
+                        batch.size(), result.getSuccessCount(), result.getFailureCount());
+            } catch (FirebaseMessagingException e) {
+                log.error("Group notification error for batch {}: {}", batch.size(), e.getMessage());
+            }
         }
     }
 
