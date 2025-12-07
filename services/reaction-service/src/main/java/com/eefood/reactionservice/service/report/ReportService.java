@@ -40,42 +40,63 @@ public class ReportService {
     private final NotificationUtils notificationUtils;
 
     public ReportResponse createReport(ReportRequest request) {
-
         validateRequest(request);
+
+        ReportTargetType type = ReportTargetType.valueOf(request.getTargetType());
+
+        boolean exists = false;
+
+        switch (type) {
+            case POST -> exists = reportPostRepository
+                    .existsByReporterIdAndPost_Id(request.getReporterId(), request.getTargetId());
+
+            case STORY -> exists = reportStoryRepository
+                    .existsByReporterIdAndStory_Id(request.getReporterId(), request.getTargetId());
+
+            case COMMENT -> exists = reportCommentRepository
+                    .existsByReporterIdAndComment_Id(request.getReporterId(), request.getTargetId());
+        }
+
+        if (exists) {
+            throw new IllegalArgumentException("Bạn đã báo cáo nội dung này trước đó");
+        }
 
         Report target;
 
-        switch (request.getTargetType()) {
+        switch (type) {
             case POST -> {
                 ReportPost rp = ReportPost.builder()
                         .reporterId(request.getReporterId())
                         .reason(request.getReason())
                         .status(ReportStatus.PENDING)
-                        .targetType(request.getTargetType())
+                        .targetType(type)
                         .build();
                 rp.setPost(em.getReference(Post.class, request.getTargetId()));
                 target = reportPostRepository.save(rp);
             }
+
             case STORY -> {
                 ReportStory rs = ReportStory.builder()
                         .reporterId(request.getReporterId())
                         .reason(request.getReason())
                         .status(ReportStatus.PENDING)
-                        .targetType(request.getTargetType())
+                        .targetType(type)
                         .build();
                 rs.setStory(em.getReference(Story.class, request.getTargetId()));
                 target = reportStoryRepository.save(rs);
             }
+
             case COMMENT -> {
                 ReportComment rc = ReportComment.builder()
                         .reporterId(request.getReporterId())
                         .reason(request.getReason())
                         .status(ReportStatus.PENDING)
-                        .targetType(request.getTargetType())
+                        .targetType(type)
                         .build();
                 rc.setComment(em.getReference(Comment.class, request.getTargetId()));
                 target = reportCommentRepository.save(rc);
             }
+
             default -> throw new IllegalArgumentException("Unsupported targetType");
         }
 
@@ -83,7 +104,8 @@ public class ReportService {
                 target.getReporterId(),
                 request.getReason(),
                 request.getTargetId(),
-                request.getTargetType().name());
+                request.getTargetType()
+        );
 
         return mapToResponse(target);
     }

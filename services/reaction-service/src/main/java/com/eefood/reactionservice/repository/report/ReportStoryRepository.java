@@ -13,4 +13,5 @@ import java.util.List;
 public interface ReportStoryRepository extends JpaRepository<ReportStory, Long> {
     List<ReportStory> findByReporterId(Long reporterId);
     Page<ReportStory> findAll(Pageable pageable);
+    boolean existsByReporterIdAndStory_Id(Long reporterId, Long storyId);
 }
