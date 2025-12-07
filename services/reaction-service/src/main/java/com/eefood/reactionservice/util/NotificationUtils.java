@@ -2,6 +2,7 @@ package com.eefood.reactionservice.util;
 
 import com.eefood.common.avro.NotificationEvent;
 import com.eefood.reactionservice.enums.ReactionType;
+import com.eefood.reactionservice.enums.ReportStatus;
 import com.eefood.reactionservice.kafka.NotificationProducer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -10,6 +11,26 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class NotificationUtils {
     private final NotificationProducer notificationProducer;
+
+    /**
+     * Gửi thông báo cho admin khi có report mới.
+     */
+    public void sendReportToAdmin(Long reporterId,
+                                  String reason,
+                                  Long targetId,
+                                  String targetType) {
+
+        NotificationEvent event = NotificationEvent.newBuilder()
+                .setTitle("Có báo cáo vi phạm mới")
+                .setBody("User " + reporterId + " đã báo cáo " + targetType + " #" + targetId
+                        + " với lý do: " + reason)
+                .setUserId(0L)
+                .setType("REPORT")
+                .setPath("/admin/reports")
+                .build();
+
+        notificationProducer.sendNotificationToAdmin(event);
+    }
 
     /**
      * Gửi thông báo khi người dùng reply vào comment của người khác.

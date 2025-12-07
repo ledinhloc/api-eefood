@@ -9,4 +9,5 @@ public enum NotificationsType {
     SHARE_RECIPE, // Khi share công thức
     WELCOME,
     RECOMMEND_RECIPE,
+    REPORT
 }

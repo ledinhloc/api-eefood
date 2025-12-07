@@ -17,6 +17,28 @@ public class NotificationAppConsumer {
     private final NotificationsService notificationsService;
     private final FirebaseNotificationService firebaseNotificationService;
 
+    @KafkaListener(topics = "notifications.admin", groupId = "notification-service-group")
+    public void consumeAdminNotification(NotificationEvent event) {
+        try {
+            log.info("Received Admin NotificationEvent: {}", event);
+
+            NotificationRequest request = NotificationRequest.builder()
+                    .title(event.getTitle().toString())
+                    .body(event.getBody().toString())
+                    .path(event.getPath().toString())
+                    .avatarUrl(event.getAvatarUrl() != null ? event.getAvatarUrl().toString() : null)
+                    .postImageUrl(event.getPostImageUrl() != null ? event.getPostImageUrl().toString() : null)
+                    .type(event.getType().toString())
+                    .userId(event.getUserId() != null ? (Long) event.getUserId() : null)
+                    .build();
+
+            notificationsService.sendNotificationToAdmins(request);
+
+        } catch (Exception e) {
+            log.error("Error processing admin notification event: {}", e.getMessage(), e);
+        }
+    }
+
     @KafkaListener(topics = "notifications.app", groupId = "notification-service-group")
     public void consume(NotificationEvent event) {
         try {

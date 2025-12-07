@@ -16,6 +16,7 @@ import com.eefood.reactionservice.model.report.ReportStory;
 import com.eefood.reactionservice.repository.report.ReportCommentRepository;
 import com.eefood.reactionservice.repository.report.ReportPostRepository;
 import com.eefood.reactionservice.repository.report.ReportStoryRepository;
+import com.eefood.reactionservice.util.NotificationUtils;
 import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,6 +37,7 @@ public class ReportService {
     private final ReportCommentRepository reportCommentRepository;
     private final ReportMapper reportMapper;
     private final EntityManager em;
+    private final NotificationUtils notificationUtils;
 
     public ReportResponse createReport(ReportRequest request) {
 
@@ -76,6 +78,12 @@ public class ReportService {
             }
             default -> throw new IllegalArgumentException("Unsupported targetType");
         }
+
+        notificationUtils.sendReportToAdmin(
+                target.getReporterId(),
+                request.getReason(),
+                request.getTargetId(),
+                request.getTargetType().name());
 
         return mapToResponse(target);
     }
@@ -145,19 +153,19 @@ public class ReportService {
         }
     }
 
-    public ReportResponse updateStatus(Long id, ReportStatus status) {
+    public ReportResponse updateStatus(Long id, ReportTargetType type,ReportStatus status) {
 
         Report updated = null;
 
-        if (reportPostRepository.existsById(id)) {
+        if (type.equals(ReportTargetType.POST)) {
             ReportPost rp = reportPostRepository.findById(id).orElseThrow();
             rp.setStatus(status);
             updated = reportPostRepository.save(rp);
-        } else if (reportStoryRepository.existsById(id)) {
+        } else if (type.equals(ReportTargetType.STORY)) {
             ReportStory rs = reportStoryRepository.findById(id).orElseThrow();
             rs.setStatus(status);
             updated = reportStoryRepository.save(rs);
-        } else if (reportCommentRepository.existsById(id)) {
+        } else if (type.equals(ReportTargetType.COMMENT)) {
             ReportComment rc = reportCommentRepository.findById(id).orElseThrow();
             rc.setStatus(status);
             updated = reportCommentRepository.save(rc);

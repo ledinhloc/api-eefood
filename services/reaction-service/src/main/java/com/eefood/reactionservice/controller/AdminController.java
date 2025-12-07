@@ -4,6 +4,7 @@ import com.eefood.reactionservice.dto.response.PostResponse;
 import com.eefood.reactionservice.dto.response.ReportResponse;
 import com.eefood.reactionservice.dto.response.ResponseData;
 import com.eefood.reactionservice.enums.ReportStatus;
+import com.eefood.reactionservice.enums.ReportTargetType;
 import com.eefood.reactionservice.service.post.PostService;
 import com.eefood.reactionservice.service.report.ReportService;
 import lombok.RequiredArgsConstructor;
@@ -43,7 +44,9 @@ public class AdminController {
     @PutMapping("/reports/{id}")
     public ResponseData<ReportResponse> updateStatus(@PathVariable Long id, @RequestBody Map<String, String> requestBody) {
         String status = requestBody.get("status");
-        return new ResponseData<>(200, "Resolved", reportService.updateStatus(id, ReportStatus.valueOf(status)));
+        String type = requestBody.get("type");
+        return new ResponseData<>(200, "Update successfully",
+                reportService.updateStatus(id, ReportTargetType.valueOf(type), ReportStatus.valueOf(status)));
     }
 
     @PreAuthorize("hasRole('ADMIN')")

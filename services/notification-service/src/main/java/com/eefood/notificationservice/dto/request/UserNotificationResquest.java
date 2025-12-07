@@ -12,6 +12,7 @@ import lombok.NoArgsConstructor;
 public class UserNotificationResquest {
     private Long id;
     private String email;
+    private String role;
     private String username;
     private String fcmToken;
 }
