@@ -43,6 +43,65 @@ public class NotificationsService {
     private final IamClient iamClient;
     private final FirebaseNotificationService firebaseNotificationService;
 
+    @Transactional
+    public void sendNotificationToAdmins(NotificationRequest request) {
+
+        var response = iamClient.getAllUserNotifications();
+        List<UserNotificationResquest> users = response.getData();
+
+        // Lọc admin
+        List<Long> adminIds = users.stream()
+                .filter(u -> "ADMIN".equals(u.getRole()))
+                .map(UserNotificationResquest::getId)
+                .toList();
+
+        if (adminIds.isEmpty()) {
+            log.warn("No admin found to send notification");
+            return;
+        }
+
+        // Tạo Notifications entity
+        Notifications notification = Notifications.builder()
+                .title(request.getTitle())
+                .body(request.getBody())
+                .path(request.getPath())
+                .avatarUrl(request.getAvatarUrl())
+                .postImageUrl(request.getPostImageUrl())
+                .type(NotificationsType.valueOf(request.getType()))
+                .build();
+
+        // Tạo bản ghi NotificationsRecipient cho toàn bộ admin
+        List<NotificationsRecipient> recipients = adminIds.stream()
+                .map(adminId -> NotificationsRecipient.builder()
+                        .userId(adminId)
+                        .notification(notification)
+                        .isRead(false)
+                        .isDeleted(false)
+                        .build())
+                .collect(Collectors.<NotificationsRecipient>toList());
+
+        notification.setRecipients(recipients);
+
+        // Lưu vào DB
+        notificationsRepository.save(notification);
+
+        // Tạo object để gửi qua Firebase
+        NotificationResponse resp = NotificationResponse.builder()
+                .title(request.getTitle())
+                .body(request.getBody())
+                .type(request.getType())
+                .path(request.getPath())
+                .avatarUrl(request.getAvatarUrl())
+                .postImageUrl(request.getPostImageUrl())
+                .isRead(false)
+                .build();
+
+        // Gửi tb
+        firebaseNotificationService.sendNotificationToAdmin(adminIds, resp);
+
+        log.info("Saved & sent notification for admins: {}", adminIds);
+    }
+
     // Giống push notification
     @Transactional
     public void handleNotificationIncome(NotificationRequest request) {
