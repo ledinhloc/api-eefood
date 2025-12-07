@@ -3,8 +3,10 @@ package com.eefood.reactionservice.kafka;
 import com.eefood.common.avro.NotificationEvent;
 import com.eefood.common.avro.PostApprovalResult;
 import com.eefood.reactionservice.enums.PostStatus;
+import com.eefood.reactionservice.model.ApprovePost;
 import com.eefood.reactionservice.model.Post;
 import com.eefood.reactionservice.repository.post.PostRepository;
+import com.eefood.reactionservice.service.ApprovePostService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -18,6 +20,7 @@ public class PostApprovalResultConsumer {
 
   private final PostRepository postRepository;
   private final NotificationProducer notificationProducer;
+  private final ApprovePostService approvePostService;
 
   @KafkaListener(topics = "post.approval.result", groupId = "reaction-service")
   @Transactional
@@ -33,6 +36,9 @@ public class PostApprovalResultConsumer {
         return;
       }
 
+      // luu ket qua duyet
+      ApprovePost approvePost = mapToApprovePost(post, result);
+      approvePostService.save(approvePost);
       updatePostStatus(post, result);
       sendNotificationToUser(post, result);
 
@@ -43,6 +49,29 @@ public class PostApprovalResultConsumer {
       log.error("Error processing approval result - PostId: {}, Error: {}",
         result.getPostId(), e.getMessage(), e);
     }
+  }
+
+  private ApprovePost mapToApprovePost(Post post, PostApprovalResult result) {
+    return ApprovePost.builder()
+      .post(post)
+      .userId(result.getUserId())
+      .recipeId(result.getRecipeId())
+      .status(String.valueOf(result.getStatus()))
+      .summary(String.valueOf(result.getSummary()))
+      .totalScore(result.getTotalScore())
+      .recipeCompleteness(result.getRecipeCompleteness())
+      .ingredientSafety(result.getIngredientSafety())
+      .stepClarity(result.getStepClarity())
+      .contentAppropriate(result.getContentAppropriate())
+      .contentRelevance(result.getContentRelevance())
+      .mediaQuality(result.getMediaQuality())
+      .completenessNote(String.valueOf(result.getCompletenessNote()))
+      .safetyNote(String.valueOf(result.getSafetyNote()))
+      .clarityNote(String.valueOf(result.getClarityNote()))
+      .appropriatenessNote(String.valueOf(result.getAppropriatenessNote()))
+      .relevanceNote(String.valueOf(result.getRelevanceNote()))
+      .mediaQualityNote(String.valueOf(result.getMediaQualityNote()))
+      .build();
   }
 
   private Post fetchPost(Long postId) {
@@ -128,7 +157,7 @@ public class PostApprovalResultConsumer {
       case REJECTED -> String.format(
         "Công thức \"%s\" chưa được duyệt. Lý do: %s",
         recipeTitle,
-        result.getReason() != null ? result.getReason() : "Không rõ lý do"
+        result.getSummary() != null ? result.getSummary() : "Không rõ lý do"
       );
       default -> String.format(
         "Công thức \"%s\" đang được xem xét.",

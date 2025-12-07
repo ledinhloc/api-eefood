@@ -429,10 +429,9 @@ NOW ANALYZE THE FOLLOWING HTML AND RETURN ONLY JSON:
         recipe.addStep(step);
       }
     }
+
     recipe.setAuthorId(currentUser);
     Recipe saved = recipeRepository.save(recipe);
-    //luu els
-//    recipeIndexer.saveOrUpdateRecipe(saved);
     return recipeMapper.toResponse(saved);
   }
 

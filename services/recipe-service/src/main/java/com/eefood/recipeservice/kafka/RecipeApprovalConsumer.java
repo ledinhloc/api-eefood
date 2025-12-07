@@ -39,16 +39,30 @@ public class RecipeApprovalConsumer {
 
   private void sendModerationResult(PostApprovalRequest request,
                                     ModerationResult moderationResult) {
+
     PostApprovalResult result = PostApprovalResult.newBuilder()
       .setPostId(request.getPostId())
       .setRecipeId(request.getRecipeId())
       .setUserId(request.getUserId())
       .setStatus(moderationResult.getStatus().name())
-      .setReason(moderationResult.getReason())
-      .setConfidence(moderationResult.getConfidence())
+      .setSummary(moderationResult.getSummary())
       .setProcessedAt(System.currentTimeMillis())
-      .setRecipeTitle(null) // Will be set if needed
+      .setRecipeTitle(null)
       .setRecipeImageUrl(null)
+      .setSummary(moderationResult.getSummary())
+      .setTotalScore(moderationResult.getTotalScore())
+      .setRecipeCompleteness(moderationResult.getRecipeCompleteness())
+      .setIngredientSafety(moderationResult.getIngredientSafety())
+      .setStepClarity(moderationResult.getStepClarity())
+      .setContentAppropriate(moderationResult.getContentAppropriate())
+      .setContentRelevance(moderationResult.getContentRelevance())
+      .setMediaQuality(moderationResult.getMediaQuality())
+      .setCompletenessNote(moderationResult.getCompletenessNote())
+      .setSafetyNote(moderationResult.getSafetyNote())
+      .setClarityNote(moderationResult.getClarityNote())
+      .setAppropriatenessNote(moderationResult.getAppropriatenessNote())
+      .setRelevanceNote(moderationResult.getRelevanceNote())
+      .setMediaQualityNote(moderationResult.getMediaQualityNote())
       .build();
 
     resultProducer.sendResult(result);
@@ -56,15 +70,30 @@ public class RecipeApprovalConsumer {
       request.getPostId(), moderationResult.getStatus());
   }
 
+
   private void sendRejectionResult(PostApprovalRequest request, String reason) {
     PostApprovalResult result = PostApprovalResult.newBuilder()
       .setPostId(request.getPostId())
       .setRecipeId(request.getRecipeId())
       .setUserId(request.getUserId())
       .setStatus("REJECTED")
-      .setReason(reason)
-      .setConfidence(1.0)
+      .setSummary(reason)
+      .setTotalScore(0.0)
+      .setRecipeCompleteness(0)
+      .setIngredientSafety(0)
+      .setStepClarity(0)
+      .setContentAppropriate(0)
+      .setContentRelevance(0)
+      .setMediaQuality(0)
+      .setCompletenessNote(null)
+      .setSafetyNote(null)
+      .setClarityNote(null)
+      .setAppropriatenessNote(null)
+      .setRelevanceNote(null)
+      .setMediaQualityNote(null)
       .setProcessedAt(System.currentTimeMillis())
+      .setRecipeTitle(null)
+      .setRecipeImageUrl(null)
       .build();
 
     resultProducer.sendResult(result);
