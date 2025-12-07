@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class ReportRequest {
     private Long reporterId;
-    private ReportTargetType targetType;
+    private String targetType;
     private String reason;
     private Long targetId;
     private ReportStatus status;
