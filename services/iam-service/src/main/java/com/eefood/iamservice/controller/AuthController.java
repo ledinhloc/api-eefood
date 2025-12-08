@@ -28,23 +28,6 @@ public class AuthController {
   private final UserService userService;
   private final KeycloakAdminService keycloakService;
 
-  @PreAuthorize("hasRole('ADMIN')")
-  @GetMapping
-  public ResponseData<Page<UserResponse>> getUsers(
-    @RequestParam(defaultValue = "0") int page,
-    @RequestParam(defaultValue = "10") int size,
-    @RequestParam(defaultValue = "") String search,
-    @RequestParam(required = false) Role role,
-    @RequestParam(required = false) Provider provider,
-    @RequestParam(defaultValue = "username") String sortBy,
-    @RequestParam(defaultValue = "asc") String direction
-  ) {
-    Sort sort = Sort.by(direction.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC, sortBy);
-    Pageable pageable = PageRequest.of(page, size, sort);
-    Page<UserResponse> users = userService.getUsers(search, role, provider, pageable);
-    return new ResponseData<>(200, "Success", users);
-  }
-
   @PostMapping("/google-login")
   public ResponseData<?> loginWithGoogle(@Valid @RequestBody GoogleLoginRequest request) {
     return new ResponseData<>(
@@ -59,7 +42,7 @@ public class AuthController {
     return new ResponseData<>(
         HttpStatus.OK.value(),
         "Success",
-        userService.login(request.getEmail(), request.getPassword()));
+        userService.login(request.getEmail(), request.getPassword(), request.getFcmToken()));
   }
 
   // refresh token

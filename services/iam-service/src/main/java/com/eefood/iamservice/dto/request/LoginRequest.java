@@ -20,4 +20,6 @@ public class LoginRequest {
   @NotBlank(message = "PASSWORD_REQUIRED")
   @Size(min = 8, max = 100, message = "PASSWORD_INVALID")
   private String password;
+
+  private String fcmToken;
 }
