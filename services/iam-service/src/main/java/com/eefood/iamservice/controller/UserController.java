@@ -7,10 +7,16 @@ import com.eefood.iamservice.dto.response.ResponseData;
 import com.eefood.iamservice.dto.response.UserInfo;
 import com.eefood.iamservice.dto.response.UserNotificationResponse;
 import com.eefood.iamservice.dto.response.UserResponse;
+import com.eefood.iamservice.enums.Provider;
+import com.eefood.iamservice.enums.Role;
 import com.eefood.iamservice.enums.SuccessMessage;
 import com.eefood.iamservice.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -24,6 +30,23 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/v1/users")
 public class UserController {
   private final UserService userService;
+
+  @PreAuthorize("hasRole('ADMIN')")
+  @GetMapping
+  public ResponseData<Page<UserResponse>> getUsers(
+          @RequestParam(defaultValue = "0") int page,
+          @RequestParam(defaultValue = "10") int size,
+          @RequestParam(defaultValue = "") String search,
+          @RequestParam(required = false) Role role,
+          @RequestParam(required = false) Provider provider,
+          @RequestParam(defaultValue = "username") String sortBy,
+          @RequestParam(defaultValue = "asc") String direction
+  ) {
+    Sort sort = Sort.by(direction.equalsIgnoreCase("desc") ? Sort.Direction.DESC : Sort.Direction.ASC, sortBy);
+    Pageable pageable = PageRequest.of(page, size, sort);
+    Page<UserResponse> users = userService.getUsers(search, role, provider, pageable);
+    return new ResponseData<>(200, "Success", users);
+  }
 
   @GetMapping("/info/{userId}")
   public ResponseData<UserResponse> getUserById(@PathVariable Long userId) {

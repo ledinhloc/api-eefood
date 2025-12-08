@@ -221,7 +221,7 @@ public class UserService {
     return splitedStr[splitedStr.length - 1];
   }
 
-  public UserResponse login(String email, String password) {
+  public UserResponse login(String email, String password, String fcmToken) {
     var response = keycloakAdminService.login(email, password);
 
     Optional<User> userOpt = userRepository.findByEmailAndIsDeletedFalse(email);
@@ -237,7 +237,7 @@ public class UserService {
             .setId(userResponse.getId())
             .setEmail(userResponse.getEmail())
             .setUsername(userResponse.getUsername())
-            .setFcmToken(userResponse.getAccessToken())
+            .setFcmToken(fcmToken)
             .build();
     firebaseNotificationProducer.sendFirebaseRegisterEvent(fcmRequest);
     return userResponse;
