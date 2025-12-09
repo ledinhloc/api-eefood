@@ -101,7 +101,13 @@ google:
       api-key: ${GEMINI_API_KEY}
       model: gemini-2.5-flash
       temperature: 0.1
+      log-requests: true
+      log-responses: true
 
+LANGSMITH_TRACING: "true"
+LANGSMITH_ENDPOINT: "https://api.smith.langchain.com"
+LANGSMITH_API_KEY: ${LANGSMITH_API_KEY}
+LANGSMITH_PROJECT: recipe-service
 
 
 

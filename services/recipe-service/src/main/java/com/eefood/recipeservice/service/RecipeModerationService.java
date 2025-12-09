@@ -5,8 +5,13 @@ import com.eefood.recipeservice.enums.ModerationStatus;
 import com.eefood.recipeservice.model.Recipe;
 import com.eefood.recipeservice.model.RecipeStep;
 import com.eefood.recipeservice.repository.RecipeRepository;
+import com.eefood.recipeservice.util.ImageUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.langchain4j.data.image.Image;
+import dev.langchain4j.data.message.Content;
+import dev.langchain4j.data.message.ImageContent;
+import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
@@ -16,7 +21,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Comparator;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -38,7 +50,7 @@ public class RecipeModerationService {
 
       String prompt = buildModerationPrompt(recipe, postContent);
       log.info("Moderation prompt: {}", prompt);
-      String aiResponse = callGeminiAPI(prompt);
+      String aiResponse = callGeminiAPI(prompt, recipe);
       ModerationResult result = parseAIResponse(aiResponse);
 
       log.info("Moderation completed for recipe: {} - Status: {}",
@@ -62,9 +74,53 @@ public class RecipeModerationService {
     return recipe;
   }
 
-  private String callGeminiAPI(String prompt) {
+  private String  callGeminiAPI(String textPrompt, Recipe recipe) {
+    List<Content> contents = new ArrayList<>();
+    //Thêm text prompt
+    contents.add(TextContent.from(textPrompt));
+
+    // Thêm hình ảnh chính của recipe (nếu có)
+    if (recipe.getImageUrl() != null && !recipe.getImageUrl().isEmpty()) {
+      String base64Image = ImageUtils.downloadAndEncodeImage(recipe.getImageUrl());
+      if (base64Image != null) {
+        String mimeType = ImageUtils.getMimeType(recipe.getImageUrl());
+        Image image = Image.builder()
+          .base64Data(base64Image)
+          .mimeType(mimeType)
+          .build();
+        contents.add(ImageContent.from(image));
+        log.info("Added main recipe image to analysis");
+      }
+    }
+
+    // Thêm hình ảnh từ các steps (tối đa 5 ảnh để tránh quá tải)
+    int imageCount = 0;
+    int maxImages = 5;
+
+    for (RecipeStep step : recipe.getSteps()) {
+      if (imageCount >= maxImages) break;
+
+      if (step.getImageUrls() != null && !step.getImageUrls().isEmpty()) {
+        for (String imageUrl : step.getImageUrls()) {
+          if (imageCount >= maxImages) break;
+
+          String base64Image = ImageUtils.downloadAndEncodeImage(imageUrl);
+          if (base64Image != null) {
+            String mimeType = ImageUtils.getMimeType(imageUrl);
+            Image image = Image.builder()
+              .base64Data(base64Image)
+              .mimeType(mimeType)
+              .build();
+            contents.add(ImageContent.from(image));
+            imageCount++;
+            log.info("Added step {} image to analysis", step.getStepNumber());
+          }
+        }
+      }
+    }
+
     ChatRequest request = ChatRequest.builder()
-      .messages(UserMessage.from(prompt))
+      .messages(dev.langchain4j.data.message.UserMessage.from(contents))
       .build();
 
     ChatResponse response = geminiChatModel.chat(request);

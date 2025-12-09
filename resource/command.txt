@@ -4,5 +4,5 @@ link ui swagger: https://editor.swagger.io/
 
 Đặt lại password cho user kibana_system( chạy trong container els): elasticsearch-reset-password -u kibana_system -i
 # Nhập password mới khi được hỏi: kibana123
-
+-> login với els: elastic - elastic123
 

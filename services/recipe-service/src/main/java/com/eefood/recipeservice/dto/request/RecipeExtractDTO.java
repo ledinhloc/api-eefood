@@ -1,6 +1,5 @@
-package com.eefood.recipeservice.dto.response;
+package com.eefood.recipeservice.dto.request;
 
-import com.eefood.recipeservice.dto.request.RecipeStepRequest;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

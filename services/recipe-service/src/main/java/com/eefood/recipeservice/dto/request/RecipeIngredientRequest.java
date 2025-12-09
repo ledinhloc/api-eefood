@@ -10,8 +10,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class RecipeIngredientRequest {
-    private Long id;
-    private Long ingredientId;
+    private Long id;//update
+    private Long ingredientId;//update
     private String name;
     private Double quantity;
     private String unit;

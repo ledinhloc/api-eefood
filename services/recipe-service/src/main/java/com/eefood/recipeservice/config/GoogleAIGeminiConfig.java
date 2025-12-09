@@ -10,7 +10,7 @@ public class GoogleAIGeminiConfig {
     @Value("${google.ai.gemini.api-key}")
     private String geminiApiKey;
 
-    @Value("${google.ai.gemini.model:gemini-2.5-pro}")
+    @Value("${google.ai.gemini.model}")
     private String geminiModel;
 
     @Value("${google.ai.gemini.temperature:0.1}")
