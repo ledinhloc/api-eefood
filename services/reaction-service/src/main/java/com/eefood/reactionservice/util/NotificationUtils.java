@@ -30,7 +30,7 @@ public class NotificationUtils {
                 .setAvatarUrl(avatarUrl)
                 .setPostImageUrl(postImageUrl)
                 .setType("REPORT")
-                .setPath("/admin/reports")
+                .setPath("/post/" + targetId)
                 .build();
 
         notificationProducer.sendNotificationToAdmin(event);

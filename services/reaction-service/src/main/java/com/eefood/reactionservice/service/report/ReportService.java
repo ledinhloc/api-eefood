@@ -25,6 +25,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -165,19 +166,31 @@ public class ReportService {
                 .orElse(null);
     }
 
-    public Page<ReportResponse> getAllReports(String type, Pageable pageable) {
+    public Page<ReportResponse> getAllReports(Long reporterId, String reason, String status, String type, Pageable pageable) {
         ReportTargetType typeReport = ReportTargetType.valueOf(type);
 
         if (ReportTargetType.POST.equals(typeReport)) {
-            return reportPostRepository.findAll(pageable)
+            Specification<ReportPost> spec = ReportPostSpecification.isNotDeleted()
+                    .and(ReportPostSpecification.hasReporterId(reporterId))
+                    .and(ReportPostSpecification.hasReasonLike(reason))
+                    .and(ReportPostSpecification.hasStatus(status!=null ? ReportStatus.valueOf(status) : null));
+            return reportPostRepository.findAll(spec,pageable)
                     .map(reportMapper::toResponse);
         }
         else if (ReportTargetType.COMMENT.equals(typeReport)) {
-            return reportCommentRepository.findAll(pageable)
+            Specification<ReportComment> spec = ReportCommentSpecification.isNotDeleted()
+                    .and(ReportCommentSpecification.hasReporterId(reporterId))
+                    .and(ReportCommentSpecification.hasReasonLike(reason))
+                    .and(ReportCommentSpecification.hasStatus(status!=null ? ReportStatus.valueOf(status) : null));
+            return reportCommentRepository.findAll(spec,pageable)
                     .map(reportMapper::toResponse);
         }
         else {
-            return reportStoryRepository.findAll(pageable)
+            Specification<ReportStory> spec = ReportStorySpecification.isNotDeleted()
+                    .and(ReportStorySpecification.hasReporterId(reporterId))
+                    .and(ReportStorySpecification.hasReasonLike(reason))
+                    .and(ReportStorySpecification.hasStatus(status!=null ? ReportStatus.valueOf(status) : null));
+            return reportStoryRepository.findAll(spec,pageable)
                     .map(reportMapper::toResponse);
         }
     }
