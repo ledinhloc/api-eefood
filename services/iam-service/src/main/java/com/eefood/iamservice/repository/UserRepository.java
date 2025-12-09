@@ -1,5 +1,6 @@
 package com.eefood.iamservice.repository;
 
+import com.eefood.iamservice.enums.Role;
 import com.eefood.iamservice.model.User;
 
 import java.util.List;
@@ -20,4 +21,5 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
 
   List<User> findAllByIsDeletedFalse();
   List<User> findByIdInAndIsDeletedFalse(List<Long> ids);
+  List<User> findAllByRoleAndIsDeletedFalse(Role role);
 }

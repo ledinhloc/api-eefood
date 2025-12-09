@@ -1,5 +1,6 @@
 package com.eefood.reactionservice.controller;
 
+import com.eefood.reactionservice.dto.request.UpdateReportRequest;
 import com.eefood.reactionservice.dto.response.PostResponse;
 import com.eefood.reactionservice.dto.response.ReportResponse;
 import com.eefood.reactionservice.dto.response.ResponseData;
@@ -29,6 +30,9 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/reports")
     public ResponseData<Page<ReportResponse>> listAll(
+            @RequestParam(required = false) Long reporterId,
+            @RequestParam(required = false) String reason,
+            @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "POST") String type,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -36,17 +40,15 @@ public class AdminController {
             @RequestParam(defaultValue = "DESC") Sort.Direction direction
     ) {
         Pageable pageable = PageRequest.of(page - 1, size, Sort.by(direction, sortBy));
-        return new ResponseData<>(200, "Success", reportService.getAllReports(type, pageable));
+        return new ResponseData<>(200, "Success", reportService.getAllReports(reporterId, reason, status,type, pageable));
     }
 
 
     @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/reports/{id}")
-    public ResponseData<ReportResponse> updateStatus(@PathVariable Long id, @RequestBody Map<String, String> requestBody) {
-        String status = requestBody.get("status");
-        String type = requestBody.get("type");
+    public ResponseData<ReportResponse> updateStatus(@PathVariable Long id, @RequestBody UpdateReportRequest request) {
         return new ResponseData<>(200, "Update successfully",
-                reportService.updateStatus(id, ReportTargetType.valueOf(type), ReportStatus.valueOf(status)));
+                reportService.updateStatus(id, ReportTargetType.valueOf(request.getType()), ReportStatus.valueOf(request.getStatus())));
     }
 
     @PreAuthorize("hasRole('ADMIN')")
