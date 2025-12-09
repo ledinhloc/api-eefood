@@ -17,17 +17,20 @@ spring:
   config:
     import: optional:configserver:http://localhost:8888
 
-#  kafka
+  #  kafka
   kafka:
     bootstrap-servers: ${env.global.kafka.brokers:localhost:9092}
+    properties:
+      schema.registry.url: ${env.global.schema.registry.url:http://localhost:8086}
     producer:
-#      request-timeout-ms: 3000         # thời gian tối đa cho mỗi request gửi Kafka
-#      delivery-timeout-ms: 5000        # tổng thời gian tối đa (request + retry)
-#      max-block-ms: 3000               # thời gian chờ kết nối Kafka broker khi chưa sẵn sàng
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
+    consumer:
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: io.confluent.kafka.serializers.KafkaAvroDeserializer
       properties:
-        schema.registry.url: ${env.global.schema.registry.url:http://localhost:8086}
+        specific.avro.reader: true
+
 
   datasource:
     url: ${env.iam.datasource.url:jdbc:postgresql://localhost:5435/recipe_service}

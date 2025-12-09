@@ -54,7 +54,6 @@ public class NotificationUtils {
         notificationProducer.sendNotification(notification);
     }
 
-
     /**
      * Gửi thông báo khi người dùng bình luận bài viết.
      */

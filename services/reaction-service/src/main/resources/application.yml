@@ -28,9 +28,9 @@ spring:
 
 #  kafka
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${env.global.kafka.brokers:localhost:9092}
     properties:
-      schema.registry.url: http://localhost:8086
+      schema.registry.url: ${env.global.schema.registry.url:http://localhost:8086}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer

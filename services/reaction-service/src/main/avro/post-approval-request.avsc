@@ -1,0 +1,12 @@
+{
+  "type": "record",
+  "name": "PostApprovalRequest",
+  "namespace": "com.eefood.common.avro",
+  "fields": [
+    { "name": "postId", "type": "long" },
+    { "name": "recipeId", "type": "long" },
+    { "name": "userId", "type": "long" },
+    { "name": "content", "type": ["null", "string"], "default": null },
+    { "name": "createdAt", "type": "long" }
+  ]
+}

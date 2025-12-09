@@ -71,6 +71,7 @@ public class RecipeController {
     return new ResponseData<>(HttpStatus.OK.value(), "Success", ids);
   }
 
+  ///có thêm thông tin user so voi recipe response
   @GetMapping("/detail/{id}")
   public ResponseData<RecipeDetailResponse> getRecipeDetail(@PathVariable Long id) {
     return new ResponseData<>(HttpStatus.OK.value(), "Success", recipeService.getRecipeDetail(id));

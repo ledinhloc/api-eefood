@@ -76,4 +76,8 @@ public class Post extends BaseEntity {
   @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
   @Builder.Default
   private List<CollectionPost> collectionPosts = new ArrayList<>();
+
+  @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
+  @Builder.Default
+  private List<ApprovePost> approvePosts = new ArrayList<>();
 }

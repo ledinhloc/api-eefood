@@ -1,11 +1,15 @@
 package com.eefood.reactionservice.service.post;
 
+import com.eefood.common.avro.NotificationEvent;
+import com.eefood.common.avro.PostApprovalRequest;
 import com.eefood.reactionservice.dto.SearchResult;
 import com.eefood.reactionservice.dto.request.PostCreateRequest;
 import com.eefood.reactionservice.dto.response.*;
 import com.eefood.reactionservice.enums.ErrorMessage;
 import com.eefood.reactionservice.enums.PostStatus;
 import com.eefood.reactionservice.exception.ExceptionUtil;
+import com.eefood.reactionservice.kafka.NotificationProducer;
+import com.eefood.reactionservice.kafka.PostApprovalProducer;
 import com.eefood.reactionservice.mapper.PostMapper;
 import com.eefood.reactionservice.model.Post;
 import com.eefood.reactionservice.repository.post.PostRepository;
@@ -41,6 +45,8 @@ public class PostService {
   private final GeminiService geminiService;
   private final FollowService followService;
   private final PostAdminSearchService postAdminSearchService;
+  private final NotificationProducer notificationProducer;
+  private final PostApprovalProducer postApprovalProducer;
 
   public List<PostPublishResponse> getPostsPublishByUser() {
     Long userId = securityUtil.getCurrentUserId();
@@ -85,6 +91,20 @@ public class PostService {
       .build();
 
     postRepo.save(post);
+
+    //gui thong bao
+    NotificationEvent notification = NotificationEvent.newBuilder()
+      .setTitle("Bài đăng đang chờ duyệt")
+      .setBody("Hệ thống đang xem xét " + recipe.getTitle() + " của bạn.")
+      .setPath("/recipe-crud/"+post.getId())
+      .setAvatarUrl("")
+      .setPostImageUrl("")
+      .setType("SYSTEM")
+      .setUserId(post.getUserId())
+      .build();
+    notificationProducer.sendNotification(notification);
+
+    postApprovalProducer.sendApprovalRequest(post);
 
     // Tạo response giống như trong getPostsPublishByUser()
     return PostPublishResponse.builder()

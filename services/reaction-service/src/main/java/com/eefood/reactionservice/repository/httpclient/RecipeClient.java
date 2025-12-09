@@ -20,4 +20,5 @@ public interface RecipeClient {
 
   @GetMapping("/api/v1/recipes/summary/{id}")
   ResponseData<RecipeSummaryResponse> getRecipeSummary(@PathVariable("id") Long id);
+
 }
