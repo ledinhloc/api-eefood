@@ -19,7 +19,8 @@ public class SecurityConfig {
     "/swagger-resources/**",
     "/swagger-ui.html",
     "/webjars/**",
-          "/ws/**"
+    "/ws/**",
+    "/api/v1/notifications/unregister/**",
   };
 
   @Bean

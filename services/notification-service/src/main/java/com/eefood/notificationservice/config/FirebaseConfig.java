@@ -1,4 +1,5 @@
 package com.eefood.notificationservice.config;
+
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
@@ -22,8 +23,10 @@ public class FirebaseConfig {
                 throw new IllegalStateException("Firebase serviceAccountKey.json not found!");
             }
 
+            GoogleCredentials credentials = GoogleCredentials.fromStream(serviceAccount);
+
             FirebaseOptions options = FirebaseOptions.builder()
-                    .setCredentials(GoogleCredentials.fromStream(serviceAccount))
+                    .setCredentials(credentials)
                     .build();
 
             if (FirebaseApp.getApps().isEmpty()) {

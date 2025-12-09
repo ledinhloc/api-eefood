@@ -2,7 +2,9 @@ package com.eefood.reactionservice.service.report;
 
 import com.eefood.reactionservice.dto.request.ReportRequest;
 import com.eefood.reactionservice.dto.response.ReportResponse;
+import com.eefood.reactionservice.dto.response.ResponseData;
 import com.eefood.reactionservice.dto.response.StoryResponse;
+import com.eefood.reactionservice.dto.response.UserInfo;
 import com.eefood.reactionservice.enums.ReportStatus;
 import com.eefood.reactionservice.enums.ReportTargetType;
 import com.eefood.reactionservice.mapper.ReportMapper;
@@ -13,6 +15,7 @@ import com.eefood.reactionservice.model.report.Report;
 import com.eefood.reactionservice.model.report.ReportComment;
 import com.eefood.reactionservice.model.report.ReportPost;
 import com.eefood.reactionservice.model.report.ReportStory;
+import com.eefood.reactionservice.repository.httpclient.IamClient;
 import com.eefood.reactionservice.repository.report.ReportCommentRepository;
 import com.eefood.reactionservice.repository.report.ReportPostRepository;
 import com.eefood.reactionservice.repository.report.ReportStoryRepository;
@@ -38,8 +41,10 @@ public class ReportService {
     private final ReportMapper reportMapper;
     private final EntityManager em;
     private final NotificationUtils notificationUtils;
+    private final IamClient iamClient;
 
     public ReportResponse createReport(ReportRequest request) {
+        UserInfo data = iamClient.getUserInfo(request.getReporterId()).getData();
         validateRequest(request);
 
         ReportTargetType type = ReportTargetType.valueOf(request.getTargetType());
@@ -104,7 +109,9 @@ public class ReportService {
                 target.getReporterId(),
                 request.getReason(),
                 request.getTargetId(),
-                request.getTargetType()
+                request.getTargetType(),
+                data.getAvatarUrl(),
+                request.getImageUrl()
         );
 
         return mapToResponse(target);

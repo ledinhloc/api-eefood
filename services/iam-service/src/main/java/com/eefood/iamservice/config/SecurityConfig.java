@@ -27,6 +27,7 @@ public class SecurityConfig {
     "/api/v1/auth/register",
     "/api/v1/auth/verify-otp",
     "/api/v1/auth/forgot-password/reset",
+    "/api/v1/users/all",
   };
 
   @Bean
