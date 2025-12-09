@@ -30,16 +30,14 @@ public class RecipeModerationService {
   @Transactional(readOnly = true)
   public ModerationResult moderateRecipe(Long recipeId, String postContent) {
     log.info("Starting moderation for recipeId: {}", recipeId);
-
     try {
-
       Recipe recipe = fetchRecipeWithDetails(recipeId);
       if (recipe == null) {
         return createErrorResult("Recipe not found");
       }
 
       String prompt = buildModerationPrompt(recipe, postContent);
-      System.out.printf("----prompt", prompt);
+      log.info("Moderation prompt: {}", prompt);
       String aiResponse = callGeminiAPI(prompt);
       ModerationResult result = parseAIResponse(aiResponse);
 
@@ -54,7 +52,7 @@ public class RecipeModerationService {
   }
 
   private Recipe fetchRecipeWithDetails(Long recipeId) {
-    Recipe recipe = recipeRepository.findById(recipeId).orElse(null);
+    Recipe recipe = recipeRepository.findByIdAndIsDeletedFalse(recipeId).orElse(null);
 
     if (recipe != null) {
       recipe.getIngredients().size();
@@ -144,7 +142,7 @@ public class RecipeModerationService {
     prompt.append("1. RECIPE_COMPLETENESS (0-10): Công thức có đầy đủ không?\n");
     prompt.append("   - Đủ thông tin nguyên liệu, số lượng\n");
     prompt.append("   - Đủ các bước thực hiện\n");
-    prompt.append("   - Thời gian hợp lý\n\n");
+//    prompt.append("   - Thời gian hợp lý\n\n");
 
     prompt.append("2. INGREDIENT_SAFETY (0-10): Nguyên liệu có an toàn không?\n");
     prompt.append("   - Không có nguyên liệu độc hại\n");
@@ -180,8 +178,8 @@ public class RecipeModerationService {
     prompt.append("- Mỗi tiêu chí: 0-10 điểm\n");
     prompt.append("- Tổng điểm = (tổng 6 tiêu chí / 60) × 100 = 0-100 điểm\n");
     prompt.append("- APPROVED: >= 60 điểm\n");
-    prompt.append("- PENDING: 50-69 điểm\n");
-    prompt.append("- REJECTED: < 50 điểm\n\n");
+//    prompt.append("- PENDING: 50-69 điểm\n");
+    prompt.append("- REJECTED: < 60 điểm\n\n");
 
     prompt.append("=== ĐỊNH DẠNG TRẢ LỜI (JSON) ===\n");
     prompt.append("Trả về ĐÚNG format JSON sau (không thêm markdown, không thêm text):\n");

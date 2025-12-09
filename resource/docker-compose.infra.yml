@@ -50,21 +50,6 @@ services:
       - microservices-net
     restart: unless-stopped
 
-#  pgadmin:
-#    container_name: pgadmin
-#    image: dpage/pgadmin4
-#    environment:
-#      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-pgadmin4@pgadmin.org}
-#      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
-#      PGADMIN_CONFIG_SERVER_MODE: 'False'
-#    volumes:
-#      - pgadmin:/var/lib/pgadmin
-#    ports:
-#      - "5050:80"
-#    networks:
-#      - microservices-net
-#    restart: unless-stopped
-
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
     container_name: zookeeper
@@ -76,11 +61,18 @@ services:
       - "22181:2181"
     networks:
       - microservices-net
+    healthcheck:
+      test: echo srvr | nc localhost 2181 || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   kafka:
     image: confluentinc/cp-kafka:7.4.3
     container_name: kafka
     depends_on:
-      - zookeeper
+      zookeeper:
+        condition: service_healthy
     ports:
       - "9092:9092"
       - "9093:9093"
@@ -96,12 +88,18 @@ services:
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
     networks:
       - microservices-net
+    healthcheck:
+      test: kafka-broker-api-versions --bootstrap-server localhost:9092 || exit 1
+      interval: 10s
+      timeout: 10s
+      retries: 5
 
   schema-registry:
     image: confluentinc/cp-schema-registry:7.5.0
     container_name: schema_registry
     depends_on:
-      - kafka
+      kafka:
+        condition: service_healthy
     ports:
       - "8086:8081"
     environment:
@@ -110,7 +108,11 @@ services:
       SCHEMA_REGISTRY_LISTENERS: http://schema-registry:8081
     networks:
       - microservices-net
-
+    healthcheck:
+      test: curl -f http://localhost:8081/ || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   kafka-ui:
     image: provectuslabs/kafka-ui:latest
