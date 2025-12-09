@@ -9,4 +9,6 @@ import java.util.Optional;
 @Repository
 public interface UserFcmTokenRepository extends JpaRepository<UserFcmToken, Long> {
     Optional<UserFcmToken> findById(Long userId);
+
+    Optional<UserFcmToken> findByUserId(Long userId);
 }

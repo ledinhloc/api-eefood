@@ -2,7 +2,9 @@ package com.eefood.reactionservice.service.report;
 
 import com.eefood.reactionservice.dto.request.ReportRequest;
 import com.eefood.reactionservice.dto.response.ReportResponse;
+import com.eefood.reactionservice.dto.response.ResponseData;
 import com.eefood.reactionservice.dto.response.StoryResponse;
+import com.eefood.reactionservice.dto.response.UserInfo;
 import com.eefood.reactionservice.enums.ReportStatus;
 import com.eefood.reactionservice.enums.ReportTargetType;
 import com.eefood.reactionservice.mapper.ReportMapper;
@@ -13,6 +15,7 @@ import com.eefood.reactionservice.model.report.Report;
 import com.eefood.reactionservice.model.report.ReportComment;
 import com.eefood.reactionservice.model.report.ReportPost;
 import com.eefood.reactionservice.model.report.ReportStory;
+import com.eefood.reactionservice.repository.httpclient.IamClient;
 import com.eefood.reactionservice.repository.report.ReportCommentRepository;
 import com.eefood.reactionservice.repository.report.ReportPostRepository;
 import com.eefood.reactionservice.repository.report.ReportStoryRepository;
@@ -22,6 +25,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -38,8 +42,10 @@ public class ReportService {
     private final ReportMapper reportMapper;
     private final EntityManager em;
     private final NotificationUtils notificationUtils;
+    private final IamClient iamClient;
 
     public ReportResponse createReport(ReportRequest request) {
+        UserInfo data = iamClient.getUserInfo(request.getReporterId()).getData();
         validateRequest(request);
 
         ReportTargetType type = ReportTargetType.valueOf(request.getTargetType());
@@ -104,7 +110,9 @@ public class ReportService {
                 target.getReporterId(),
                 request.getReason(),
                 request.getTargetId(),
-                request.getTargetType()
+                request.getTargetType(),
+                data.getAvatarUrl(),
+                request.getImageUrl()
         );
 
         return mapToResponse(target);
@@ -158,19 +166,31 @@ public class ReportService {
                 .orElse(null);
     }
 
-    public Page<ReportResponse> getAllReports(String type, Pageable pageable) {
+    public Page<ReportResponse> getAllReports(Long reporterId, String reason, String status, String type, Pageable pageable) {
         ReportTargetType typeReport = ReportTargetType.valueOf(type);
 
         if (ReportTargetType.POST.equals(typeReport)) {
-            return reportPostRepository.findAll(pageable)
+            Specification<ReportPost> spec = ReportPostSpecification.isNotDeleted()
+                    .and(ReportPostSpecification.hasReporterId(reporterId))
+                    .and(ReportPostSpecification.hasReasonLike(reason))
+                    .and(ReportPostSpecification.hasStatus(status!=null ? ReportStatus.valueOf(status) : null));
+            return reportPostRepository.findAll(spec,pageable)
                     .map(reportMapper::toResponse);
         }
         else if (ReportTargetType.COMMENT.equals(typeReport)) {
-            return reportCommentRepository.findAll(pageable)
+            Specification<ReportComment> spec = ReportCommentSpecification.isNotDeleted()
+                    .and(ReportCommentSpecification.hasReporterId(reporterId))
+                    .and(ReportCommentSpecification.hasReasonLike(reason))
+                    .and(ReportCommentSpecification.hasStatus(status!=null ? ReportStatus.valueOf(status) : null));
+            return reportCommentRepository.findAll(spec,pageable)
                     .map(reportMapper::toResponse);
         }
         else {
-            return reportStoryRepository.findAll(pageable)
+            Specification<ReportStory> spec = ReportStorySpecification.isNotDeleted()
+                    .and(ReportStorySpecification.hasReporterId(reporterId))
+                    .and(ReportStorySpecification.hasReasonLike(reason))
+                    .and(ReportStorySpecification.hasStatus(status!=null ? ReportStatus.valueOf(status) : null));
+            return reportStoryRepository.findAll(spec,pageable)
                     .map(reportMapper::toResponse);
         }
     }

@@ -2,6 +2,7 @@ package com.eefood.notificationservice.service;
 import com.eefood.notificationservice.dto.request.NotificationRequest;
 import com.eefood.notificationservice.dto.request.UserNotificationResquest;
 import com.eefood.notificationservice.dto.response.NotificationResponse;
+import com.eefood.notificationservice.dto.response.ResponseData;
 import com.eefood.notificationservice.model.UserFcmToken;
 import com.eefood.notificationservice.repository.UserFcmTokenRepository;
 import com.eefood.notificationservice.repository.httpclient.IamClient;
@@ -27,15 +28,15 @@ public class FirebaseNotificationService {
     private final UserFcmTokenRepository userFcmTokenRepository;
     private final IamClient iamClient;
 
+    @PostConstruct
+    public void init() {
+        preloadCache();
+    }
+
     public void preloadCache() {
         userFcmTokenRepository.findAll()
                 .forEach(token -> userFcmTokens.put(token.getUserId(), token.getFcmToken()));
         log.info("Preloaded {} FCM tokens to memory cache", userFcmTokens.size());
-    }
-
-    @PostConstruct
-    public void init() {
-        preloadCache();
     }
 
     public void registerUserToken(Long userId, String token) {
@@ -75,30 +76,7 @@ public class FirebaseNotificationService {
             log.warn("No FCM token for user {}, skipping FCM push", userId);
             return;
         }
-        try {
-            Message message = Message.builder()
-                    .setToken(token)
-                    .setNotification(Notification.builder()
-                            .setTitle(response.getTitle())
-                            .setBody(response.getBody())
-                            .build())
-                    .putAllData(Map.of(
-                            "title", response.getTitle(),
-                            "body", response.getBody(),
-                            "type", response.getType(),
-                            "path", response.getPath(),
-                            "avatarUrl", response.getAvatarUrl(),
-                            "postImageUrl", response.getPostImageUrl(),
-                            "isRead", String.valueOf(response.isRead())
-                    ))
-                    .build();
-
-            String messageId = FirebaseMessaging.getInstance().send(message);
-            log.info("FCM sent to userId={} messageId={}", userId, messageId);
-
-        } catch (FirebaseMessagingException e) {
-            log.error("Failed to send FCM to userId={}, error={}", userId, e.getMessage());
-        }
+        sendSingleNotification(userId, token, response);
     }
 
     public void sendNotificationToAdmin(List<Long> userIds, NotificationResponse response) {
@@ -107,44 +85,12 @@ public class FirebaseNotificationService {
             return;
         }
 
-        // Lấy token từ cache
-        List<String> tokens = userIds.stream()
-                .map(userFcmTokens::get)
-                .filter(token -> token != null && !token.isBlank())
-                .toList();
-
-        if (tokens.isEmpty()) {
-            log.warn("No valid FCM tokens found for given userIds");
-            return;
-        }
-
-        // Chia batch (max 500 token/batch)
-        List<List<String>> batches = partition(tokens, 500);
-
-        for (List<String> batch : batches) {
-            MulticastMessage message = MulticastMessage.builder()
-                    .setNotification(Notification.builder()
-                            .setTitle(response.getTitle())
-                            .setBody(response.getBody())
-                            .build())
-                    .putAllData(Map.of(
-                            "title", response.getTitle(),
-                            "body", response.getBody(),
-                            "type", response.getType(),
-                            "path", response.getPath(),
-                            "avatarUrl", response.getAvatarUrl(),
-                            "postImageUrl", response.getPostImageUrl(),
-                            "isRead", String.valueOf(response.isRead())
-                    ))
-                    .addAllTokens(batch)
-                    .build();
-
-            try {
-                BatchResponse result = FirebaseMessaging.getInstance().sendMulticast(message);
-                log.info("Group notification sent: {} tokens, success={}, failure={}",
-                        batch.size(), result.getSuccessCount(), result.getFailureCount());
-            } catch (FirebaseMessagingException e) {
-                log.error("Group notification error for batch {}: {}", batch.size(), e.getMessage());
+        for (Long userId : userIds) {
+            String token = userFcmTokens.get(userId);
+            if (token != null && !token.isBlank()) {
+                sendSingleNotification(userId, token, response);
+            } else {
+                log.warn("No FCM token for user {}, skipping", userId);
             }
         }
     }
@@ -156,34 +102,73 @@ public class FirebaseNotificationService {
         }
 
         List<String> tokens = new ArrayList<>(userFcmTokens.values());
-        List<List<String>> batches = partition(tokens, 500); // FCM giới hạn 500 token/batch
+        sendMulticastNotification(tokens, response, "Broadcast");
+    }
+
+    // Hàm chung để gửi notification đơn lẻ
+    private void sendSingleNotification(Long userId, String token, NotificationResponse response) {
+        try {
+            Message message = buildMessage(token, response);
+            String messageId = FirebaseMessaging.getInstance().send(message);
+            log.info("FCM sent to userId={} messageId={}", userId, messageId);
+        } catch (FirebaseMessagingException e) {
+            log.error("Failed to send FCM to userId={}, error={}", userId, e.getMessage());
+        }
+    }
+
+    // Hàm chung để gửi multicast notification
+    private void sendMulticastNotification(List<String> tokens, NotificationResponse response, String type) {
+        List<List<String>> batches = partition(tokens, 500);
 
         for (List<String> batch : batches) {
-            MulticastMessage message = MulticastMessage.builder()
-                    .setNotification(Notification.builder()
-                            .setTitle(response.getTitle())
-                            .setBody(response.getBody())
-                            .build())
-                    .putAllData(Map.of(
-                            "title", response.getTitle(),
-                            "body", response.getBody(),
-                            "type", response.getType(),
-                            "path", response.getPath(),
-                            "avatarUrl", response.getAvatarUrl(),
-                            "postImageUrl", response.getPostImageUrl(),
-                            "isRead", String.valueOf(response.isRead())
-                    ))
-                    .addAllTokens(batch)
-                    .build();
-
+            MulticastMessage message = buildMulticastMessage(batch, response);
             try {
-                BatchResponse result = FirebaseMessaging.getInstance().sendMulticast(message);
-                log.info("Broadcast batch sent: {} tokens, success={}, failure={}",
-                        batch.size(), result.getSuccessCount(), result.getFailureCount());
+                BatchResponse result = FirebaseMessaging.getInstance().sendEachForMulticast(message);
+                log.info("{} batch sent: {} tokens, success={}, failure={}",
+                        type, batch.size(), result.getSuccessCount(), result.getFailureCount());
             } catch (FirebaseMessagingException e) {
-                log.error("Broadcast error in batch of {} tokens: {}", batch.size(), e.getMessage());
+                log.error("{} error in batch of {} tokens: {}", type, batch.size(), e.getMessage());
             }
         }
+    }
+
+    // Hàm chung để build Message
+    private Message buildMessage(String token, NotificationResponse response) {
+        return Message.builder()
+                .setToken(token)
+                .setNotification(buildNotification(response))
+                .putAllData(buildDataMap(response))
+                .build();
+    }
+
+    // Hàm chung để build MulticastMessage
+    private MulticastMessage buildMulticastMessage(List<String> tokens, NotificationResponse response) {
+        return MulticastMessage.builder()
+                .setNotification(buildNotification(response))
+                .putAllData(buildDataMap(response))
+                .addAllTokens(tokens)
+                .build();
+    }
+
+    // Hàm chung để build Notification
+    private Notification buildNotification(NotificationResponse response) {
+        return Notification.builder()
+                .setTitle(response.getTitle())
+                .setBody(response.getBody())
+                .build();
+    }
+
+    // Hàm chung để build Data Map
+    private Map<String, String> buildDataMap(NotificationResponse response) {
+        return Map.of(
+                "title", response.getTitle(),
+                "body", response.getBody(),
+                "type", response.getType(),
+                "path", response.getPath(),
+                "avatarUrl", response.getAvatarUrl(),
+                "postImageUrl", response.getPostImageUrl(),
+                "isRead", String.valueOf(response.isRead())
+        );
     }
 
     private List<List<String>> partition(List<String> list, int size) {

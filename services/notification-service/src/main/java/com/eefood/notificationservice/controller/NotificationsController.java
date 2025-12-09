@@ -5,6 +5,7 @@ import com.eefood.notificationservice.dto.response.NotificationSettingResponse;
 import com.eefood.notificationservice.dto.response.ResponseData;
 import com.eefood.notificationservice.enums.NotificationsType;
 import com.eefood.notificationservice.enums.SuccessMessage;
+import com.eefood.notificationservice.service.FirebaseNotificationService;
 import com.eefood.notificationservice.service.NotificationsService;
 import com.eefood.notificationservice.service.NotificationsSettingService;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,13 @@ import java.util.Map;
 public class NotificationsController {
     private final NotificationsService notificationsService;
     private final NotificationsSettingService notificationsSettingService;
+    private final FirebaseNotificationService firebaseNotificationService;
+
+    @PostMapping("/unregister/{userId}")
+    public ResponseData<Void> unregisterUserToken(@PathVariable Long userId) {
+        firebaseNotificationService.unregisterUserToken(userId);
+        return new ResponseData<>(HttpStatus.OK.value(),"Successfully unregistered user token");
+    }
 
     @PostMapping
     public ResponseData<Void> sendNotification(@RequestBody NotificationRequest request) {

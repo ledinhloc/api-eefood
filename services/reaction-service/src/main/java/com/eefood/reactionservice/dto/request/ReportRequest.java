@@ -15,4 +15,5 @@ public class ReportRequest {
     private String reason;
     private Long targetId;
     private ReportStatus status;
+    private String imageUrl;
 }

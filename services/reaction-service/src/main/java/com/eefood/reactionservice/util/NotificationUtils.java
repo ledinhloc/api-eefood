@@ -18,15 +18,19 @@ public class NotificationUtils {
     public void sendReportToAdmin(Long reporterId,
                                   String reason,
                                   Long targetId,
-                                  String targetType) {
+                                  String targetType,
+                                  String avatarUrl,
+                                  String postImageUrl) {
 
         NotificationEvent event = NotificationEvent.newBuilder()
                 .setTitle("Có báo cáo vi phạm mới")
                 .setBody("User " + reporterId + " đã báo cáo " + targetType + " #" + targetId
                         + " với lý do: " + reason)
                 .setUserId(0L)
+                .setAvatarUrl(avatarUrl)
+                .setPostImageUrl(postImageUrl)
                 .setType("REPORT")
-                .setPath("/admin/reports")
+                .setPath("/post/" + targetId)
                 .build();
 
         notificationProducer.sendNotificationToAdmin(event);

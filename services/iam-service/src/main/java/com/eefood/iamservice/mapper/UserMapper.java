@@ -18,6 +18,7 @@ public interface UserMapper {
   @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
   void updateUserFromRequest(UserUpdateRequest request, @MappingTarget User user);
 
+  @Mapping(target = "role", expression = "java(user.getRole() != null ? user.getRole().name() : null)")
   UserNotificationResponse toUserNotificationResponse(User user);
   UserInfo toResponse(User user);
 }
