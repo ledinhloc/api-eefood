@@ -3,10 +3,13 @@ package com.eefood.recipeservice.repository.httpclient;
 import com.eefood.recipeservice.dto.request.PostCreateRequest;
 import com.eefood.recipeservice.dto.response.PostPublishResponse;
 import com.eefood.recipeservice.dto.response.ResponseData;
-import com.eefood.recipeservice.dto.response.UserInfo;
-import java.util.List;
 import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
+
+import java.util.List;
 
 @FeignClient(name = "reaction-service")
 public interface ReactionClient {
@@ -15,4 +18,7 @@ public interface ReactionClient {
     @RequestBody PostCreateRequest request,
     @RequestParam Long userId
   );
+
+  @GetMapping("/api/v1/posts/user")
+  ResponseData<List<PostPublishResponse>> getPostsPublishByUser();
 }
