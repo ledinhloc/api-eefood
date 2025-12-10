@@ -25,7 +25,6 @@ import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.model.googleai.GoogleAiGeminiChatModel;
-import feign.utils.ExceptionUtils;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,6 +32,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.context.SecurityContext;
@@ -40,7 +40,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
@@ -354,6 +353,44 @@ NOW ANALYZE THE FOLLOWING HTML AND RETURN ONLY JSON:
       RecipeSpecification.hasAuthor(authorId)
     );
     return recipeRepository.findAll(spec, pageable).map(recipeMapper::toResponse);
+  }
+
+  @Transactional(readOnly = true)
+  public Page<RecipeResponse> searchDraftRecipes(
+          String title,
+          String description,
+          String region,
+          Difficulty difficulty,
+          Long categoryId,
+          Long authorId,
+          Pageable pageable
+  ) {
+    ResponseData<List<PostPublishResponse>> data = reactionClient.getPostsPublishByUser();
+    List<PostPublishResponse> publishedPosts = data.getData();
+
+    Set<Long> publishedRecipeIds = publishedPosts.stream()
+            .map(PostPublishResponse::getRecipeId)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toSet());
+
+    Specification<Recipe> spec = Specification.allOf(
+            RecipeSpecification.isNotDeleted(),
+            RecipeSpecification.hasTitle(title),
+            RecipeSpecification.hasDescription(description),
+            RecipeSpecification.hasRegion(region),
+            RecipeSpecification.hasDifficulty(difficulty),
+            RecipeSpecification.hasCategoryId(categoryId),
+            RecipeSpecification.hasAuthor(authorId)
+    );
+
+    Page<Recipe> page = recipeRepository.findAll(spec, pageable);
+
+    List<RecipeResponse> draftRecipes = page.stream()
+            .filter(recipe -> !publishedRecipeIds.contains(recipe.getId()))
+            .map(recipeMapper::toResponse)
+            .collect(Collectors.toList());
+
+    return new PageImpl<>(draftRecipes, pageable, page.getTotalElements());
   }
 
   @Transactional(readOnly = true)

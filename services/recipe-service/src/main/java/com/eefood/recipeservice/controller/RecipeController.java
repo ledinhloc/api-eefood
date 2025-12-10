@@ -6,28 +6,23 @@ import com.eefood.recipeservice.dto.response.*;
 import com.eefood.recipeservice.enums.Difficulty;
 import com.eefood.recipeservice.enums.ErrorMessage;
 import com.eefood.recipeservice.enums.SuccessMessage;
+import com.eefood.recipeservice.exception.ExceptionUtil;
 import com.eefood.recipeservice.model.Recipe;
 import com.eefood.recipeservice.service.RecipeSearchService;
 import com.eefood.recipeservice.service.RecipeService;
 import com.eefood.recipeservice.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
-import com.eefood.recipeservice.exception.ExceptionUtil;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/recipes")
 @RequiredArgsConstructor
@@ -143,9 +138,10 @@ public class RecipeController {
     @RequestParam(defaultValue = "DESC") Sort.Direction direction
     ) {
     Long userId = securityUtil.getCurrentUserId();
+    log.info("User Id get my recipe: "+userId);
 
     Pageable pageable = PageRequest.of(page - 1, size, Sort.by(direction, sortBy));
-    var result = recipeService.searchRecipes(title, description, region, difficulty, categoryId, userId,pageable);
+    var result = recipeService.searchDraftRecipes(title, description, region, difficulty, categoryId, userId,pageable);
     return new ResponseData<>(HttpStatus.OK.value(), "Success", result);
   }
 }
