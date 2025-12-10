@@ -1,4 +1,4 @@
-package com.eefood.recipeservice.dto.response;
+package com.eefood.recipeservice.dto.request;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

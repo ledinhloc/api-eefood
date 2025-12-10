@@ -5,8 +5,13 @@ import com.eefood.recipeservice.enums.ModerationStatus;
 import com.eefood.recipeservice.model.Recipe;
 import com.eefood.recipeservice.model.RecipeStep;
 import com.eefood.recipeservice.repository.RecipeRepository;
+import com.eefood.recipeservice.util.ImageUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import dev.langchain4j.data.image.Image;
+import dev.langchain4j.data.message.Content;
+import dev.langchain4j.data.message.ImageContent;
+import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
@@ -16,7 +21,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Comparator;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -30,17 +42,15 @@ public class RecipeModerationService {
   @Transactional(readOnly = true)
   public ModerationResult moderateRecipe(Long recipeId, String postContent) {
     log.info("Starting moderation for recipeId: {}", recipeId);
-
     try {
-
       Recipe recipe = fetchRecipeWithDetails(recipeId);
       if (recipe == null) {
         return createErrorResult("Recipe not found");
       }
 
       String prompt = buildModerationPrompt(recipe, postContent);
-      System.out.printf("----prompt", prompt);
-      String aiResponse = callGeminiAPI(prompt);
+      log.info("Moderation prompt: {}", prompt);
+      String aiResponse = callGeminiAPI(prompt, recipe);
       ModerationResult result = parseAIResponse(aiResponse);
 
       log.info("Moderation completed for recipe: {} - Status: {}",
@@ -54,7 +64,7 @@ public class RecipeModerationService {
   }
 
   private Recipe fetchRecipeWithDetails(Long recipeId) {
-    Recipe recipe = recipeRepository.findById(recipeId).orElse(null);
+    Recipe recipe = recipeRepository.findByIdAndIsDeletedFalse(recipeId).orElse(null);
 
     if (recipe != null) {
       recipe.getIngredients().size();
@@ -64,9 +74,53 @@ public class RecipeModerationService {
     return recipe;
   }
 
-  private String callGeminiAPI(String prompt) {
+  private String  callGeminiAPI(String textPrompt, Recipe recipe) {
+    List<Content> contents = new ArrayList<>();
+    //Thêm text prompt
+    contents.add(TextContent.from(textPrompt));
+
+    // Thêm hình ảnh chính của recipe (nếu có)
+    if (recipe.getImageUrl() != null && !recipe.getImageUrl().isEmpty()) {
+      String base64Image = ImageUtils.downloadAndEncodeImage(recipe.getImageUrl());
+      if (base64Image != null) {
+        String mimeType = ImageUtils.getMimeType(recipe.getImageUrl());
+        Image image = Image.builder()
+          .base64Data(base64Image)
+          .mimeType(mimeType)
+          .build();
+        contents.add(ImageContent.from(image));
+        log.info("Added main recipe image to analysis");
+      }
+    }
+
+    // Thêm hình ảnh từ các steps (tối đa 5 ảnh để tránh quá tải)
+    int imageCount = 0;
+    int maxImages = 5;
+
+    for (RecipeStep step : recipe.getSteps()) {
+      if (imageCount >= maxImages) break;
+
+      if (step.getImageUrls() != null && !step.getImageUrls().isEmpty()) {
+        for (String imageUrl : step.getImageUrls()) {
+          if (imageCount >= maxImages) break;
+
+          String base64Image = ImageUtils.downloadAndEncodeImage(imageUrl);
+          if (base64Image != null) {
+            String mimeType = ImageUtils.getMimeType(imageUrl);
+            Image image = Image.builder()
+              .base64Data(base64Image)
+              .mimeType(mimeType)
+              .build();
+            contents.add(ImageContent.from(image));
+            imageCount++;
+            log.info("Added step {} image to analysis", step.getStepNumber());
+          }
+        }
+      }
+    }
+
     ChatRequest request = ChatRequest.builder()
-      .messages(UserMessage.from(prompt))
+      .messages(dev.langchain4j.data.message.UserMessage.from(contents))
       .build();
 
     ChatResponse response = geminiChatModel.chat(request);
@@ -144,7 +198,7 @@ public class RecipeModerationService {
     prompt.append("1. RECIPE_COMPLETENESS (0-10): Công thức có đầy đủ không?\n");
     prompt.append("   - Đủ thông tin nguyên liệu, số lượng\n");
     prompt.append("   - Đủ các bước thực hiện\n");
-    prompt.append("   - Thời gian hợp lý\n\n");
+//    prompt.append("   - Thời gian hợp lý\n\n");
 
     prompt.append("2. INGREDIENT_SAFETY (0-10): Nguyên liệu có an toàn không?\n");
     prompt.append("   - Không có nguyên liệu độc hại\n");
@@ -180,8 +234,8 @@ public class RecipeModerationService {
     prompt.append("- Mỗi tiêu chí: 0-10 điểm\n");
     prompt.append("- Tổng điểm = (tổng 6 tiêu chí / 60) × 100 = 0-100 điểm\n");
     prompt.append("- APPROVED: >= 60 điểm\n");
-    prompt.append("- PENDING: 50-69 điểm\n");
-    prompt.append("- REJECTED: < 50 điểm\n\n");
+//    prompt.append("- PENDING: 50-69 điểm\n");
+    prompt.append("- REJECTED: < 60 điểm\n\n");
 
     prompt.append("=== ĐỊNH DẠNG TRẢ LỜI (JSON) ===\n");
     prompt.append("Trả về ĐÚNG format JSON sau (không thêm markdown, không thêm text):\n");

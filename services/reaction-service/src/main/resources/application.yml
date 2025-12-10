@@ -17,8 +17,10 @@ livekit:
     url: ${LIVEKIT_HTTP_URL:http://127.0.0.1:7880}
 
 elasticsearch:
-  url: ${ELASTICSEARCH_URL}
-  api-key: ${ELASTICSEARCH_API_KEY}
+  host: ${ES_HOST:localhost}
+  port: ${ES_PORT:9200}
+  username: ${ES_USERNAME:elastic}
+  password: ${ES_PASSWORD:elastic123}
 
 spring:
   application:
@@ -70,6 +72,9 @@ springdoc:
     path: /swagger-ui
 
 management:
+  health:
+    elasticsearch:
+      enabled: false
   endpoints:
     web:
       exposure:

@@ -1,5 +1,6 @@
 package com.eefood.recipeservice.controller;
 
+import com.eefood.recipeservice.dto.request.RecipeExtractDTO;
 import com.eefood.recipeservice.dto.request.RecipeRequest;
 import com.eefood.recipeservice.dto.request.RequestUrl;
 import com.eefood.recipeservice.dto.response.*;
