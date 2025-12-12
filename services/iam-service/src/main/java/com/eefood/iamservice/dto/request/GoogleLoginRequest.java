@@ -8,4 +8,6 @@ import lombok.*;
 public class GoogleLoginRequest {
     @NotBlank(message = "ID token is required")
     private String idToken;
+
+    private String fcmToken;
 }
