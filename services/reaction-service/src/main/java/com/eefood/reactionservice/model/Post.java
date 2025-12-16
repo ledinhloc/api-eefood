@@ -40,7 +40,6 @@ public class Post extends BaseEntity {
   private Difficulty difficulty;
 
   @Enumerated(EnumType.STRING)
-  @Column(length = 7)
   private PostStatus status = PostStatus.PENDING;
 
   private String approvedBy = "AI";

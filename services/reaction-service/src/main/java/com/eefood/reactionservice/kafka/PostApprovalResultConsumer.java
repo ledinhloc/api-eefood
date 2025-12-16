@@ -13,6 +13,10 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -128,12 +132,34 @@ public class PostApprovalResultConsumer {
     return NotificationEvent.newBuilder()
       .setTitle(title)
       .setBody(body)
-      .setPath("/posts/" + post.getId())
+      .setPath(buildPath(post, result, status))
       .setAvatarUrl("")
       .setPostImageUrl(imageUrl)
       .setType("SYSTEM")
       .setUserId(post.getUserId())
       .build();
+  }
+  private String buildPath(Post post, PostApprovalResult result, PostStatus status) {
+//    if (status != PostStatus.APPROVED) {
+//      return "/posts/" + post.getId();
+//    }
+
+    try {
+      String recipeName = post.getTitle() ;
+      String message = result.getSummary() != null ? String.valueOf(result.getSummary()) : "Chúc mừng! Công thức đã được phê duyệt.";
+      String imageUrl = result.getRecipeImageUrl() != null ? String.valueOf(result.getRecipeImageUrl()) : post.getImageUrl();
+      String approvedAt = Instant.ofEpochMilli(result.getProcessedAt()).toString();
+
+      return String.format("/recipe-approve?recipeId=%d&recipeName=%s&message=%s&imageUrl=%s&approvedAt=%s",
+        post.getRecipeId(),
+        URLEncoder.encode(recipeName, StandardCharsets.UTF_8),
+        URLEncoder.encode(message, StandardCharsets.UTF_8),
+        URLEncoder.encode(imageUrl != null ? imageUrl : "", StandardCharsets.UTF_8),
+        URLEncoder.encode(approvedAt, StandardCharsets.UTF_8)
+      );
+    } catch (Exception e) {
+      return "/posts/" + post.getRecipeId();
+    }
   }
 
   private String buildNotificationTitle(PostStatus status) {

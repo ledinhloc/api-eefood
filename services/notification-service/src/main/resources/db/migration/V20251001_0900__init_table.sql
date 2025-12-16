@@ -10,12 +10,12 @@ CREATE TABLE notifications
     updated_by      VARCHAR(255)                            NOT NULL,
     is_deleted      BOOLEAN                                 NOT NULL,
 
-    title           VARCHAR(255)                            NOT NULL,
+    title           VARCHAR                           NOT NULL,
     body            TEXT,
-    path            VARCHAR(255),
-    avatar_url      VARCHAR(255),
-    post_image_url  VARCHAR(255),
-    type            VARCHAR(50)                             NOT NULL,
+    path            VARCHAR,
+    avatar_url      VARCHAR,
+    post_image_url  VARCHAR,
+    type            VARCHAR                             NOT NULL,
 
     CONSTRAINT pk_notifications PRIMARY KEY (id)
 );
