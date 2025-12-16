@@ -50,7 +50,7 @@ public class PostService {
 
   public List<PostPublishResponse> getPostsPublishByUser() {
     Long userId = securityUtil.getCurrentUserId();
-    List<Post> posts = postRepo.findAllByUserIdAndIsDeletedFalse(userId);
+    List<Post> posts = postRepo.findAllByUserIdAndIsDeletedFalseOrderByCreatedAtDesc(userId);
 
     if (posts.isEmpty()) return List.of();
     return posts.stream()
@@ -137,8 +137,22 @@ public class PostService {
     }
 
     post.setContent(content);
-    post.setStatus(PostStatus.PENDING);
+    post.setStatus(PostStatus.EDITED_PENDING);
     postRepo.save(post);
+
+    NotificationEvent notification = NotificationEvent.newBuilder()
+      .setTitle("Bài đăng đang chờ duyệt lại")
+      .setBody("Hệ thống đang xem xét lại bài đăng " + post.getTitle() + " của bạn sau khi chỉnh sửa.")
+      .setPath("/recipe-crud/" + post.getId())
+      .setAvatarUrl("")
+      .setPostImageUrl("")
+      .setType("SYSTEM")
+      .setUserId(post.getUserId())
+      .build();
+    notificationProducer.sendNotification(notification);
+
+    //gui yeu cau duyet
+    postApprovalProducer.sendApprovalRequest(post);
 
     ResponseData<RecipeSummaryResponse> recipeResponse = recipeClient.getRecipeSummary(post.getRecipeId());
     RecipeSummaryResponse recipe = recipeResponse.getData();

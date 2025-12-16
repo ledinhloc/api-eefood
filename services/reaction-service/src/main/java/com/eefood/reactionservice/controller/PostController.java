@@ -44,6 +44,15 @@ public class PostController {
     return new ResponseData<>(HttpStatus.CREATED.value(), "Post created successfully", post);
   }
 
+  @PutMapping("/{id}")
+  public ResponseData<PostPublishResponse> updatePost(@PathVariable Long id,  @RequestBody Map<String, String> requestBody) {
+    String content = requestBody.get("content");
+//    String status = requestBody.get("status");
+    PostPublishResponse post = postService.updatePost(id, content);
+    log.info("-----user update success postId: " + post.getId()+ ", recipeId"+ post.getRecipeId() + " " + post.getTitle());
+    return new ResponseData<>(HttpStatus.OK.value(), "Post updated successfully", post);
+  }
+
   @PostMapping(value = "/get-keyword", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ResponseData<String> getKeyword(@RequestParam MultipartFile image) {
     String result = geminiService.extractKeywordsFromImage(image);
@@ -58,14 +67,6 @@ public class PostController {
   public ResponseData<List<PostPublishResponse>> getPostsPublishByUser() {
     List<PostPublishResponse> result = postService.getPostsPublishByUser();
     return new ResponseData<>(HttpStatus.OK.value(), "Success", result);
-  }
-
-  @PutMapping("/{id}")
-  public ResponseData<PostPublishResponse> updatePost(@PathVariable Long id,  @RequestBody Map<String, String> requestBody) {
-    String content = requestBody.get("content");
-    String status = requestBody.get("status");
-    PostPublishResponse post = postService.updatePost(id, content);
-    return new ResponseData<>(HttpStatus.OK.value(), "Post updated successfully", post);
   }
 
   @PutMapping("/admin/{id}")

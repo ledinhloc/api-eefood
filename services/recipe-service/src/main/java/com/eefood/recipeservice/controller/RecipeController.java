@@ -107,8 +107,8 @@ public class RecipeController {
   }
 
   @GetMapping("/{id}")
-  public RecipeResponse getRecipe(@PathVariable Long id) {
-    return recipeService.getRecipeById(id);
+  public ResponseData<RecipeResponse> getRecipe(@PathVariable Long id) {
+    return new ResponseData<>(HttpStatus.OK.value(), "Success", recipeService.getRecipeById(id));
   }
 
   @PostMapping
