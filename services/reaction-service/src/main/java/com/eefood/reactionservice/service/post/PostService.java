@@ -232,7 +232,7 @@ public class PostService {
 
   public Page<PostResponse> getAllPosts(
     String keyword,
-    Long userId,
+//    Long userId,
     String region,
     String difficulty,
     String category,
@@ -245,15 +245,26 @@ public class PostService {
       return new PageImpl<>(List.of());
     }
 
-    //lay thong tin user
-    Long currentUserId = securityUtil.getCurrentUserId();
-    log.info(currentUserId.toString());
-    ResponseData<UserResponse> userResponse = iamClient.getUserById(currentUserId);
-    UserResponse user = userResponse.getData();
-    //debug
-    //log.info(user.toString());
-    List<Long> newFollowings = followService.getNewFollowings(userId);
-    List<Long> oldFollowings = followService.getOldFollowings(userId);
+    //  Lấy userId từ security context (null nếu là guest)
+    Long currentUserId = null;
+    UserResponse user = null;
+    List<Long> newFollowings = List.of();
+    List<Long> oldFollowings = List.of();
+    try {
+      currentUserId = securityUtil.getCurrentUserId();
+      log.info("Logged-in user: {}", currentUserId);
+
+      if(currentUserId != null){
+        // Lấy thông tin user và followings CHỈ KHI đã login
+        ResponseData<UserResponse> userResponse = iamClient.getUserById(currentUserId);
+        user = userResponse.getData();
+        newFollowings = followService.getNewFollowings(currentUserId);
+        oldFollowings = followService.getOldFollowings(currentUserId);
+      }
+    } catch (Exception e) {
+      // Guest user - không có token
+      log.info("Guest user - no personalization applied");
+    }
 
 
     //Lấy danh sách postIds từ Elasticsearch
@@ -282,7 +293,6 @@ public class PostService {
     // 3. Lấy Post từ DB theo postIds
     Specification<Post> spec = PostSpecification.isNotDeleted()
       .and(PostSpecification.hasPostIds(postIds))
-      .and(PostSpecification.hasUserId(userId))
       .and(PostSpecification.hasStatus(PostStatus.APPROVED));
 
     List<Post> posts = postRepo.findAll(spec);

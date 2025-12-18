@@ -60,21 +60,21 @@ public class FollowService {
     }
 
     public List<Long> getNewFollowings(Long userId) {
-    List<Follow> follows = followRepository.findByFollowerId(userId);
+      List<Follow> follows = followRepository.findByFollowerId(userId);
 
-    return follows.stream()
-      .filter(f -> f.getCreatedAt().isAfter(LocalDateTime.now().minusDays(3)))
-      .map(Follow::getFollowingId)
-      .toList();
+      return follows.stream()
+        .filter(f -> f.getCreatedAt().isAfter(LocalDateTime.now().minusDays(3)))
+        .map(Follow::getFollowingId)
+        .toList();
     }
 
     public List<Long> getOldFollowings(Long userId) {
-    List<Follow> follows = followRepository.findByFollowerId(userId);
+      List<Follow> follows = followRepository.findByFollowerId(userId);
 
-    return follows.stream()
-      .filter(f -> f.getCreatedAt().isBefore(LocalDateTime.now().minusDays(3)))
-      .map(Follow::getFollowingId)
-      .toList();
+      return follows.stream()
+        .filter(f -> f.getCreatedAt().isBefore(LocalDateTime.now().minusDays(3)))
+        .map(Follow::getFollowingId)
+        .toList();
     }
 
     public List<Long> getFollowingIds(Long userId) {
