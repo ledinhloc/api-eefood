@@ -1,11 +1,13 @@
 package com.eefood.iamservice.service;
 
+import com.eefood.common.avro.FirebaseNotificationEvent;
 import com.eefood.iamservice.dto.request.*;
 import com.eefood.iamservice.dto.response.UserResponse;
 import com.eefood.iamservice.enums.ErrorMessage;
 import com.eefood.iamservice.enums.OtpType;
 import com.eefood.iamservice.enums.Provider;
 import com.eefood.iamservice.enums.Role;
+import com.eefood.iamservice.kafka.FirebaseNotificationProducer;
 import com.eefood.iamservice.mapper.UserMapper;
 import com.eefood.iamservice.model.Otp;
 import com.eefood.iamservice.model.User;
@@ -37,11 +39,12 @@ public class AuthService {
   private final UserMapper userMapper;
   private final OtpService otpService;
   private final KeycloakAdminService keycloakAdminService;
+  private final FirebaseNotificationProducer firebaseNotificationProducer;
 
   @Value("${google.client_id}")
   private String googleClientId;
 
-  private UserResponse createGoogleUser(String email, String name, String picture) {
+  private UserResponse createGoogleUser(String email, String name, String picture, String fcmToken) {
     // Tạo mật khẩu ngẫu nhiên (user không biết và không sử dụng)
     String randomPassword = UUID.randomUUID().toString();
 
@@ -93,6 +96,14 @@ public class AuthService {
     response.setAccessToken(kcToken.getAccessToken());
     response.setRefreshToken(kcToken.getRefreshToken());
 
+    FirebaseNotificationEvent fcmRequest = FirebaseNotificationEvent.newBuilder()
+            .setId(response.getId())
+            .setEmail(response.getEmail())
+            .setUsername(response.getUsername())
+            .setFcmToken(fcmToken)
+            .build();
+    firebaseNotificationProducer.sendFirebaseRegisterEvent(fcmRequest);
+
     return response;
   }
 
@@ -129,7 +140,7 @@ public class AuthService {
       if (user.getProvider() != Provider.GOOGLE) {
         throw ExceptionUtil.badRequest(ErrorMessage.USER_EXISTED);
       }
-        return loginExistingGoogleUser(user);
+        return loginExistingGoogleUser(user, request.getFcmToken());
     }
     else {
       Optional<String> keycloakUserIdOpt = keycloakAdminService.findUserIdByEmail(email);
@@ -138,11 +149,11 @@ public class AuthService {
         throw ExceptionUtil.badRequest(ErrorMessage.USER_EXISTED);
       }
       // Tạo user mới với Provider GOOGLE
-      return createGoogleUser(email, name,picture);
+      return createGoogleUser(email, name,picture, request.getFcmToken());
     }
   }
 
-  private UserResponse loginExistingGoogleUser(User user) {
+  private UserResponse loginExistingGoogleUser(User user, String fcmToken) {
     String authId = user.getAuthId();
     if (authId == null || authId.isBlank()) {
       // Tìm authId từ Keycloak nếu chưa có
@@ -165,6 +176,14 @@ public class AuthService {
     UserResponse response = userMapper.toUserResponse(user);
     response.setAccessToken(kcToken.getAccessToken());
     response.setRefreshToken(kcToken.getRefreshToken());
+
+    FirebaseNotificationEvent fcmRequest = FirebaseNotificationEvent.newBuilder()
+            .setId(response.getId())
+            .setEmail(response.getEmail())
+            .setUsername(response.getUsername())
+            .setFcmToken(fcmToken)
+            .build();
+    firebaseNotificationProducer.sendFirebaseRegisterEvent(fcmRequest);
 
     log.info("Google user logged in successfully: {}", user.getEmail());
     return response;

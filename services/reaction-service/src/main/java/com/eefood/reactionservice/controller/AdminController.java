@@ -4,8 +4,11 @@ import com.eefood.reactionservice.dto.request.UpdateReportRequest;
 import com.eefood.reactionservice.dto.response.PostResponse;
 import com.eefood.reactionservice.dto.response.ReportResponse;
 import com.eefood.reactionservice.dto.response.ResponseData;
+import com.eefood.reactionservice.dto.response.admin.PostStatistics;
+import com.eefood.reactionservice.dto.response.admin.UserStatistics;
 import com.eefood.reactionservice.enums.ReportStatus;
 import com.eefood.reactionservice.enums.ReportTargetType;
+import com.eefood.reactionservice.service.admin.DashboardService;
 import com.eefood.reactionservice.service.post.PostService;
 import com.eefood.reactionservice.service.report.ReportService;
 import lombok.RequiredArgsConstructor;
@@ -17,15 +20,51 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.Map;
-
 @RestController
 @RequestMapping("/api/v1/admin")
 @RequiredArgsConstructor
 public class AdminController {
     private final PostService postService;
     private final ReportService reportService;
+    private final DashboardService dashboardService;
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/posts/statistics")
+    public ResponseData<PostStatistics> getPostStatistics(
+            @RequestParam(defaultValue = "10") int topPostsLimit,
+            @RequestParam(defaultValue = "5") int recentViolatedPostsLimit
+    ) {
+        PostStatistics postStats = dashboardService.getPostStatistics(
+                topPostsLimit,
+                recentViolatedPostsLimit
+        );
+
+        return new ResponseData<>(
+                HttpStatus.OK.value(),
+                "Post statistics retrieved successfully",
+                postStats
+        );
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/users/statistics")
+    public ResponseData<UserStatistics> getUserStatistics(
+            @RequestParam(defaultValue = "3") int topInfluencersLimit,
+            @RequestParam(defaultValue = "5") int recentRegistrationsLimit,
+            @RequestParam(defaultValue = "5") int topPostCreatorsLimit
+    ) {
+        UserStatistics userStats = dashboardService.getUserStatistics(
+                topInfluencersLimit,
+                topPostCreatorsLimit
+        );
+
+        return new ResponseData<>(
+                HttpStatus.OK.value(),
+                "User statistics retrieved successfully",
+                userStats
+        );
+    }
+
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/reports")

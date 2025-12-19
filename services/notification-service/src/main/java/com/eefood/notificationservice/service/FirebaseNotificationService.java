@@ -79,7 +79,7 @@ public class FirebaseNotificationService {
         sendSingleNotification(userId, token, response);
     }
 
-    public void sendNotificationToAdmin(List<Long> userIds, NotificationResponse response) {
+    public void sendNotificationToListUser(List<Long> userIds, NotificationResponse response) {
         if (userIds == null || userIds.isEmpty()) {
             log.warn("UserId list is empty, skip sending group notification");
             return;

@@ -3,6 +3,7 @@ package com.eefood.iamservice.repository;
 import com.eefood.iamservice.enums.Role;
 import com.eefood.iamservice.model.User;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -22,4 +23,5 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
   List<User> findAllByIsDeletedFalse();
   List<User> findByIdInAndIsDeletedFalse(List<Long> ids);
   List<User> findAllByRoleAndIsDeletedFalse(Role role);
+  List<User> findByIsDeletedFalseAndCreatedAtAfter(LocalDateTime fromDate);
 }

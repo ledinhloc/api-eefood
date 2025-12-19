@@ -7,6 +7,7 @@ import com.eefood.iamservice.dto.request.UserCreationParam;
 import com.eefood.iamservice.dto.request.UserUpdateRequest;
 import com.eefood.iamservice.dto.response.UserInfo;
 import com.eefood.iamservice.dto.response.UserNotificationResponse;
+import com.eefood.iamservice.dto.response.UserRegistrationStatsResponse;
 import com.eefood.iamservice.dto.response.UserResponse;
 import com.eefood.iamservice.enums.ErrorMessage;
 import com.eefood.iamservice.enums.Provider;
@@ -16,12 +17,12 @@ import com.eefood.iamservice.mapper.UserMapper;
 import com.eefood.iamservice.model.User;
 import com.eefood.iamservice.repository.UserRepository;
 import com.eefood.iamservice.utils.ExceptionUtil;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+
+import java.time.LocalDateTime;
+import java.util.*;
 import java.util.stream.Collectors;
 
+import com.eefood.iamservice.utils.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -44,6 +45,7 @@ public class UserService {
   private final UserMapper userMapper;
   private final KeycloakAdminService keycloakAdminService;
   private final FirebaseNotificationProducer firebaseNotificationProducer;
+  private final SecurityUtil securityUtil;
 
   public Page<UserResponse> getUsers(String search, Role role, Provider provider, Pageable pageable) {
     Specification<User> spec = (root, query, cb) -> cb.conjunction();
@@ -83,12 +85,11 @@ public class UserService {
 
   // lay user dang login
   public UserResponse getCurrentUser() {
-    Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-    String authId = authentication.getName(); // authId trong JWT
+    Long userId = securityUtil.getCurrentUserId();
 
     User user =
         userRepository
-            .findByAuthIdAndIsDeletedFalse(authId)
+            .findByIdAndIsDeletedFalse(userId)
             .orElseThrow(() -> ExceptionUtil.badRequest(ErrorMessage.USER_NOT_FOUND));
 
     return userMapper.toUserResponse(user);
@@ -246,5 +247,26 @@ public class UserService {
   public List<UserNotificationResponse> getUserForNotifications() {
     List<User> response = userRepository.findAllByIsDeletedFalse();
     return response.stream().map(userMapper::toUserNotificationResponse).collect(Collectors.toList());
+  }
+
+  public List<UserRegistrationStatsResponse> getRecentUserStats() {
+    LocalDateTime sevenDaysAgo = LocalDateTime.now().minusDays(7);
+
+    List<User> users =
+            userRepository.findByIsDeletedFalseAndCreatedAtAfter(sevenDaysAgo);
+
+    return users.stream()
+            .collect(Collectors.groupingBy(
+                    user -> user.getCreatedAt().toLocalDate(),
+                    Collectors.counting()
+            ))
+            .entrySet()
+            .stream()
+            .map(entry -> new UserRegistrationStatsResponse(
+                    entry.getKey(),
+                    entry.getValue()
+            ))
+            .sorted(Comparator.comparing(UserRegistrationStatsResponse::getDate))
+            .collect(Collectors.toList());
   }
 }

@@ -16,7 +16,7 @@ import lombok.experimental.SuperBuilder;
 public class PostReactionCount {
   @Id
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "comment_id", nullable = false)
+  @JoinColumn(name = "post_id", nullable = false)
   private Post post;
 
   @Id

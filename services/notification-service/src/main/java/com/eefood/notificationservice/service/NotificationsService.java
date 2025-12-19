@@ -11,6 +11,7 @@ import com.eefood.notificationservice.model.NotificationsSetting;
 import com.eefood.notificationservice.repository.NotificationsRecipientRepo;
 import com.eefood.notificationservice.repository.NotificationsRepository;
 import com.eefood.notificationservice.repository.NotificationsSettingRepository;
+import com.eefood.notificationservice.repository.UserFcmTokenRepository;
 import com.eefood.notificationservice.repository.httpclient.IamClient;
 import com.eefood.notificationservice.utils.ExceptionUtil;
 import com.eefood.notificationservice.utils.SecurityUtil;
@@ -44,6 +45,30 @@ public class NotificationsService {
     private final NotificationsRecipientRepo notificationsRecipientRepo;
     private final IamClient iamClient;
     private final FirebaseNotificationService firebaseNotificationService;
+    private final UserFcmTokenRepository userFcmTokenRepository;
+
+    private NotificationsSetting getOrCreateSetting(Long userId, NotificationsType type) {
+
+        return notificationsSettingRepository
+                .findByUserIdAndType(userId, type)
+                .orElseGet(() -> {
+                    log.info("Create default notification setting for user {}, type {}", userId, type);
+
+                    NotificationsSetting setting = NotificationsSetting.builder()
+                            .userId(userId)
+                            .type(type)
+                            .enabled(true)
+                            .build();
+
+                    return notificationsSettingRepository.save(setting);
+                });
+    }
+
+    private boolean hasFcmToken(Long userId) {
+        return userFcmTokenRepository.findByUserId(userId)
+                .map(token -> token.getFcmToken() != null && !token.getFcmToken().isBlank())
+                .orElse(false);
+    }
 
     @Transactional
     public void sendNotificationToAdmins(NotificationRequest request) {
@@ -99,7 +124,7 @@ public class NotificationsService {
                 .build();
 
         // Gửi tb
-        firebaseNotificationService.sendNotificationToAdmin(adminIds, resp);
+        firebaseNotificationService.sendNotificationToListUser(adminIds, resp);
 
         log.info("Saved & sent notification for admins: {}", adminIds);
     }
@@ -110,15 +135,14 @@ public class NotificationsService {
 
         boolean hasUserId = request.getUserId() != null;
         Long userId = null;
-        NotificationsType type = NotificationsType.valueOf(request.getType());
-
+        NotificationsType type = NotificationsType.valueOf(request.getType().trim());
         if(hasUserId) {
-            userId = request.getUserId();
-            Optional<NotificationsSetting> settingOpt =
-                    notificationsSettingRepository.findByUserIdAndType(userId, type);
 
-            if (settingOpt.isPresent() && !settingOpt.get().isEnabled()) {
-                log.info("User {} disabled notification type {}", userId, request.getType());
+            userId = request.getUserId();
+            NotificationsSetting setting = getOrCreateSetting(userId, type);
+
+            if (Boolean.FALSE.equals(setting.isEnabled())) {
+                log.info("User {} disabled notification type {}", userId, type);
                 return;
             }
         }
@@ -140,10 +164,18 @@ public class NotificationsService {
                     .build();
             notification.setRecipients(List.of(recipient));
             notificationsRepository.save(notification);
-            sendNotificationViaWebSocket(request, userId);
+            if (hasFcmToken(userId)) {
+                sendNotificationViaWebSocket(request, userId);
+            } else {
+                log.info("Skip sending notification, user {} has no FCM token", userId);
+            }
         }
         else {
             var response = iamClient.getAllUserNotifications();
+
+            if (response == null || response.getData() == null) {
+                throw ExceptionUtil.badRequest(ErrorMessage.USER_NOT_EXISTED);
+            }
 
             List<UserNotificationResquest> users = response.getData();
 
@@ -152,6 +184,8 @@ public class NotificationsService {
             }
 
             List<NotificationsRecipient> recipients = users.stream()
+                    .filter(u -> !"ADMIN".equals(u.getRole()))
+                    .filter(u -> hasFcmToken(u.getId()))
                     .map(u -> NotificationsRecipient.builder()
                             .userId(u.getId())
                             .notification(notification)
@@ -159,6 +193,10 @@ public class NotificationsService {
                             .isDeleted(false)
                             .build())
                     .collect(Collectors.toList());
+            if (recipients.isEmpty()) {
+                log.info("No users with FCM token, skip broadcast sending");
+                return;
+            }
             notification.setRecipients(recipients);
             notificationsRepository.save(notification);
             sendBroadcastNotification(request);
