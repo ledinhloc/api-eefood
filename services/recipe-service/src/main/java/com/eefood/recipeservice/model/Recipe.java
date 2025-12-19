@@ -3,13 +3,14 @@ package com.eefood.recipeservice.model;
 import com.eefood.recipeservice.enums.Difficulty;
 import jakarta.persistence.*;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 
 import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.SQLRestriction;
-
+import java.util.List;
 @Entity
 @Table(name = "recipes")
 @Getter
@@ -46,6 +47,7 @@ public class Recipe extends BaseEntity {
   @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
   @Builder.Default
   @SQLRestriction("is_deleted = false")
+  @OrderBy("stepNumber ASC")
   private Set<RecipeStep> steps = new HashSet<>();
 
   @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)

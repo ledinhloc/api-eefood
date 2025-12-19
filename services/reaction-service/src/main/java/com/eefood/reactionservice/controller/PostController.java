@@ -44,6 +44,15 @@ public class PostController {
     return new ResponseData<>(HttpStatus.CREATED.value(), "Post created successfully", post);
   }
 
+  @PutMapping("/{id}")
+  public ResponseData<PostPublishResponse> updatePost(@PathVariable Long id,  @RequestBody Map<String, String> requestBody) {
+    String content = requestBody.get("content");
+//    String status = requestBody.get("status");
+    PostPublishResponse post = postService.updatePost(id, content);
+    log.info("-----user update success postId: " + post.getId()+ ", recipeId"+ post.getRecipeId() + " " + post.getTitle());
+    return new ResponseData<>(HttpStatus.OK.value(), "Post updated successfully", post);
+  }
+
   @PostMapping(value = "/get-keyword", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ResponseData<String> getKeyword(@RequestParam MultipartFile image) {
     String result = geminiService.extractKeywordsFromImage(image);
@@ -58,14 +67,6 @@ public class PostController {
   public ResponseData<List<PostPublishResponse>> getPostsPublishByUser() {
     List<PostPublishResponse> result = postService.getPostsPublishByUser();
     return new ResponseData<>(HttpStatus.OK.value(), "Success", result);
-  }
-
-  @PutMapping("/{id}")
-  public ResponseData<PostPublishResponse> updatePost(@PathVariable Long id,  @RequestBody Map<String, String> requestBody) {
-    String content = requestBody.get("content");
-    String status = requestBody.get("status");
-    PostPublishResponse post = postService.updatePost(id, content);
-    return new ResponseData<>(HttpStatus.OK.value(), "Post updated successfully", post);
   }
 
   @PutMapping("/admin/{id}")
@@ -85,7 +86,7 @@ public class PostController {
   @GetMapping
   public ResponseData<Page<PostResponse>> getAllPosts(
     @RequestParam(required = false) String keyword,
-    @RequestParam(required = false) Long userId,
+//    @RequestParam(required = false) Long userId,
     @RequestParam(required = false) String region,
     @RequestParam(required = false) String difficulty,
     @RequestParam(required = false) String category,
@@ -95,7 +96,7 @@ public class PostController {
   ) {
     Page<PostResponse> result = postService.getAllPosts(
       keyword,
-      userId,
+//      userId,
       region,
       difficulty,
       category,

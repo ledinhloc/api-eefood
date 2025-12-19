@@ -50,7 +50,7 @@ public class PostService {
 
   public List<PostPublishResponse> getPostsPublishByUser() {
     Long userId = securityUtil.getCurrentUserId();
-    List<Post> posts = postRepo.findAllByUserIdAndIsDeletedFalse(userId);
+    List<Post> posts = postRepo.findAllByUserIdAndIsDeletedFalseOrderByCreatedAtDesc(userId);
 
     if (posts.isEmpty()) return List.of();
     return posts.stream()
@@ -137,8 +137,22 @@ public class PostService {
     }
 
     post.setContent(content);
-    post.setStatus(PostStatus.PENDING);
+    post.setStatus(PostStatus.EDITED_PENDING);
     postRepo.save(post);
+
+    NotificationEvent notification = NotificationEvent.newBuilder()
+      .setTitle("Bài đăng đang chờ duyệt lại")
+      .setBody("Hệ thống đang xem xét lại bài đăng " + post.getTitle() + " của bạn sau khi chỉnh sửa.")
+      .setPath("/recipe-crud/" + post.getId())
+      .setAvatarUrl("")
+      .setPostImageUrl("")
+      .setType("SYSTEM")
+      .setUserId(post.getUserId())
+      .build();
+    notificationProducer.sendNotification(notification);
+
+    //gui yeu cau duyet
+    postApprovalProducer.sendApprovalRequest(post);
 
     ResponseData<RecipeSummaryResponse> recipeResponse = recipeClient.getRecipeSummary(post.getRecipeId());
     RecipeSummaryResponse recipe = recipeResponse.getData();
@@ -218,7 +232,7 @@ public class PostService {
 
   public Page<PostResponse> getAllPosts(
     String keyword,
-    Long userId,
+//    Long userId,
     String region,
     String difficulty,
     String category,
@@ -231,15 +245,26 @@ public class PostService {
       return new PageImpl<>(List.of());
     }
 
-    //lay thong tin user
-    Long currentUserId = securityUtil.getCurrentUserId();
-    log.info(currentUserId.toString());
-    ResponseData<UserResponse> userResponse = iamClient.getUserById(currentUserId);
-    UserResponse user = userResponse.getData();
-    //debug
-    //log.info(user.toString());
-    List<Long> newFollowings = followService.getNewFollowings(userId);
-    List<Long> oldFollowings = followService.getOldFollowings(userId);
+    //  Lấy userId từ security context (null nếu là guest)
+    Long currentUserId = null;
+    UserResponse user = null;
+    List<Long> newFollowings = List.of();
+    List<Long> oldFollowings = List.of();
+    try {
+      currentUserId = securityUtil.getCurrentUserId();
+      log.info("Logged-in user: {}", currentUserId);
+
+      if(currentUserId != null){
+        // Lấy thông tin user và followings CHỈ KHI đã login
+        ResponseData<UserResponse> userResponse = iamClient.getUserById(currentUserId);
+        user = userResponse.getData();
+        newFollowings = followService.getNewFollowings(currentUserId);
+        oldFollowings = followService.getOldFollowings(currentUserId);
+      }
+    } catch (Exception e) {
+      // Guest user - không có token
+      log.info("Guest user - no personalization applied");
+    }
 
 
     //Lấy danh sách postIds từ Elasticsearch
@@ -268,7 +293,6 @@ public class PostService {
     // 3. Lấy Post từ DB theo postIds
     Specification<Post> spec = PostSpecification.isNotDeleted()
       .and(PostSpecification.hasPostIds(postIds))
-      .and(PostSpecification.hasUserId(userId))
       .and(PostSpecification.hasStatus(PostStatus.APPROVED));
 
     List<Post> posts = postRepo.findAll(spec);
