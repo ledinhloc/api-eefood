@@ -1,10 +1,13 @@
 package com.eefood.reactionservice.repository.post;
 
+import com.eefood.reactionservice.enums.PostStatus;
 import com.eefood.reactionservice.model.Post;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -20,4 +23,18 @@ public interface PostRepository extends JpaRepository<Post, Long>, JpaSpecificat
   List<Post> findAllByUserIdAndIsDeletedFalse(Long userId);
 
   Post findByRecipeIdAndIsDeletedFalse(long id);
+
+    @Query("""
+      SELECT p.userId, COUNT(p.id)
+      FROM Post p
+      WHERE p.isDeleted = false
+      GROUP BY p.userId
+      ORDER BY COUNT(p.id) DESC
+    """)
+  List<Object[]> findTopUsersByPostCount(Pageable pageable);
+
+  Long countByStatus(PostStatus status);
+
+
+  List<Post> findByStatusAndIsDeletedFalse(PostStatus status, Pageable pageable);
 }

@@ -1,8 +1,10 @@
 package com.eefood.reactionservice.repository.httpclient;
 
+import com.eefood.reactionservice.dto.request.UserNotificationResquest;
 import com.eefood.reactionservice.dto.response.ResponseData;
 import com.eefood.reactionservice.dto.response.UserInfo;
 import com.eefood.reactionservice.dto.response.UserResponse;
+import com.eefood.reactionservice.dto.response.admin.UserRegistrationStatsResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -21,4 +23,10 @@ public interface IamClient {
 
   @PostMapping("/api/v1/users/batch")
   ResponseData<List<UserInfo>> getUserInfoBatch(@RequestBody List<Long> userIds);
+
+  @GetMapping(value = "/api/v1/users/all")
+  ResponseData<List<UserNotificationResquest>> getAllUserNotifications();
+
+  @GetMapping(value = "/api/v1/users//dashboard/recent")
+  ResponseData<List<UserRegistrationStatsResponse>> getRecentUsers();
 }

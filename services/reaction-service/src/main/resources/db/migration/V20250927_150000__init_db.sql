@@ -110,10 +110,10 @@ CREATE TABLE post_reaction
 
 CREATE TABLE post_reaction_count
 (
-    comment_id    BIGINT       NOT NULL,
+    post_id    BIGINT       NOT NULL,
     reaction_type VARCHAR(255) NOT NULL,
     count         BIGINT       NOT NULL,
-    CONSTRAINT pk_post_reaction_count PRIMARY KEY (comment_id, reaction_type)
+    CONSTRAINT pk_post_reaction_count PRIMARY KEY (post_id, reaction_type)
 );
 
 CREATE TABLE share
@@ -166,7 +166,7 @@ ALTER TABLE comment_reaction
     ADD CONSTRAINT FK_COMMENT_REACTION_ON_COMMENT FOREIGN KEY (comment_id) REFERENCES comment (id);
 
 ALTER TABLE post_reaction_count
-    ADD CONSTRAINT FK_POST_REACTION_COUNT_ON_COMMENT FOREIGN KEY (comment_id) REFERENCES post (id);
+    ADD CONSTRAINT FK_POST_REACTION_COUNT_ON_COMMENT FOREIGN KEY (post_id) REFERENCES post (id);
 
 ALTER TABLE post_reaction
     ADD CONSTRAINT FK_POST_REACTION_ON_POST FOREIGN KEY (post_id) REFERENCES post (id);

@@ -8816,7 +8816,7 @@ VALUES
 -- =============================
 -- Bảng post_reaction_count
 -- =============================
-INSERT INTO post_reaction_count (comment_id, reaction_type, count)
+INSERT INTO post_reaction_count (post_id, reaction_type, count)
 VALUES
     (1, 'LIKE', 1), (1, 'LOVE', 1),
     (2, 'LIKE', 1),
