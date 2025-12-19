@@ -31,10 +31,10 @@ public class PostViewLogService {
         List<String> keywords = new ArrayList<>();
         if (post.getRecipeIngredientKeywords() != null)
           keywords.addAll(post.getRecipeIngredientKeywords());
-        if (post.getRecipeCategories() != null)
-          keywords.addAll(post.getRecipeCategories());
-        if (post.getTitle() != null)
-          keywords.add(post.getTitle());
+//        if (post.getRecipeCategories() != null)
+//          keywords.addAll(post.getRecipeCategories());
+//        if (post.getTitle() != null)
+//          keywords.add(post.getTitle());
         return keywords.stream();
       })
       .collect(Collectors.groupingBy(k -> k, Collectors.counting()))

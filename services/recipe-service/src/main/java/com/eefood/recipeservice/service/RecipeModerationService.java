@@ -49,7 +49,7 @@ public class RecipeModerationService {
       }
 
       String prompt = buildModerationPrompt(recipe, postContent);
-      log.info("Moderation prompt: {}", prompt);
+//      log.info("Moderation prompt: {}", prompt);
       String aiResponse = callGeminiAPI(prompt, recipe);
       ModerationResult result = parseAIResponse(aiResponse);
 
