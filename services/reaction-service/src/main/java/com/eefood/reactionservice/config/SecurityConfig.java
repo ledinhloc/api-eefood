@@ -28,6 +28,8 @@ public class SecurityConfig {
         request ->
             request.requestMatchers(PUBLIC_ENDPOINTS).permitAll()
               .requestMatchers(HttpMethod.GET, "/api/v1/posts").permitAll()
+              .requestMatchers(HttpMethod.GET, "/api/v1/posts/my").permitAll()
+              .requestMatchers(HttpMethod.GET, "/api/v1/livestreams/check").permitAll()
               .anyRequest().authenticated());
 
     httpSecurity.oauth2ResourceServer(
