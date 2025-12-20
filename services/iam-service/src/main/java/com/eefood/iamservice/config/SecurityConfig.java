@@ -45,6 +45,7 @@ public class SecurityConfig {
             oauth2.jwt(
                 jwtConfigurer ->
                     jwtConfigurer.jwtAuthenticationConverter(jwtAuthenticationConverter())));
+//    httpSecurity.cors(AbstractHttpConfigurer::disable);
     httpSecurity.csrf(AbstractHttpConfigurer::disable);
 
     return httpSecurity.build();
