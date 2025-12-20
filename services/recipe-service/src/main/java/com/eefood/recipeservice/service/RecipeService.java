@@ -61,6 +61,7 @@ public class RecipeService {
   private static final int MAX_USER_ID = 20;
   private static final Random random = new Random();
 
+  //tim theo ten neu chua co thi tao
   private Set<Category> resolveCategories(List<String> categoryNames) {
     if(categoryNames == null || categoryNames.isEmpty()) {
       return new HashSet<>();
@@ -492,56 +493,106 @@ NOW ANALYZE THE FOLLOWING HTML AND RETURN ONLY JSON:
     recipe.setDifficulty(request.getDifficulty());
 
     // update categories
-    List<Category> categories = categoryRepository.findAllById(request.getCategoryIds());
-    recipe.setCategories(new HashSet<>(categories));
-    /* ========== UPDATE INGREDIENTS ========== */
-    List<Long> requestIngredientIds = request.getIngredients().stream()
-            .map(RecipeIngredientRequest::getId)
-            .filter(Objects::nonNull)
-            .toList();
+    Set<Category> categories = resolveCategories(request.getCategories());
+    recipe.setCategories(categories);
 
-    // lấy danh sách ingredients hiện có trong recipe
+    /* ========== UPDATE INGREDIENTS ========== */
     Set<RecipeIngredient> existingIngredients = recipe.getIngredients();
 
-    // soft delete ingredient không có trong request
-    for (RecipeIngredient ri : existingIngredients) {
-      if (ri.getId() != null && !requestIngredientIds.contains(ri.getId())) {
-        ri.setIsDeleted(true);
-      }
-    }
+//  Build map: ingredient_name → RecipeIngredient
+    Map<String, RecipeIngredient> existingMap = existingIngredients.stream()
+      .filter(ri -> !ri.getIsDeleted())
+      .collect(Collectors.toMap(
+        ri -> ri.getIngredient().getName().toLowerCase(),
+        ri -> ri
+      ));
 
-    // update or create ingredients
+//  Track which ingredients được giữ lại
+    Set<String> processedNames = new HashSet<>();
+
+//  Loop qua request: update nếu có, create nếu chưa
     for (RecipeIngredientRequest ingReq : request.getIngredients()) {
-      if (ingReq.getId() == null) {
-        // thêm mới
-        RecipeIngredient newIng = recipeMapper.toEntity(ingReq);
-        Ingredient ingredient = ingredientRepository.findById(ingReq.getIngredientId())
-                .orElseThrow(() -> new EntityNotFoundException("Ingredient not found with id: " + ingReq.getIngredientId()));
-        newIng.setIngredient(ingredient);
-        newIng.setRecipe(recipe);
-        recipe.addIngredient(newIng);
+      String ingredientName = ingReq.getName().toLowerCase();
+      processedNames.add(ingredientName);
+
+      // Tìm hoặc tạo Ingredient
+      Ingredient ingredient = ingredientRepository.findByNameIgnoreCase(ingReq.getName())
+        .orElseGet(() -> {
+          Ingredient newIng = new Ingredient();
+          newIng.setName(ingReq.getName());
+          return ingredientRepository.save(newIng);
+        });
+
+      if (existingMap.containsKey(ingredientName)) {
+        // UPDATE existing
+        RecipeIngredient existing = existingMap.get(ingredientName);
+        existing.setIngredient(ingredient);
+        existing.setQuantity(ingReq.getQuantity());
+        existing.setUnit(ingReq.getUnit());
       } else {
-        // update
-        RecipeIngredient ri = existingIngredients.stream()
-                .filter(e -> e.getId().equals(ingReq.getId()))
-                .findFirst()
-                .orElseThrow(() -> new EntityNotFoundException("RecipeIngredient not found"));
-
-        if (Boolean.TRUE.equals(ri.getIsDeleted())) {
-          ri.setIsDeleted(false);
-        }
-
-        ri.setQuantity(ingReq.getQuantity());
-        ri.setUnit(ingReq.getUnit());
-
-        // nếu ingredientId thay đổi → update reference
-        if (!ri.getIngredient().getId().equals(ingReq.getIngredientId())) {
-          Ingredient ingredient = ingredientRepository.findById(ingReq.getIngredientId())
-                  .orElseThrow(() -> new EntityNotFoundException("Ingredient not found with id: " + ingReq.getIngredientId()));
-          ri.setIngredient(ingredient);
-        }
+        //  CREATE new
+        RecipeIngredient newRi = RecipeIngredient.builder()
+          .ingredient(ingredient)
+          .quantity(ingReq.getQuantity())
+          .unit(ingReq.getUnit())
+          .recipe(recipe)
+          .build();
+        recipe.addIngredient(newRi);
       }
     }
+
+// Soft delete ingredients không còn trong request
+    existingIngredients.stream()
+      .filter(ri -> !processedNames.contains(ri.getIngredient().getName().toLowerCase()))
+      .forEach(ri -> ri.setIsDeleted(true));
+
+//    List<Long> requestIngredientIds = request.getIngredients().stream()
+//            .map(RecipeIngredientRequest::getId)
+//            .filter(Objects::nonNull)
+//            .toList();
+//
+//    // lấy danh sách ingredients hiện có trong recipe
+//    Set<RecipeIngredient> existingIngredients = recipe.getIngredients();
+//
+//    // soft delete ingredient không có trong request
+//    for (RecipeIngredient ri : existingIngredients) {
+//      if (ri.getId() != null && !requestIngredientIds.contains(ri.getId())) {
+//        ri.setIsDeleted(true);
+//      }
+//    }
+//
+//    // update or create ingredients
+//    for (RecipeIngredientRequest ingReq : request.getIngredients()) {
+//      if (ingReq.getId() == null) {
+//        // thêm mới
+//        RecipeIngredient newIng = recipeMapper.toEntity(ingReq);
+//        Ingredient ingredient = ingredientRepository.findById(ingReq.getIngredientId())
+//                .orElseThrow(() -> new EntityNotFoundException("Ingredient not found with id: " + ingReq.getIngredientId()));
+//        newIng.setIngredient(ingredient);
+//        newIng.setRecipe(recipe);
+//        recipe.addIngredient(newIng);
+//      } else {
+//        // update
+//        RecipeIngredient ri = existingIngredients.stream()
+//                .filter(e -> e.getId().equals(ingReq.getId()))
+//                .findFirst()
+//                .orElseThrow(() -> new EntityNotFoundException("RecipeIngredient not found"));
+//
+//        if (Boolean.TRUE.equals(ri.getIsDeleted())) {
+//          ri.setIsDeleted(false);
+//        }
+//
+//        ri.setQuantity(ingReq.getQuantity());
+//        ri.setUnit(ingReq.getUnit());
+//
+//        // nếu ingredientId thay đổi → update reference
+//        if (!ri.getIngredient().getId().equals(ingReq.getIngredientId())) {
+//          Ingredient ingredient = ingredientRepository.findById(ingReq.getIngredientId())
+//                  .orElseThrow(() -> new EntityNotFoundException("Ingredient not found with id: " + ingReq.getIngredientId()));
+//          ri.setIngredient(ingredient);
+//        }
+//      }
+//    }
 
     // update steps
     List<Long> requestStepIds = request.getSteps().stream()

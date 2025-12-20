@@ -22,7 +22,7 @@ public class RecipeRequest {
   private Integer cookTime;
   private Difficulty difficulty;
 
-  private List<Long> categoryIds;//dung khi update
+//  private List<Long> categoryIds;//dung khi update
   private List<String> categories;//khi create
   private List<RecipeIngredientRequest> ingredients;
   private List<RecipeStepRequest> steps;
