@@ -54,4 +54,4 @@ jobs:
           script: |
             cd /opt/eefood # Đường dẫn chứa file docker-compose.app.yml trên VPS
             docker compose -f docker-compose.app.yml pull
-            docker compose -f docker-compose.app.yml up -d --remove-orphans
+            docker compose -f docker-compose.app.yml up -d
