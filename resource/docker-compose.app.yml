@@ -23,9 +23,6 @@ services:
       - "8222:8222"
     depends_on:
       - config-service
-    environment:
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
-      IDP_CLIENT_SECRET: ${IDP_CLIENT_SECRET}
     networks:
       - eefood-network
 

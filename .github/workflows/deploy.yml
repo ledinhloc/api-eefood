@@ -2,7 +2,7 @@ name: CI/CD Deploy to VPS
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "deloy" ]
 
 jobs:
   build-and-push:
