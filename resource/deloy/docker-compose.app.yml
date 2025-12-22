@@ -28,11 +28,11 @@ services:
     environment:
       - env.discovery.eureka.hostname=discovery-server
       - env.discovery.eureka.client.service-url.defaultZone=http://discovery-server:8761/eureka
-      - env.global.jwt.issuer-uri=http://keycloak:9098/realms/eefood-realm
+      - env.global.jwt.issuer-uri=https://keycloak.codespace.io.vn/realms/eefood-realm
       - env.global.config-server=http://config-service:8888
 
       - env.global.keycloak.base-url=http://keycloak:9098
-      - env.global.kafka.bootstrap-servers=kafka:9092
+      - env.global.kafka.bootstrap-servers=kafka:29092
     networks:
       - microservices-net
 
@@ -46,10 +46,10 @@ services:
 #      - GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       - env.discovery.eureka.hostname=discovery-server
       - env.discovery.eureka.client.service-url.defaultZone=http://discovery-server:8761/eureka
-      - env.global.jwt.issuer-uri=http://keycloak:9098/realms/eefood-realm
+      - env.global.jwt.issuer-uri=https://keycloak.codespace.io.vn/realms/eefood-realm
       - env.global.config-server=http://config-service:8888
 #      iam
-      - env.global.idp.url=http://keycloak:9098
+      - env.global.idp.url=https://keycloak.codespace.io.vn
       - env.global.realm=eefood-realm
       - env.global.idp.client-id=client_backend
       - env.global.idp.client-secret=R74ss8ZtsZ0T8FWCkMJBsu6ut9PxR0jr
@@ -58,10 +58,11 @@ services:
       - env.iam.datasource.username=postgres
       - env.iam.datasource.username=postgres
       - env.global.redis.host=redis
-      - env.global.kafka.bootstrap-servers=kafka:9092
-      - env.global.kafka.schema-registry-url=http://schema-registry:8086
+      - env.global.kafka.bootstrap-servers=kafka:29092
+      - env.global.kafka.schema-registry-url=http://schema-registry:8081
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-
+    extra_hosts:
+      - "keycloak.codespace.io.vn:host-gateway"
     networks:
       - microservices-net
 
@@ -74,14 +75,14 @@ services:
     environment:
       - env.discovery.eureka.hostname=discovery-server
       - env.discovery.eureka.client.service-url.defaultZone=http://discovery-server:8761/eureka
-      - env.global.jwt.issuer-uri=http://keycloak:9098/realms/eefood-realm
+      - env.global.jwt.issuer-uri=https://keycloak.codespace.io.vn/realms/eefood-realm
       - env.global.config-server=http://config-service:8888
 
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - ES_HOST=elasticsearch
-      - ES_PORT:9200
-      - env.global.kafka.bootstrap-servers=kafka:9092
-      - env.global.kafka.schema-registry-url=http://schema-registry:8086
+      - ES_PORT=9200
+      - env.global.kafka.bootstrap-servers=kafka:29092
+      - env.global.kafka.schema-registry-url=http://schema-registry:8081
       - env.recipe.datasource.url=jdbc:postgresql://postgresql:5432/recipe_service
     networks:
       - microservices-net
@@ -96,17 +97,17 @@ services:
 #      GEMINI_API_KEY: ${GEMINI_API_KEY}
       - env.discovery.eureka.hostname=discovery-server
       - env.discovery.eureka.client.service-url.defaultZone=http://discovery-server:8761/eureka
-      - env.global.jwt.issuer-uri=http://keycloak:9098/realms/eefood-realm
+      - env.global.jwt.issuer-uri=https://keycloak.codespace.io.vn/realms/eefood-realm
       - env.global.config-server=http://config-service:8888
 
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - ES_HOST=elasticsearch
-      - ES_PORT:9200
+      - ES_PORT=9200
       - LIVEKIT_WS_URL=ws://livekit:7880
       - LIVEKIT_HTTP_URL=http://livekit:7880
-      - env.global.kafka.bootstrap-servers=kafka:9092
-      - env.global.kafka.schema-registry-url=http://schema-registry:8086
-      - env.recipe.datasource.url=jdbc:postgresql://postgresql:5432/reaction_service
+      - env.global.kafka.bootstrap-servers=kafka:29092
+      - env.global.kafka.schema-registry-url=http://schema-registry:8081
+      - env.reaction.datasource.url=jdbc:postgresql://postgresql:5432/reaction_service
     networks:
       - microservices-net
 
@@ -119,17 +120,17 @@ services:
     environment:
       - env.discovery.eureka.hostname=discovery-server
       - env.discovery.eureka.client.service-url.defaultZone=http://discovery-server:8761/eureka
-      - env.global.jwt.issuer-uri=http://keycloak:9098/realms/eefood-realm
+      - env.global.jwt.issuer-uri=https://keycloak.codespace.io.vn/realms/eefood-realm
       - env.global.config-server=http://config-service:8888
 
       - EMAIL_USERNAME=${EMAIL_USERNAME}
       - EMAIL_PASSWORD=${EMAIL_PASSWORD}
-      - env.global.kafka.bootstrap-servers=kafka:9092
-      - env.global.kafka.schema-registry-url=http://schema-registry:8086
-      - env.recipe.datasource.url=jdbc:postgresql://postgresql:5432/notification_service
+      - env.global.kafka.bootstrap-servers=kafka:29092
+      - env.global.kafka.schema-registry-url=http://schema-registry:8081
+      - env.notification.datasource.url=jdbc:postgresql://postgresql:5432/notification_service
 
     volumes:
-      - ./firebase/google-service.json:/app/resources/google-service.json
+      - ./firebase/google-services.json:/app/resources/google-services.json
       - ./firebase/serviceAccountKey.json:/app/resources/serviceAccountKey.json
     networks:
       - microservices-net
