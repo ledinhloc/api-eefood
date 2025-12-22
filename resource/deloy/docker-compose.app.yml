@@ -25,6 +25,14 @@ services:
       - "8222:8222"
     depends_on:
       - config-service
+    environment:
+      - env.discovery.eureka.hostname=discovery-server
+      - env.discovery.eureka.client.service-url.defaultZone=http://discovery-server:8761/eureka
+      - env.global.jwt.issuer-uri=http://keycloak:9098/realms/eefood-realm
+      - env.global.config-server=http://config-service:8888
+
+      - env.global.keycloak.base-url=http://keycloak:9098
+      - env.global.kafka.bootstrap-servers=kafka:9092
     networks:
       - microservices-net
 
@@ -36,8 +44,6 @@ services:
       - config-service
     environment:
 #      - GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
-#      - IDP_CLIENT_SECRET: ${IDP_CLIENT_SECRET}
-#      - env.global.kafka.bootstrap-servers=kafka:9092
       - env.discovery.eureka.hostname=discovery-server
       - env.discovery.eureka.client.service-url.defaultZone=http://discovery-server:8761/eureka
       - env.global.jwt.issuer-uri=http://keycloak:9098/realms/eefood-realm
@@ -48,13 +54,13 @@ services:
       - env.global.idp.client-id=client_backend
       - env.global.idp.client-secret=R74ss8ZtsZ0T8FWCkMJBsu6ut9PxR0jr
 
-      - env.iam.datasource.url=jdbc:postgresql://postgresql:5435/iam_service
+      - env.iam.datasource.url=jdbc:postgresql://postgresql:5432/iam_service
       - env.iam.datasource.username=postgres
       - env.iam.datasource.username=postgres
       - env.global.redis.host=redis
       - env.global.kafka.bootstrap-servers=kafka:9092
       - env.global.kafka.schema-registry-url=http://schema-registry:8086
-
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
 
     networks:
       - microservices-net
@@ -76,7 +82,7 @@ services:
       - ES_PORT:9200
       - env.global.kafka.bootstrap-servers=kafka:9092
       - env.global.kafka.schema-registry-url=http://schema-registry:8086
-      - env.recipe.datasource.url=jdbc:postgresql://postgresql:5435/recipe_service
+      - env.recipe.datasource.url=jdbc:postgresql://postgresql:5432/recipe_service
     networks:
       - microservices-net
 
@@ -100,7 +106,7 @@ services:
       - LIVEKIT_HTTP_URL=http://livekit:7880
       - env.global.kafka.bootstrap-servers=kafka:9092
       - env.global.kafka.schema-registry-url=http://schema-registry:8086
-      - env.recipe.datasource.url=jdbc:postgresql://postgresql:5435/reaction_service
+      - env.recipe.datasource.url=jdbc:postgresql://postgresql:5432/reaction_service
     networks:
       - microservices-net
 
@@ -120,7 +126,7 @@ services:
       - EMAIL_PASSWORD=${EMAIL_PASSWORD}
       - env.global.kafka.bootstrap-servers=kafka:9092
       - env.global.kafka.schema-registry-url=http://schema-registry:8086
-      - env.recipe.datasource.url=jdbc:postgresql://postgresql:5435/notification_service
+      - env.recipe.datasource.url=jdbc:postgresql://postgresql:5432/notification_service
 
     volumes:
       - ./firebase/google-service.json:/app/resources/google-service.json
