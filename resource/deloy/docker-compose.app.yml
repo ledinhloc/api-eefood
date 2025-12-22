@@ -1,0 +1,133 @@
+version: "3.8"
+
+services:
+  discovery-server:
+    image: ledinhloc/discovery:latest
+    ports:
+      - "8761:8761"
+    networks:
+      - microservices-net
+
+  config-service:
+    image: ledinhloc/config-service:latest
+    ports:
+      - "8888:8888"
+    depends_on:
+      - discovery-server
+    environment:
+      - env.discovery.eureka.client.service-url.defaultZone=http://discovery-server:8761/eureka
+    networks:
+      - microservices-net
+
+  gateway-service:
+    image: ledinhloc/gateway:latest
+    ports:
+      - "8222:8222"
+    depends_on:
+      - config-service
+    networks:
+      - microservices-net
+
+  iam-service:
+    image: ledinhloc/iam-service:latest
+    ports:
+      - "8085:8085"
+    depends_on:
+      - config-service
+    environment:
+#      - GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+#      - IDP_CLIENT_SECRET: ${IDP_CLIENT_SECRET}
+#      - env.global.kafka.bootstrap-servers=kafka:9092
+      - env.discovery.eureka.hostname=discovery-server
+      - env.discovery.eureka.client.service-url.defaultZone=http://discovery-server:8761/eureka
+      - env.global.jwt.issuer-uri=http://keycloak:9098/realms/eefood-realm
+      - env.global.config-server=http://config-service:8888
+#      iam
+      - env.global.idp.url=http://keycloak:9098
+      - env.global.realm=eefood-realm
+      - env.global.idp.client-id=client_backend
+      - env.global.idp.client-secret=R74ss8ZtsZ0T8FWCkMJBsu6ut9PxR0jr
+
+      - env.iam.datasource.url=jdbc:postgresql://postgresql:5435/iam_service
+      - env.iam.datasource.username=postgres
+      - env.iam.datasource.username=postgres
+      - env.global.redis.host=redis
+      - env.global.kafka.bootstrap-servers=kafka:9092
+      - env.global.kafka.schema-registry-url=http://schema-registry:8086
+
+
+    networks:
+      - microservices-net
+
+  recipe-service:
+    image: ledinhloc/recipe-service:latest
+    ports:
+      - "8100:8100"
+    depends_on:
+      - config-service
+    environment:
+      - env.discovery.eureka.hostname=discovery-server
+      - env.discovery.eureka.client.service-url.defaultZone=http://discovery-server:8761/eureka
+      - env.global.jwt.issuer-uri=http://keycloak:9098/realms/eefood-realm
+      - env.global.config-server=http://config-service:8888
+
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - ES_HOST=elasticsearch
+      - ES_PORT:9200
+      - env.global.kafka.bootstrap-servers=kafka:9092
+      - env.global.kafka.schema-registry-url=http://schema-registry:8086
+      - env.recipe.datasource.url=jdbc:postgresql://postgresql:5435/recipe_service
+    networks:
+      - microservices-net
+
+  reaction-service:
+    image: ledinhloc/reaction-service:latest
+    ports:
+      - "8095:8095"
+    depends_on:
+      - config-service
+    environment:
+#      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      - env.discovery.eureka.hostname=discovery-server
+      - env.discovery.eureka.client.service-url.defaultZone=http://discovery-server:8761/eureka
+      - env.global.jwt.issuer-uri=http://keycloak:9098/realms/eefood-realm
+      - env.global.config-server=http://config-service:8888
+
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - ES_HOST=elasticsearch
+      - ES_PORT:9200
+      - LIVEKIT_WS_URL=ws://livekit:7880
+      - LIVEKIT_HTTP_URL=http://livekit:7880
+      - env.global.kafka.bootstrap-servers=kafka:9092
+      - env.global.kafka.schema-registry-url=http://schema-registry:8086
+      - env.recipe.datasource.url=jdbc:postgresql://postgresql:5435/reaction_service
+    networks:
+      - microservices-net
+
+  notification-service:
+    image: ledinhloc/notification-service:latest
+    ports:
+      - "8090:8090"
+    depends_on:
+      - config-service
+    environment:
+      - env.discovery.eureka.hostname=discovery-server
+      - env.discovery.eureka.client.service-url.defaultZone=http://discovery-server:8761/eureka
+      - env.global.jwt.issuer-uri=http://keycloak:9098/realms/eefood-realm
+      - env.global.config-server=http://config-service:8888
+
+      - EMAIL_USERNAME=${EMAIL_USERNAME}
+      - EMAIL_PASSWORD=${EMAIL_PASSWORD}
+      - env.global.kafka.bootstrap-servers=kafka:9092
+      - env.global.kafka.schema-registry-url=http://schema-registry:8086
+      - env.recipe.datasource.url=jdbc:postgresql://postgresql:5435/notification_service
+
+    volumes:
+      - ./firebase/google-service.json:/app/resources/google-service.json
+      - ./firebase/serviceAccountKey.json:/app/resources/serviceAccountKey.json
+    networks:
+      - microservices-net
+
+networks:
+  microservices-net:
+    driver: bridge

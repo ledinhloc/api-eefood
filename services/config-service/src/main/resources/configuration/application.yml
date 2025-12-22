@@ -20,8 +20,8 @@ spring:
       resourceserver:
         jwt:
           issuer-uri: ${env.global.jwt.issuer-uri:http://localhost:9098/realms/eefood-realm}
-  kafka:
-    bootstrap-servers: ${env.global.kafka.bootstrap-servers:localhost:9092}
+#  kafka:
+#    bootstrap-servers: ${env.global.kafka.bootstrap-servers:localhost:9092}
 
 idp:
   url: ${env.global.idp.url:http://localhost:9098}

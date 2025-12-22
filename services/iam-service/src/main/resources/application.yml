@@ -13,19 +13,19 @@ spring:
     type: redis
   data:
     redis:
-      host: localhost
-      port: 6379
+      host: ${env.global.redis.host:localhost}
+      port: ${env.global.redis.port:6379}
 
   application:
     name: iam-service
   config:
-    import: optional:configserver:http://localhost:8888
+    import: optional:configserver:${env.global.config-server:http://localhost:8888}
 
 #  kafka
   kafka:
-    bootstrap-servers: localhost:9092
+    bootstrap-servers: ${env.global.kafka.bootstrap-servers:localhost:9092}
     properties:
-      schema.registry.url: http://localhost:8086
+      schema.registry.url: ${env.global.kafka.schema-registry-url:http://localhost:8086}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
@@ -83,7 +83,7 @@ logging:
     feign.client: DEBUG
     org.springframework.security: DEBUG
 google:
-  client_id: ${GOOGLE_CLIENT_ID}
+  client_id: ${GOOGLE_CLIENT_ID:111}
 
 
 

@@ -17,13 +17,13 @@ spring:
   application:
     name: recipe-service
   config:
-    import: optional:configserver:http://localhost:8888
+    import: optional:configserver:${env.global.config-server:http://localhost:8888}
 
   #  kafka
   kafka:
-    bootstrap-servers: ${env.global.kafka.brokers:localhost:9092}
+    bootstrap-servers: ${env.global.kafka.bootstrap-servers:localhost:9092}
     properties:
-      schema.registry.url: ${env.global.schema.registry.url:http://localhost:8086}
+      schema.registry.url: ${env.global.kafka.schema-registry-url:http://localhost:8086}
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: io.confluent.kafka.serializers.KafkaAvroSerializer
@@ -35,9 +35,9 @@ spring:
 
 
   datasource:
-    url: ${env.iam.datasource.url:jdbc:postgresql://localhost:5435/recipe_service}
-    username: ${env.iam.datasource.username:postgres}
-    password: ${env.iam.datasource.password:postgres}
+    url: ${env.recipe.datasource.url:jdbc:postgresql://localhost:5435/recipe_service}
+    username: ${env.recipe.datasource.username:postgres}
+    password: ${env.recipe.datasource.password:postgres}
     hikari:
       connection-timeout: 5000       # Timeout khi lấy connection (5s)
       validation-timeout: 3000
