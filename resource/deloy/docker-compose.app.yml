@@ -5,6 +5,11 @@ services:
     image: ledinhloc/discovery:latest
     ports:
       - "8761:8761"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8761" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
     networks:
       - microservices-net
 
@@ -16,6 +21,11 @@ services:
       - discovery-server
     environment:
       - env.discovery.eureka.client.service-url.defaultZone=http://discovery-server:8761/eureka
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8888/actuator/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
     networks:
       - microservices-net
 
@@ -24,7 +34,8 @@ services:
     ports:
       - "8222:8222"
     depends_on:
-      - config-service
+      config-service:
+        condition: service_healthy
     environment:
       - env.discovery.eureka.hostname=discovery-server
       - env.discovery.eureka.client.service-url.defaultZone=http://discovery-server:8761/eureka
@@ -41,7 +52,8 @@ services:
     ports:
       - "8085:8085"
     depends_on:
-      - config-service
+      config-service:
+        condition: service_healthy
     environment:
 #      - GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       - env.discovery.eureka.hostname=discovery-server
@@ -69,7 +81,8 @@ services:
     ports:
       - "8100:8100"
     depends_on:
-      - config-service
+      config-service:
+        condition: service_healthy
     environment:
       - env.discovery.eureka.hostname=discovery-server
       - env.discovery.eureka.client.service-url.defaultZone=http://discovery-server:8761/eureka
@@ -90,7 +103,8 @@ services:
     ports:
       - "8095:8095"
     depends_on:
-      - config-service
+      config-service:
+        condition: service_healthy
     environment:
 #      GEMINI_API_KEY: ${GEMINI_API_KEY}
       - env.discovery.eureka.hostname=discovery-server
@@ -114,7 +128,8 @@ services:
     ports:
       - "8090:8090"
     depends_on:
-      - config-service
+      config-service:
+        condition: service_healthy
     environment:
       - env.discovery.eureka.hostname=discovery-server
       - env.discovery.eureka.client.service-url.defaultZone=http://discovery-server:8761/eureka
