@@ -55,8 +55,6 @@ services:
       - env.global.idp.client-secret=R74ss8ZtsZ0T8FWCkMJBsu6ut9PxR0jr
 
       - env.iam.datasource.url=jdbc:postgresql://postgresql:5432/iam_service
-      - env.iam.datasource.username=postgres
-      - env.iam.datasource.username=postgres
       - env.global.redis.host=redis
       - env.global.kafka.bootstrap-servers=kafka:29092
       - env.global.kafka.schema-registry-url=http://schema-registry:8081
@@ -129,9 +127,11 @@ services:
       - env.global.kafka.schema-registry-url=http://schema-registry:8081
       - env.notification.datasource.url=jdbc:postgresql://postgresql:5432/notification_service
 
+#      - JAVA_OPTS=-Djava.security.egd=file:/dev/./urandom -cp /app:/app/app.jar
+      - LOADER_PATH=/app/config
     volumes:
-      - ./firebase/google-services.json:/app/resources/google-services.json
-      - ./firebase/serviceAccountKey.json:/app/resources/serviceAccountKey.json
+      - ./firebase/serviceAccountKey.json:/app/config/serviceAccountKey.json
+      - ./firebase/google-services.json:/app/config/google-services.json
     networks:
       - microservices-net
 
