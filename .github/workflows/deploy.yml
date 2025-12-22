@@ -5,34 +5,12 @@ on:
     branches: [ "deloy" ]
 
 jobs:
-  changes:
-    runs-on: ubuntu-latest
-    # Đầu ra (outputs) để các job sau biết service nào cần build
-    outputs:
-      services: ${{ steps.filter.outputs.changes }}
-    steps:
-      - uses: actions/checkout@v3
-      - uses: dorny/paths-filter@v2
-        id: filter
-        with:
-          #  Nếu code trong folder services/name thay đổi -> build name
-          filters: |
-            config-service: 'services/config-service/**'
-            discovery: 'services/discovery/**'
-            gateway: 'services/gateway/**'
-            iam-service: 'services/iam-service/**'
-            notification-service: 'services/notification-service/**'
-            reaction-service: 'services/reaction-service/**'
-            recipe-service: 'services/recipe-service/**'
-
   build-and-push:
-    needs: changes
-    if: ${{ needs.changes.outputs.services != '[]' && needs.changes.outputs.services != '' }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        # Chạy matrix dựa trên danh sách các service thực sự thay đổi
-        service: ${{ fromJson(needs.changes.outputs.services) }}
+        # Danh sách các thư mục con tương ứng với các service
+        service: [config-service, discovery, gateway, iam-service, notification-service, reaction-service, recipe-service]
 
     steps:
       - name: Checkout code
@@ -64,9 +42,7 @@ jobs:
           tags: ledinhloc/${{ matrix.service }}:latest
 
   deploy:
-    needs: [changes, build-and-push]
-    # Job deploy luôn chạy nếu có bất kỳ service nào thay đổi
-    if: ${{ always() && needs.changes.outputs.services != '[]' }}
+    needs: build-and-push
     runs-on: ubuntu-latest
     steps:
       - name: SSH into VPS and Deploy
@@ -76,6 +52,6 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            cd /opt/eefood
+            cd /opt/eefood # Đường dẫn chứa file docker-compose.app.yml trên VPS
             docker compose -f docker-compose.app.yml pull
             docker compose -f docker-compose.app.yml up -d
