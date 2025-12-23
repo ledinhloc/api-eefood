@@ -84,7 +84,7 @@ public class PostSearchService {
             // Keyword search (optional)
             if (hasKeyword) {
               b.should(sh -> sh.multiMatch(mm -> mm
-                .fields("title^4", "recipeIngredientKeywords^2", "content")
+                .fields("title^8", "recipeIngredientKeywords^3", "content")
                 .query(keyword)
               ));
             }
@@ -207,7 +207,7 @@ public class PostSearchService {
             // 1. Keyword
             if (keyword != null && !keyword.isBlank()) {
               b.should(sh -> sh.multiMatch(mm -> mm
-                .fields("title^4", "recipeIngredientKeywords^2", "content")
+                .fields("title^8", "recipeIngredientKeywords^3", "content")
                 .query(keyword)
               ));
             }
@@ -281,13 +281,13 @@ public class PostSearchService {
             }
 
             /** ---- DỊ ỨNG (giảm điểm) ---- **/
-            for (String al : allergies) {
-              fList.filter(f -> f.match(m -> m
-                .field("recipeIngredientKeywords")
-                .query(al)
-                .fuzziness("AUTO")
-              )).weight(0.2);
-            }
+//            for (String al : allergies) {
+//              fList.filter(f -> f.match(m -> m
+//                .field("recipeIngredientKeywords")
+//                .query(al)
+//                .fuzziness("AUTO")
+//              )).weight((double) -5);
+//            }
 
             /** ---- ƯU TIÊN POST CỦA NGƯỜI ĐANG FOLLOW ---- **/
             if (!newFollowings.isEmpty()) {

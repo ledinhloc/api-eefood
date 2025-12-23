@@ -42,8 +42,8 @@ services:
       LIVEKIT_PORT: "7880"
 
       # RTC Configuration - IP máy thật
-      LIVEKIT_RTC_NODE_IP: "192.168.4.134"
-      LIVEKIT_RTC_ANNOUNCE_IP: "192.168.4.134"
+      LIVEKIT_RTC_NODE_IP: "172.16.2.240"
+      LIVEKIT_RTC_ANNOUNCE_IP: "172.16.2.240"
 
       # Port range cho RTC (UDP)
       LIVEKIT_RTC_PORT_RANGE_START: "50000"
