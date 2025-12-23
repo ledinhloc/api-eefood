@@ -14,10 +14,11 @@ services:
     networks:
       - microservices-net
     healthcheck:
-      test: curl -u elastic:elastic123 -f http://localhost:9200 || exit 1
+      test: ["CMD-SHELL", "nc -z localhost 9200 || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
+      start_period: 60s
 
   kibana:
     image: docker.elastic.co/kibana/kibana:8.11.1
