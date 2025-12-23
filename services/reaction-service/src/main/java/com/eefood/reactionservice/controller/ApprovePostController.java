@@ -1,6 +1,6 @@
 package com.eefood.reactionservice.controller;
 
-import com.eefood.reactionservice.dto.ApprovePostResponse;
+import com.eefood.reactionservice.dto.response.ApprovePostResponse;
 import com.eefood.reactionservice.dto.response.ResponseData;
 import com.eefood.reactionservice.model.ApprovePost;
 import com.eefood.reactionservice.service.ApprovePostService;
