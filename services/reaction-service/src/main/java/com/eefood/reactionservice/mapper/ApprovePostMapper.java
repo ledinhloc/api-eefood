@@ -1,6 +1,6 @@
 package com.eefood.reactionservice.mapper;
 
-import com.eefood.reactionservice.dto.ApprovePostResponse;
+import com.eefood.reactionservice.dto.response.ApprovePostResponse;
 import com.eefood.reactionservice.model.ApprovePost;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;

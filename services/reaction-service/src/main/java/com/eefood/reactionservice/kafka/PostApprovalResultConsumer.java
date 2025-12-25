@@ -6,7 +6,8 @@ import com.eefood.reactionservice.enums.PostStatus;
 import com.eefood.reactionservice.model.ApprovePost;
 import com.eefood.reactionservice.model.Post;
 import com.eefood.reactionservice.repository.post.PostRepository;
-import com.eefood.reactionservice.service.ApprovePostService;
+
+import com.eefood.reactionservice.service.post.ApprovePostService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;

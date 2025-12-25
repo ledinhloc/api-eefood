@@ -1,4 +1,4 @@
-package com.eefood.reactionservice.service;
+package com.eefood.reactionservice.service.post;
 
 import com.eefood.reactionservice.dto.response.ApprovePostResponse;
 import com.eefood.reactionservice.mapper.ApprovePostMapper;
