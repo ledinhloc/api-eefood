@@ -8,6 +8,7 @@ import com.eefood.reactionservice.model.Post;
 import com.eefood.reactionservice.repository.post.PostRepository;
 
 import com.eefood.reactionservice.service.post.ApprovePostService;
+import com.eefood.reactionservice.service.post.PostIndexer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -26,6 +27,7 @@ public class PostApprovalResultConsumer {
   private final PostRepository postRepository;
   private final NotificationProducer notificationProducer;
   private final ApprovePostService approvePostService;
+  private final PostIndexer postIndexer;
 
   @KafkaListener(topics = "post.approval.result", groupId = "reaction-service")
   @Transactional
@@ -46,6 +48,8 @@ public class PostApprovalResultConsumer {
       approvePostService.save(approvePost);
       updatePostStatus(post, result);
       sendNotificationToUser(post, result);
+
+      postIndexer.saveOrUpdatePost(post);
 
       log.info("Successfully processed approval result - PostId: {}, Status: {}",
         post.getId(), post.getStatus());
