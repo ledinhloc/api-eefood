@@ -36,6 +36,11 @@ public class DashboardService {
     private final ReportPostRepository reportPostRepository;
     private final IamClient iamClient;
 
+    public List<UserCityStatisticsResponse> getUserStatisticsByCity() {
+        var response = iamClient.getUserStatisticsByCity();
+        return response != null ? response.getData() : List.of();
+    }
+
     public PostStatistics getPostStatistics(
             int topPostsLimit,
             int recentViolatedPostsLimit
@@ -68,12 +73,15 @@ public class DashboardService {
         List<UserRegistrationStatsResponse> recentRegistrations = getRecentRegistrations();
         // Top người đóng góp nhiều nhất
         List<TopUserPostResponse> topPostCreators = getTopPostCreators(topPostCreatorsLimit);
+        // Thống kê người dùng theo khu vực
+        List<UserCityStatisticsResponse> cityStatisticsResponses = getUserStatisticsByCity();
 
         return UserStatistics.builder()
                 .totalUsers(totalUsers)
                 .topInfluencers(topInfluencers)
                 .recentRegistrations(recentRegistrations)
                 .topPostCreators(topPostCreators)
+                .cityStatistics(cityStatisticsResponses)
                 .build();
     }
 

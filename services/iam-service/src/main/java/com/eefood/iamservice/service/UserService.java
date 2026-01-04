@@ -5,10 +5,7 @@ import com.eefood.iamservice.dto.request.Credential;
 import com.eefood.iamservice.dto.request.UserCreateRequest;
 import com.eefood.iamservice.dto.request.UserCreationParam;
 import com.eefood.iamservice.dto.request.UserUpdateRequest;
-import com.eefood.iamservice.dto.response.UserInfo;
-import com.eefood.iamservice.dto.response.UserNotificationResponse;
-import com.eefood.iamservice.dto.response.UserRegistrationStatsResponse;
-import com.eefood.iamservice.dto.response.UserResponse;
+import com.eefood.iamservice.dto.response.*;
 import com.eefood.iamservice.enums.ErrorMessage;
 import com.eefood.iamservice.enums.Provider;
 import com.eefood.iamservice.enums.Role;
@@ -46,6 +43,7 @@ public class UserService {
   private final KeycloakAdminService keycloakAdminService;
   private final FirebaseNotificationProducer firebaseNotificationProducer;
   private final SecurityUtil securityUtil;
+
 
   public Page<UserResponse> getUsers(String search, Role role, Provider provider, Pageable pageable) {
     Specification<User> spec = (root, query, cb) -> cb.conjunction();
@@ -250,10 +248,12 @@ public class UserService {
   }
 
   public List<UserRegistrationStatsResponse> getRecentUserStats() {
-    LocalDateTime sevenDaysAgo = LocalDateTime.now().minusDays(7);
+    LocalDateTime sevenDaysAgo = LocalDateTime.now().minusDays(20);
 
     List<User> users =
             userRepository.findByIsDeletedFalseAndCreatedAtAfter(sevenDaysAgo);
+
+    log.info("Users size {}", users.size());
 
     return users.stream()
             .collect(Collectors.groupingBy(
@@ -267,6 +267,17 @@ public class UserService {
                     entry.getValue()
             ))
             .sorted(Comparator.comparing(UserRegistrationStatsResponse::getDate))
+            .collect(Collectors.toList());
+  }
+
+  public List<UserCityStatisticsResponse> getUserStatisticsByCity() {
+    List<Object[]> results = userRepository.countUsersGroupByCity();
+
+    return results.stream()
+            .map(row -> new UserCityStatisticsResponse(
+                    (String) row[0],
+                    ((Number) row[1]).longValue()
+            ))
             .collect(Collectors.toList());
   }
 }

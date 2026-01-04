@@ -128,4 +128,9 @@ public class UserController {
   public ResponseData<List<UserRegistrationStatsResponse>> getRecentUsers() {
     return new ResponseData<>(HttpStatus.OK.value(), "Success", userService.getRecentUserStats());
   }
+
+  @GetMapping("/dashboard/city")
+  public ResponseData<List<UserCityStatisticsResponse>> getUserStatisticsByCity() {
+    return new ResponseData<>(HttpStatus.OK.value(), "Success", userService.getUserStatisticsByCity());
+  }
 }

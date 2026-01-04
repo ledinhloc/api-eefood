@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -24,4 +25,19 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
   List<User> findByIdInAndIsDeletedFalse(List<Long> ids);
   List<User> findAllByRoleAndIsDeletedFalse(Role role);
   List<User> findByIsDeletedFalseAndCreatedAtAfter(LocalDateTime fromDate);
+
+  @Query(
+          value = """
+        SELECT 
+            address ->> 'city' AS city,
+            COUNT(*) AS total
+        FROM users
+        WHERE address IS NOT NULL
+          AND jsonb_extract_path_text(address, 'city') IS NOT NULL
+        GROUP BY address ->> 'city'
+        ORDER BY total DESC
+    """,
+          nativeQuery = true
+  )
+  List<Object[]> countUsersGroupByCity();
 }
