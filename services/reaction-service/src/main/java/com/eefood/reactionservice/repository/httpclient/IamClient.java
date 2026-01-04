@@ -4,6 +4,7 @@ import com.eefood.reactionservice.dto.request.UserNotificationResquest;
 import com.eefood.reactionservice.dto.response.ResponseData;
 import com.eefood.reactionservice.dto.response.UserInfo;
 import com.eefood.reactionservice.dto.response.UserResponse;
+import com.eefood.reactionservice.dto.response.admin.UserCityStatisticsResponse;
 import com.eefood.reactionservice.dto.response.admin.UserRegistrationStatsResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,6 +28,9 @@ public interface IamClient {
   @GetMapping(value = "/api/v1/users/all")
   ResponseData<List<UserNotificationResquest>> getAllUserNotifications();
 
-  @GetMapping(value = "/api/v1/users//dashboard/recent")
+  @GetMapping(value = "/api/v1/users/dashboard/recent")
   ResponseData<List<UserRegistrationStatsResponse>> getRecentUsers();
+
+  @GetMapping("/api/v1/users/dashboard/city")
+  ResponseData<List<UserCityStatisticsResponse>> getUserStatisticsByCity();
 }

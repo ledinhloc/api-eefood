@@ -101,17 +101,8 @@ public class FirebaseNotificationService {
             return;
         }
 
-        List<String> validTokens = userFcmTokens.values().stream()
-                .filter(token -> token != null && !token.isBlank())
-                .distinct()
-                .collect(Collectors.toList());
-
-        if (validTokens.isEmpty()) {
-            log.warn("No valid FCM tokens found for broadcast");
-            return;
-        }
-
-        sendMulticastNotification(validTokens, response, "Broadcast");
+        List<String> tokens = new ArrayList<>(userFcmTokens.values());
+        sendMulticastNotification(tokens, response, "Broadcast");
     }
 
     // Hàm chung để gửi notification đơn lẻ
@@ -169,17 +160,15 @@ public class FirebaseNotificationService {
 
     // Hàm chung để build Data Map
     private Map<String, String> buildDataMap(NotificationResponse response) {
-        Map<String, String> data = new ConcurrentHashMap<>();
-
-        data.put("title", response.getTitle());
-        data.put("body", response.getBody());
-        data.put("type", response.getType());
-        data.put("path", defaultString(response.getPath()));
-        data.put("avatarUrl", defaultString(response.getAvatarUrl()));
-        data.put("postImageUrl", defaultString(response.getPostImageUrl()));
-        data.put("isRead", String.valueOf(response.isRead()));
-
-        return data;
+        return Map.of(
+                "title", response.getTitle(),
+                "body", response.getBody(),
+                "type", response.getType(),
+                "path", response.getPath(),
+                "avatarUrl", response.getAvatarUrl(),
+                "postImageUrl", response.getPostImageUrl(),
+                "isRead", String.valueOf(response.isRead())
+        );
     }
 
     private List<List<String>> partition(List<String> list, int size) {
@@ -188,9 +177,5 @@ public class FirebaseNotificationService {
             parts.add(list.subList(i, Math.min(list.size(), i + size)));
         }
         return parts;
-    }
-
-    private String defaultString(String value) {
-        return value == null ? "" : value;
     }
 }

@@ -171,7 +171,6 @@ public class NotificationsService {
             }
         }
         else {
-            Long currentUserId = securityUtil.getCurrentUserId();
             var response = iamClient.getAllUserNotifications();
 
             if (response == null || response.getData() == null) {
@@ -186,7 +185,6 @@ public class NotificationsService {
 
             List<NotificationsRecipient> recipients = users.stream()
                     .filter(u -> !"ADMIN".equals(u.getRole()))
-                    .filter(u -> !u.getId().equals(currentUserId))
                     .filter(u -> hasFcmToken(u.getId()))
                     .map(u -> NotificationsRecipient.builder()
                             .userId(u.getId())
@@ -201,7 +199,6 @@ public class NotificationsService {
             }
             notification.setRecipients(recipients);
             notificationsRepository.save(notification);
-            log.info("Send broadcasting notification");
             sendBroadcastNotification(request);
         }
     }
@@ -246,7 +243,6 @@ public class NotificationsService {
                 .type(request.getType())
                 .path(request.getPath())
                 .avatarUrl(request.getAvatarUrl())
-                .postImageUrl(request.getPostImageUrl())
                 .isRead(false)
                 .build();
 

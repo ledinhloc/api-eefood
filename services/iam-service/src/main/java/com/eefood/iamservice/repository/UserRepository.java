@@ -28,14 +28,15 @@ public interface UserRepository extends JpaRepository<User, Long>, JpaSpecificat
 
   @Query(
           value = """
-            SELECT 
-                address ->> 'city' AS city,
-                COUNT(*) AS total
-            FROM users
-            WHERE address IS NOT NULL
-            GROUP BY address ->> 'city'
-            ORDER BY total DESC
-        """,
+        SELECT 
+            address ->> 'city' AS city,
+            COUNT(*) AS total
+        FROM users
+        WHERE address IS NOT NULL
+          AND jsonb_extract_path_text(address, 'city') IS NOT NULL
+        GROUP BY address ->> 'city'
+        ORDER BY total DESC
+    """,
           nativeQuery = true
   )
   List<Object[]> countUsersGroupByCity();

@@ -18,4 +18,5 @@ public class UserStatistics {
     private List<TopUserResponse> topInfluencers; // Top 3 người dùng có nhiều follower
     private List<UserRegistrationStatsResponse> recentRegistrations; // So nguoi dang ky theo ngay
     private List<TopUserPostResponse> topPostCreators; // Top người dùng đăng bài nhiều
+    private List<UserCityStatisticsResponse> cityStatistics;
 }
