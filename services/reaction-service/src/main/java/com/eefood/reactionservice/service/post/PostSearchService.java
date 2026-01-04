@@ -375,14 +375,14 @@ public class PostSearchService {
               )).weight(1.5);
             }
 
-//            // Để tránh lỗi "functions list is empty"
-//            if (eatingPrefs.isEmpty() && dietaryPrefs.isEmpty() && allergies.isEmpty() &&
-//              newFollowings.isEmpty() && oldFollowings.isEmpty() &&
-//              reactedPostKeywords.isEmpty() && commentedPostKeywords.isEmpty() &&
-//              viewedPostKeywords.isEmpty() && userCity.isBlank()) {
-//              // Thêm một function mặc định để ES không báo lỗi
-//              fList.weight(w -> w.weight(1.0));
-//            }
+            // Để tránh lỗi "functions list is empty"
+            if (eatingPrefs.isEmpty() && dietaryPrefs.isEmpty() && allergies.isEmpty() &&
+              newFollowings.isEmpty() && oldFollowings.isEmpty() &&
+              reactedPostKeywords.isEmpty() && commentedPostKeywords.isEmpty() &&
+              viewedPostKeywords.isEmpty() && userCity.isBlank()) {
+              // Thêm một function mặc định để ES không báo lỗi
+              fList.filter(f -> f.matchAll(m -> m)).weight(1.0);
+            }
 
             return fList;
           })
