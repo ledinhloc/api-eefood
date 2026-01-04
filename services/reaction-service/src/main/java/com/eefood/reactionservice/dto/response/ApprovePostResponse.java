@@ -1,4 +1,4 @@
-package com.eefood.reactionservice.dto;
+package com.eefood.reactionservice.dto.response;
 
 import lombok.*;
 

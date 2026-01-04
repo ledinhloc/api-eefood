@@ -109,12 +109,13 @@ public class AuthService {
 
   private GoogleIdToken.Payload verifyTokenGoogle(String idTokenString) {
     try {
+      log.info("TOKEN ID: "+idTokenString);
       GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier
               .Builder(new NetHttpTransport(), new GsonFactory())
               .setAudience(Collections.singleton(googleClientId)).build();
 
       GoogleIdToken idToken = verifier.verify(idTokenString);
-
+      log.info("GOOGLE ID TOKEN: {}", idToken.getPayload());
       return (idToken != null) ? idToken.getPayload() : null;
     }
     catch (Exception e) {
@@ -124,6 +125,7 @@ public class AuthService {
 
   public UserResponse loginWithGoogle(GoogleLoginRequest request) {
     GoogleIdToken.Payload payload = verifyTokenGoogle(request.getIdToken());
+    log.info("GOOGLE ID TOKEN: {}", payload);
     if (payload == null) {
       throw ExceptionUtil.badRequest(ErrorMessage.INVALID_MESSAGE_KEY);
     }
