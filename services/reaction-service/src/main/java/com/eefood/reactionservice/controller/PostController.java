@@ -86,7 +86,6 @@ public class PostController {
   @GetMapping
   public ResponseData<Page<PostResponse>> getAllPosts(
     @RequestParam(required = false) String keyword,
-//    @RequestParam(required = false) Long userId,
     @RequestParam(required = false) String region,
     @RequestParam(required = false) String difficulty,
     @RequestParam(required = false) String category,
@@ -96,7 +95,6 @@ public class PostController {
   ) {
     Page<PostResponse> result = postService.getAllPosts(
       keyword,
-//      userId,
       region,
       difficulty,
       category,

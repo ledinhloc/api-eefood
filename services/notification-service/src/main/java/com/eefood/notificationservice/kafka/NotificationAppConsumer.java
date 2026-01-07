@@ -64,6 +64,10 @@ public class NotificationAppConsumer {
     public void consumeRegisterToken(FirebaseNotificationEvent event) {
         try {
             log.info("Received RegisterFcmTokenEvent: userId={}, token={}", event.getId(), event.getFcmToken());
+            if(event.getId() == null || event.getFcmToken() == null) {
+              log.info("Cannot register: userId={}, token={}", event.getId(), event.getFcmToken());
+              return;
+            }
             firebaseNotificationService.registerUserToken(
                     event.getId(),
                     event.getFcmToken().toString()
