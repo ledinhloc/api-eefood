@@ -160,15 +160,15 @@ public class FirebaseNotificationService {
 
     // Hàm chung để build Data Map
     private Map<String, String> buildDataMap(NotificationResponse response) {
-        return Map.of(
-                "title", response.getTitle(),
-                "body", response.getBody(),
-                "type", response.getType(),
-                "path", response.getPath(),
-                "avatarUrl", response.getAvatarUrl(),
-                "postImageUrl", response.getPostImageUrl(),
-                "isRead", String.valueOf(response.isRead())
-        );
+      return Map.of(
+        "title", response.getTitle(),
+        "body", response.getBody(),
+        "type", response.getType(),
+        "path", response.getPath() != null ? response.getPath() : "",
+        "avatarUrl", response.getAvatarUrl() != null ? response.getAvatarUrl() : "",
+        "postImageUrl", response.getPostImageUrl() != null ? response.getPostImageUrl() : "",
+        "isRead", String.valueOf(response.isRead())
+      );
     }
 
     private List<List<String>> partition(List<String> list, int size) {
