@@ -1,12 +1,17 @@
 package com.eefood.reactionservice.service.story;
 
 import com.eefood.reactionservice.dto.request.StoryRequest;
+import com.eefood.reactionservice.dto.request.StorySettingRequest;
 import com.eefood.reactionservice.dto.response.StoryResponse;
 import com.eefood.reactionservice.dto.response.UserInfo;
 import com.eefood.reactionservice.dto.response.UserStoryResponse;
+import com.eefood.reactionservice.enums.StoryMode;
 import com.eefood.reactionservice.mapper.StoryMapper;
+import com.eefood.reactionservice.model.Collection;
 import com.eefood.reactionservice.model.Story;
+import com.eefood.reactionservice.model.StorySetting;
 import com.eefood.reactionservice.repository.story.StoryRepository;
+import com.eefood.reactionservice.repository.story.StorySettingRepository;
 import com.eefood.reactionservice.repository.story.StoryViewRepository;
 import com.eefood.reactionservice.repository.httpclient.IamClient;
 import com.eefood.reactionservice.util.SecurityUtil;
@@ -14,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -27,8 +33,20 @@ public class StoryService {
     private final SecurityUtil securityUtil;
     private final StorySettingService storySettingService;
     private final IamClient iamClient;
+    private final StorySettingRepository storySettingRepository;
 
     public StoryResponse createStory(StoryRequest storyRequest) {
+        StorySetting setting = storySettingRepository.findByUserId(storyRequest.getUserId()).orElse(null);
+        if(setting == null) {
+            storySettingService.createOrUpdateSetting(
+                    StorySettingRequest.builder()
+                            .mode(StoryMode.FOLLOWING_ONLY)
+                            .userId(storyRequest.getUserId())
+                            .allowedUserIds(Collections.emptyList())
+                            .blockedUserIds(Collections.emptyList())
+                            .build()
+            );
+        }
         Story story = Story.builder()
                 .type(storyRequest.getType())
                 .userId(storyRequest.getUserId())

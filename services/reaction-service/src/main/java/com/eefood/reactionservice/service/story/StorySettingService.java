@@ -54,7 +54,7 @@ public class StorySettingService {
         StorySetting setting = repository.findByUserId(ownerId).orElse(null);
 
         if (setting == null) {
-            return true;
+            return followService.checkFollow(ownerId);
         }
 
         StoryMode mode = setting.getMode();
