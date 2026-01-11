@@ -109,7 +109,7 @@ public class StoryService {
         List<Story> filtered = stories.stream()
                 .filter(s -> !isExpired(s))
                 .filter(s -> !s.getUserId().equals(viewerId))
-                .filter(s -> storySettingService.canViewStory(s.getUserId(), viewerId))
+                .filter(s -> storySettingService.canViewStory(viewerId, s.getUserId()))
                 .toList();
 
         return buildUserStoryResponse(filtered, viewerId);

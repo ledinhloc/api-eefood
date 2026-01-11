@@ -23,9 +23,17 @@ public class StorySettingService {
 
     public StorySettingResponse getSetting(Long userId) {
         StorySetting setting = repository.findByUserId(userId).orElse(null);
-        if (setting == null) return null;
+        if (setting == null)
+            return null;
 
-        return storySettingMapper.toResponse(setting);
+        return StorySettingResponse.
+                builder()
+                .id(setting.getId())
+                .allowedUserIds(setting.getAllowedUserIds())
+                .blockedUserIds(setting.getBlockedUserIds())
+                .mode(setting.getMode())
+                .userId(setting.getUserId())
+                .build();
     }
 
     public StorySettingResponse createOrUpdateSetting(StorySettingRequest request) {
