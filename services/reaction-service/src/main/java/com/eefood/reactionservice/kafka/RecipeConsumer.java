@@ -39,7 +39,8 @@ public class RecipeConsumer {
       return;
     }
 
-    boolean needsReApproval = hasSignificantChanges(post, event);
+//    boolean needsReApproval = hasSignificantChanges(post, event);
+    boolean needsReApproval = true;
     updatePostFields(post, event);
     if (needsReApproval) {
       post.setStatus(PostStatus.EDITED_PENDING);
