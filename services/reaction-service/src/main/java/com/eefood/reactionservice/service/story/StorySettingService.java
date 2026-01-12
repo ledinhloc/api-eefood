@@ -26,14 +26,7 @@ public class StorySettingService {
         if (setting == null)
             return null;
 
-        return StorySettingResponse.
-                builder()
-                .id(setting.getId())
-                .allowedUserIds(setting.getAllowedUserIds())
-                .blockedUserIds(setting.getBlockedUserIds())
-                .mode(setting.getMode())
-                .userId(setting.getUserId())
-                .build();
+        return storySettingMapper.toResponse(setting);
     }
 
     public StorySettingResponse createOrUpdateSetting(StorySettingRequest request) {
@@ -74,10 +67,7 @@ public class StorySettingService {
 
             case PRIVATE -> false;
 
-            case FOLLOWING_ONLY -> {
-                boolean isFollowing = followService.checkFollow(viewerId);
-                yield isFollowing;
-            }
+            case FOLLOWING_ONLY -> followService.checkFollow(ownerId);
 
             case CUSTOM_INCLUDE ->
                     setting.getAllowedUserIds() != null &&

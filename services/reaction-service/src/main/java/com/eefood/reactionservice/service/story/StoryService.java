@@ -112,6 +112,7 @@ public class StoryService {
                 .filter(s -> storySettingService.canViewStory(viewerId, s.getUserId()))
                 .toList();
 
+
         return buildUserStoryResponse(filtered, viewerId);
     }
 

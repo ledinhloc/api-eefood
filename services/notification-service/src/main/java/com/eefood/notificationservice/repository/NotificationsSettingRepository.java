@@ -12,4 +12,5 @@ import java.util.Optional;
 public interface NotificationsSettingRepository extends JpaRepository<NotificationsSetting, Long> {
     Optional<NotificationsSetting> findByUserIdAndType(Long userId, NotificationsType type);
     List<NotificationsSetting> findByUserId(Long userId);
+    List<NotificationsSetting> findByTypeAndEnabledTrue(NotificationsType type);
 }

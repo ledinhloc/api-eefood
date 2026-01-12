@@ -7,13 +7,5 @@ import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring")
 public interface StorySettingMapper {
-    @Mapping(
-            target = "allowedUserIds",
-            expression = "java(storySetting.getAllowedUserIds() != null ? storySetting.getAllowedUserIds() : java.util.List.of())"
-    )
-    @Mapping(
-            target = "blockedUserIds",
-            expression = "java(storySetting.getBlockedUserIds() != null ? storySetting.getBlockedUserIds() : java.util.List.of())"
-    )
     StorySettingResponse toResponse(StorySetting storySetting);
 }
