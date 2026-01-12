@@ -23,7 +23,8 @@ public class StorySettingService {
 
     public StorySettingResponse getSetting(Long userId) {
         StorySetting setting = repository.findByUserId(userId).orElse(null);
-        if (setting == null) return null;
+        if (setting == null)
+            return null;
 
         return storySettingMapper.toResponse(setting);
     }
@@ -66,10 +67,7 @@ public class StorySettingService {
 
             case PRIVATE -> false;
 
-            case FOLLOWING_ONLY -> {
-                boolean isFollowing = followService.checkFollow(viewerId);
-                yield isFollowing;
-            }
+            case FOLLOWING_ONLY -> followService.checkFollow(ownerId);
 
             case CUSTOM_INCLUDE ->
                     setting.getAllowedUserIds() != null &&

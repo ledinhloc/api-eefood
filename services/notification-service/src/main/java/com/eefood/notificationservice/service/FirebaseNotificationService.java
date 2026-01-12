@@ -3,7 +3,10 @@ import com.eefood.notificationservice.dto.request.NotificationRequest;
 import com.eefood.notificationservice.dto.request.UserNotificationResquest;
 import com.eefood.notificationservice.dto.response.NotificationResponse;
 import com.eefood.notificationservice.dto.response.ResponseData;
+import com.eefood.notificationservice.enums.NotificationsType;
+import com.eefood.notificationservice.model.NotificationsSetting;
 import com.eefood.notificationservice.model.UserFcmToken;
+import com.eefood.notificationservice.repository.NotificationsSettingRepository;
 import com.eefood.notificationservice.repository.UserFcmTokenRepository;
 import com.eefood.notificationservice.repository.httpclient.IamClient;
 import com.google.firebase.messaging.*;
@@ -27,6 +30,7 @@ public class FirebaseNotificationService {
     private final ConcurrentHashMap<Long, String> userFcmTokens = new ConcurrentHashMap<>();
     private final UserFcmTokenRepository userFcmTokenRepository;
     private final IamClient iamClient;
+    private final NotificationsSettingRepository notificationsSettingRepository;
 
     @PostConstruct
     public void init() {
@@ -101,7 +105,17 @@ public class FirebaseNotificationService {
             return;
         }
 
-        List<String> tokens = new ArrayList<>(userFcmTokens.values());
+        List<Long> enabledUserIds =
+                notificationsSettingRepository
+                        .findByTypeAndEnabledTrue(NotificationsType.valueOf(response.getType()))
+                        .stream()
+                        .map(NotificationsSetting::getUserId)
+                        .toList();
+
+        List<String> tokens = userFcmTokens.entrySet().stream()
+                .filter(entry -> enabledUserIds.contains(entry.getKey()))
+                .map(Map.Entry::getValue)
+                .toList();
         sendMulticastNotification(tokens, response, "Broadcast");
     }
 
@@ -134,29 +148,28 @@ public class FirebaseNotificationService {
 
     // Hàm chung để build Message
     private Message buildMessage(String token, NotificationResponse response) {
+        AndroidConfig androidConfig = AndroidConfig.builder()
+                .setPriority(AndroidConfig.Priority.HIGH)
+                .build();
         return Message.builder()
                 .setToken(token)
-                .setNotification(buildNotification(response))
                 .putAllData(buildDataMap(response))
+                .setAndroidConfig(androidConfig)
                 .build();
     }
 
     // Hàm chung để build MulticastMessage
     private MulticastMessage buildMulticastMessage(List<String> tokens, NotificationResponse response) {
+        AndroidConfig androidConfig = AndroidConfig.builder()
+                .setPriority(AndroidConfig.Priority.HIGH)
+                .build();
         return MulticastMessage.builder()
-                .setNotification(buildNotification(response))
                 .putAllData(buildDataMap(response))
                 .addAllTokens(tokens)
+                .setAndroidConfig(androidConfig)
                 .build();
     }
 
-    // Hàm chung để build Notification
-    private Notification buildNotification(NotificationResponse response) {
-        return Notification.builder()
-                .setTitle(response.getTitle())
-                .setBody(response.getBody())
-                .build();
-    }
 
     // Hàm chung để build Data Map
     private Map<String, String> buildDataMap(NotificationResponse response) {

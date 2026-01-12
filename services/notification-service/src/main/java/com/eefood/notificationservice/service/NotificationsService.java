@@ -186,6 +186,14 @@ public class NotificationsService {
             List<NotificationsRecipient> recipients = users.stream()
                     .filter(u -> !"ADMIN".equals(u.getRole()))
                     .filter(u -> hasFcmToken(u.getId()))
+                    .filter(u -> {
+                        NotificationsSetting setting =
+                                notificationsSettingRepository
+                                        .findByUserIdAndType(u.getId(), type)
+                                        .orElse(null);
+
+                        return setting == null || Boolean.TRUE.equals(setting.isEnabled());
+                    })
                     .map(u -> NotificationsRecipient.builder()
                             .userId(u.getId())
                             .notification(notification)
