@@ -111,6 +111,10 @@ google:
       api-key: ${GEMINI_API_KEY}
       model: gemini-2.5-flash
       temperature: 0.1
+chroma:
+  host: localhost
+  port: 8010
+  collection: my-collection
 
 
 

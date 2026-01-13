@@ -31,6 +31,12 @@
         <spring-cloud.version>2025.0.0</spring-cloud.version>
     </properties>
     <dependencies>
+        <!--Vector DB Chroma-->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-chroma</artifactId>
+            <version>0.35.0</version>
+        </dependency>
         <!--Unit test-->
         <!-- Mockito -->
         <dependency>
