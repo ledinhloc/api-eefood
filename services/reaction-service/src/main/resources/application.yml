@@ -110,7 +110,7 @@ google:
     gemini:
       api-key: ${GEMINI_API_KEY}
       model: gemini-2.5-flash
-      embedding-model: text-embedding-004
+      embedding-model: gemini-embedding-001
       temperature: 0.1
 chroma:
   host: localhost
