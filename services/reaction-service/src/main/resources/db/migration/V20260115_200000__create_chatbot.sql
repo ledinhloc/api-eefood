@@ -19,3 +19,11 @@ CREATE TABLE chat_message
 
     CONSTRAINT pk_chat_message PRIMARY KEY (id)
 );
+
+CREATE TABLE post_chroma_embedding (
+    post_id BIGINT PRIMARY KEY,
+    chroma_embedding_id VARCHAR(255) NOT NULL,
+    content_hash VARCHAR(64) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

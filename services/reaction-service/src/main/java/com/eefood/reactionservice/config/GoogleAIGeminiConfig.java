@@ -27,6 +27,7 @@ public class GoogleAIGeminiConfig {
                 .apiKey(geminiApiKey)
                 .modelName(geminiModel)
                 .temperature(geminiTemperature)
+                .maxRetries(3)
                 .build();
     }
 

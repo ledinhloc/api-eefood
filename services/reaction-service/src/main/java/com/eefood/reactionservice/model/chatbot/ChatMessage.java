@@ -6,6 +6,7 @@ import com.eefood.reactionservice.model.BaseEntity;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
@@ -15,7 +16,7 @@ import org.hibernate.type.SqlTypes;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
+@SuperBuilder
 public class ChatMessage extends BaseEntity {
 
     @Id

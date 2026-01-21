@@ -10,11 +10,11 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class ChatBotRequest {
-    String chatRole;
-    String chatTool;
-    String message;
-    String imageUrl;
-    String weather;
-    String location;
+    private String chatRole;
+    private String chatTool;
+    private String message;
+    private String imageUrl;
+    private LocationInfoRequest location;
+    private String time;
     Long userId;
 }
