@@ -23,6 +23,12 @@ elasticsearch:
   password: ${ES_PASSWORD:elastic123}
 
 spring:
+  cache:
+    type: redis
+  data:
+    redis:
+      host: ${env.global.redis.host:localhost}
+      port: ${env.global.redis.port:6379}
   application:
     name: reaction-service
   config:

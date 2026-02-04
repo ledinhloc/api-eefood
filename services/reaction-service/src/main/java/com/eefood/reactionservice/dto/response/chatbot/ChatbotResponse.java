@@ -5,7 +5,10 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Data
 @AllArgsConstructor
@@ -14,4 +17,13 @@ import java.util.List;
 public class ChatbotResponse {
     private String message;
     private List<Object> data;
+    private Map<String, Object> meta;
+
+    public static ChatbotResponse empty() {
+        return ChatbotResponse.builder()
+                .message("")
+                .data(new ArrayList<>())
+                .meta(new HashMap<>())
+                .build();
+    }
 }

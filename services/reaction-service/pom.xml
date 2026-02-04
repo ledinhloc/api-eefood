@@ -31,6 +31,19 @@
         <spring-cloud.version>2025.0.0</spring-cloud.version>
     </properties>
     <dependencies>
+        <!-- Redis cache -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-cache</artifactId>
+        </dependency>
         <!--Vector DB Chroma-->
         <dependency>
             <groupId>dev.langchain4j</groupId>

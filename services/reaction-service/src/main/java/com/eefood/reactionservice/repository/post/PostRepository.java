@@ -2,11 +2,13 @@ package com.eefood.reactionservice.repository.post;
 
 import com.eefood.reactionservice.enums.PostStatus;
 import com.eefood.reactionservice.model.Post;
+import jakarta.persistence.QueryHint;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.QueryHints;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
@@ -37,4 +39,14 @@ public interface PostRepository extends JpaRepository<Post, Long>, JpaSpecificat
 
 
   List<Post> findByStatusAndIsDeletedFalse(PostStatus status, Pageable pageable);
+
+  @Query("""
+   SELECT DISTINCT p
+   FROM Post p
+   LEFT JOIN FETCH p.reactions
+   LEFT JOIN FETCH p.recipeCategories
+   LEFT JOIN FETCH p.recipeIngredientKeywords
+   WHERE p.id IN :ids""")
+  @QueryHints(@QueryHint(name = "org.hibernate.cacheable", value = "true"))
+  List<Post> findAllById(@Param("ids") Iterable<Long> ids);
 }

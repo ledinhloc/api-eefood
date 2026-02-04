@@ -4,6 +4,7 @@ import com.eefood.reactionservice.model.Post;
 import com.eefood.reactionservice.model.chatbot.PostChromaEmbedding;
 import com.eefood.reactionservice.repository.chatbot.PostChromaEmbeddingRepository;
 import com.eefood.reactionservice.repository.post.PostRepository;
+import com.eefood.reactionservice.service.chatbot.cache.EmbeddingCacheService;
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
@@ -11,17 +12,17 @@ import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -32,59 +33,70 @@ public class ChromaEmbeddingService {
     private final EmbeddingStore<TextSegment> chromaStore;
     private final PostRepository postRepo;
     private final PostChromaEmbeddingRepository chromaRepo;
+    private final EmbeddingCacheService embeddingCacheService;
 
 
     @Transactional
-    public void ensureEmbeddingsExist(List<Long> candidatePostIds) {
+    public void embedBatch(List<Long> postIds) {
 
-        if (candidatePostIds == null || candidatePostIds.isEmpty()) {
-            return;
-        }
+        if (postIds == null || postIds.isEmpty()) return;
 
-        final int BATCH_SIZE = 20;
-        final long BASE_DELAY_MS = 3000;
-        final int MAX_RETRY = 3;
+        List<Post> posts = postRepo.findAllById(postIds);
 
-        log.info("Ensuring embeddings for {} candidate posts", candidatePostIds.size());
+        Map<Long, PostChromaEmbedding> existingMap =
+                chromaRepo.findAllById(postIds)
+                        .stream()
+                        .collect(Collectors.toMap(
+                                PostChromaEmbedding::getPostId,
+                                e -> e
+                        ));
 
-        int processed = 0;
-        int retryCount = 0;
+        List<TextSegment> segments = new ArrayList<>();
+        List<PostChromaEmbedding> records = new ArrayList<>();
 
-        for (int i = 0; i < candidatePostIds.size(); i++) {
+        for (Post post : posts) {
+            String content = buildEmbeddingContent(post);
+            String hash = hash(content);
 
-            Long postId = candidatePostIds.get(i);
+            PostChromaEmbedding existing = existingMap.get(post.getId());
 
-            // Chỉ tạo nếu chưa có embedding
-            if (!chromaRepo.existsById(postId)) {
-
-                try {
-                    syncSinglePostToChroma(postId);
-                    processed++;
-                    retryCount = 0; // reset retry khi thành công
-
-                } catch (Exception e) {
-                    retryCount++;
-                    log.error("Error creating embedding for post {}", postId, e);
-
-                    if (retryCount >= MAX_RETRY) {
-                        log.warn("Skipping post {} after {} retries", postId, MAX_RETRY);
-                        retryCount = 0;
-                    }
+            if (existing != null) {
+                if (hash.equals(existing.getContentHash())) {
+                    continue;
                 }
+                chromaStore.remove(existing.getChromaEmbeddingId());
             }
 
-            // Sau mỗi batch → nghỉ một chút để tránh rate limit
-            if (processed > 0 && processed % BATCH_SIZE == 0) {
-                long delay = BASE_DELAY_MS + (processed / BATCH_SIZE) * 1500; // tăng dần delay
-                log.info("Sleeping {} ms to avoid rate limit...", delay);
+            Metadata metadata = Metadata.from(Map.of(
+                    "postId", post.getId().toString(),
+                    "contentHash", hash,
+                    "updatedAt", post.getUpdatedAt().toString()
+            ));
 
-                try {
-                    Thread.sleep(delay);
-                } catch (InterruptedException ignored) {}
-            }
+            segments.add(TextSegment.from(content, metadata));
         }
 
-        log.info("Finished ensuring embeddings. Total created: {}", processed);
+        if (segments.isEmpty()) return;
+
+        List<Embedding> embeddings =
+                embeddingModel.embedAll(segments).content();
+
+        List<String> ids = chromaStore.addAll(embeddings, segments);
+
+        for (int i = 0; i < ids.size(); i++) {
+            records.add(PostChromaEmbedding.builder()
+                    .postId(Long.valueOf(
+                            segments.get(i).metadata().getString("postId")))
+                    .chromaEmbeddingId(ids.get(i))
+                    .contentHash(
+                            segments.get(i).metadata().getString("contentHash"))
+                    .updatedAt(
+                            LocalDateTime.parse(
+                                    segments.get(i).metadata().getString("updatedAt")))
+                    .build());
+        }
+
+        chromaRepo.saveAll(records);
     }
 
 
@@ -120,7 +132,8 @@ public class ChromaEmbeddingService {
         }
 
         // Tạo embedding (CHỈ 1 LẦN)
-        Embedding embedding = embeddingModel.embed(content).content();
+        float[] vector = embeddingCacheService.getOrCreateSafe(content);
+        Embedding embedding = Embedding.from(vector);
 
         // 2) Tạo metadata
         Metadata metadata = Metadata.from(
@@ -147,8 +160,6 @@ public class ChromaEmbeddingService {
 
         chromaRepo.save(record);
 
-        log.info("Upserted post {} to Chroma (embeddingId={})",
-                post.getId(), embeddingId);
     }
 
     private void deleteByPostId(Long postId) {
@@ -164,9 +175,6 @@ public class ChromaEmbeddingService {
 
         chromaStore.remove(embeddingId);
         chromaRepo.deleteById(postId);
-
-        log.info("Deleted vector for post {} (embeddingId={})",
-                postId, embeddingId);
     }
 
 

@@ -11,7 +11,6 @@ import lombok.NoArgsConstructor;
 @Builder
 public class ChatBotRequest {
     private String chatRole;
-    private String chatTool;
     private String message;
     private String imageUrl;
     private LocationInfoRequest location;

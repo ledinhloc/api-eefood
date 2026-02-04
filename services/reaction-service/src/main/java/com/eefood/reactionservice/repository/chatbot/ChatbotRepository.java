@@ -10,10 +10,6 @@ import java.util.List;
 
 @Repository
 public interface ChatbotRepository extends JpaRepository<ChatMessage, Long> {
-    List<ChatMessage> findTop5ByUserIdOrderByCreatedAtDesc(Long userId);
-    List<ChatMessage> findTop20ByUserIdAndChatToolOrderByCreatedAtDesc(
-            Long userId,
-            ChatTool chatTool
-    );
-    long countByUserIdAndCreatedAtAfter(Long userId, LocalDateTime since);
+    List<ChatMessage> findTop2ByUserIdAndIsDeletedFalseOrderByCreatedAtDesc(Long userId);
+    List<ChatMessage> findByUserIdAndIsDeletedFalseOrderByCreatedAtDesc(Long userId);
 }

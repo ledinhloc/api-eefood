@@ -1,41 +1,28 @@
 package com.eefood.reactionservice.service.chatbot;
 
-import com.eefood.reactionservice.dto.SearchResult;
 import com.eefood.reactionservice.dto.request.ChatBotRequest;
-import com.eefood.reactionservice.dto.request.LocationInfoRequest;
-import com.eefood.reactionservice.dto.response.PostResponse;
-import com.eefood.reactionservice.dto.response.ResponseData;
-import com.eefood.reactionservice.dto.response.UserResponse;
 import com.eefood.reactionservice.dto.response.chatbot.ChatbotResponse;
-import com.eefood.reactionservice.dto.response.chatbot.ChatbotSearchCriteria;
 import com.eefood.reactionservice.enums.ChatRole;
 import com.eefood.reactionservice.enums.ChatTool;
 import com.eefood.reactionservice.model.chatbot.ChatMessage;
 import com.eefood.reactionservice.repository.chatbot.ChatbotRepository;
-import com.eefood.reactionservice.repository.httpclient.IamClient;
-import com.eefood.reactionservice.service.follow.FollowService;
-import com.eefood.reactionservice.service.post.PostScrollSearchService;
-import com.eefood.reactionservice.service.post.PostSearchService;
-import com.eefood.reactionservice.util.ImageUtils;
-import com.eefood.reactionservice.util.PromptLoader;
-import com.eefood.reactionservice.util.SecurityUtil;
-import com.eefood.reactionservice.util.WeatherCodeMapperUtils;
-import com.fasterxml.jackson.core.JsonProcessingException;
+import com.eefood.reactionservice.service.chatbot.cache.WeatherCacheService;
+import com.eefood.reactionservice.util.SseUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import dev.langchain4j.data.image.Image;
-import dev.langchain4j.data.message.Content;
-import dev.langchain4j.data.message.ImageContent;
-import dev.langchain4j.data.message.TextContent;
-import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.request.ChatRequest;
-import dev.langchain4j.model.chat.response.ChatResponse;
-import dev.langchain4j.model.googleai.GoogleAiGeminiChatModel;
+import dev.langchain4j.service.TokenStream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
 @Service
@@ -43,219 +30,158 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ChatbotService {
     private final ChatbotRepository chatbotRepository;
-    private final GoogleAiGeminiChatModel geminiChatModel;
+    private final ChatbotAIService chatbotAIService;
+    private final CategoryHintService categoryHintService;
+    private final WeatherCacheService weatherCacheService;
+    private final Executor asyncExecutor;
+    private final SseUtils sseUtils;
+    private final ChatbotToolExecutor chatbotToolExecutor;
     private final ObjectMapper objectMapper;
-    private final PromptLoader promptLoader;
-    private final IamClient iamClient;
-    private final FollowService followService;
-    private final PostScrollSearchService postScrollSearchService;
-    private final ChromaRagService chromaRagService;
-    private final ChromaEmbeddingService chromaEmbeddingService;
+
+    public void handleChatStream(ChatBotRequest request, SseEmitter emitter) {
+        try {
+            processStream(request, emitter);
+        } catch (Exception e) {
+            handleStreamError(emitter, e);
+        }
+    }
+
+    private void processStream(ChatBotRequest request, SseEmitter emitter) {
+
+        sseUtils.sendStatus(emitter, "Đang xử lý yêu cầu...");
+
+        CompletableFuture<String> weatherFuture =
+                CompletableFuture.supplyAsync(
+                        () -> weatherCacheService.getWeatherInfo(
+                                request.getLocation().getLatitude(),
+                                request.getLocation().getLongitude()
+                        ),
+                        asyncExecutor
+                );
+
+        CompletableFuture<String> categoryFuture =
+                weatherFuture.thenApplyAsync(
+                        weather -> categoryHintService.generateCategoryHint(
+                                request.getMessage(),
+                                request.getTime(),
+                                weather
+                        ),
+                        asyncExecutor
+                );
+
+        String weather = weatherFuture.join();
+        String categoryHint = categoryFuture.join();
+
+        sseUtils.sendStatus(emitter, "Đang phân tích yêu cầu...");
+
+        String userMessage = buildUserMessage(request, weather, categoryHint);
+
+        startAiStream(userMessage, request, emitter);
+    }
+
+    private void startAiStream(
+            String userMessage,
+            ChatBotRequest request,
+            SseEmitter emitter
+    ) {
+
+        TokenStream stream = chatbotAIService.chatStream(userMessage);
+        ChatbotResponse finalResponse = ChatbotResponse.empty();
+
+        stream
+                .onPartialResponse(partial -> {
+                    finalResponse.setMessage(finalResponse.getMessage()+partial);
+                    sseUtils.sendMessage(emitter, partial);
+                })
+                .onToolExecuted(tool -> {
+                    ChatbotResponse toolResponse =
+                            chatbotToolExecutor.execute(tool);
+
+                    finalResponse.setData(toolResponse.getData());
+                    finalResponse.setMeta(toolResponse.getMeta());
+                    sseUtils.sendData(emitter, toolResponse.getData());
+                })
+                .onCompleteResponse(r -> {
+                    sseUtils.sendFinal(emitter, finalResponse);
+                    emitter.complete();
+                    saveAsync(request, finalResponse);
+                })
+                .onError(e -> handleStreamError(emitter, e))
+                .start();
+    }
 
     public ChatbotResponse handleChat(ChatBotRequest request) {
-        // Load text từ file chatbot_system_prmopt.txt và thay các tham số vào
-        String systemPrompt = buildSystemPrompt(request);
-
-        log.info("=== CHATBOT REQUEST ===");
-        log.info("User message: {}", request.getMessage());
-        log.info("Image URL: {}", request.getImageUrl());
-        log.info("Location: {}", request.getLocation().getProvince());
-        log.info("Role: {}", request.getChatRole());
-        log.info("Tool: {}", request.getChatTool());
-
-        // Đưa lên Gemini để xử lý phân loại nghiệp vụ
-        String llmResponse = callGemini(systemPrompt, request.getImageUrl());
-        log.info("Raw Gemini criteria response: {}", llmResponse);
-
-        String jsonClean = extractJson(llmResponse);
-        log.info("Cleaned Gemini JSON: {}", jsonClean);
-
-
-        // Chuyển kết quả thành ChatbotSearchCriteria
-        ChatbotSearchCriteria criteria;
-        try {
-            criteria = objectMapper.readValue(jsonClean, ChatbotSearchCriteria.class);
-            log.info("=== EXTRACTED CRITERIA ===");
-            log.info("Keyword: {}", criteria.getKeyword());
-            log.info("Location: {}", criteria.getLocation());
-            log.info("Difficulty: {}", criteria.getDifficulty());
-            log.info("Category: {}", criteria.getCategory());
-            log.info("MaxCookTime: {}", criteria.getMaxCookTime());
-        } catch (Exception e) {
-            log.error("Failed to parse Gemini criteria", e);
-            return ChatbotResponse.builder()
-                    .message("Mình chưa hiểu rõ yêu cầu của bạn 😢. Hãy thực hiện lại!!!")
-                    .data(List.of())
-                    .build();
-        }
-
-        log.info("Extracted criteria: {}", criteria);
-
-        // Đưa từ khóa cho els tìm ra tập dữ liệu mẫu
-        Long currentUserId = request.getUserId();
-        UserResponse user = null;
-        List<Long> newFollowings = List.of();
-        List<Long> oldFollowings = List.of();
 
         try {
-            log.info("Logged-in user: {}", currentUserId);
+            SecurityContext context = SecurityContextHolder.getContext();
 
-            if(currentUserId != null){
-                // Lấy thông tin user và followings CHỈ KHI đã login
-                ResponseData<UserResponse> userResponse = iamClient.getUserById(currentUserId);
-                user = userResponse.getData();
-                newFollowings = followService.getNewFollowings(currentUserId);
-                oldFollowings = followService.getOldFollowings(currentUserId);
-            }
-        } catch (Exception e) {
-            // Guest user - không có token
-            log.info("Guest user - no personalization applied");
-        }
-
-        //Lấy danh sách postIds từ Elasticsearch
-        List<Long> candidatePostIds = postScrollSearchService.searchAllPostIds(
-                criteria.getKeyword(),
-                criteria.getLocation(),
-                criteria.getDifficulty(),
-                criteria.getCategory(),
-                criteria.getMaxCookTime(),
-                user,
-                newFollowings,
-                oldFollowings
-        );
-
-        if (candidatePostIds.isEmpty()) {
-            return ChatbotResponse.builder()
-                    .message("Xin lỗi, mình không thể thực hiện được việc trên 😢")
-                    .data(List.of())
-                    .build();
-        }
-        // Đảm bảo chỉ embed những post trong candidate list
-        chromaEmbeddingService.ensureEmbeddingsExist(candidatePostIds);
-
-        // Dùng vector db chroma để lấy ra top 5 danh sách phù hợp nhất
-        List<PostResponse> topPosts   = chromaRagService.retrieveTopKSimilarPosts(candidatePostIds,request.getMessage(),criteria.getIngredient(),5);
-        log.info("=== CHROMA RAG RESULT ===");
-        log.info("Top similar posts: {}", topPosts.size());
-
-        if (topPosts.isEmpty()) {
-            return ChatbotResponse.builder()
-                    .message("Mình đã tìm được một số món, nhưng chưa chọn được món phù hợp nhất 😅")
-                    .data(List.of())
-                    .build();
-        }
-
-        // Chuyển 5 bài post sang json để đưa lên gemini lần 2 tạo kết quả
-        String postJson = convertPostToJsonObject(topPosts);
-
-        // Đọc text từ file chatbot_response_prompt.txt và đưa lên gemini
-        String template = promptLoader.load("prompts/chatbot_response_prompt.txt");
-        String finalPrompt = buildFinalPrompt(
-                request.getMessage(),
-                topPosts,
-                criteria
-        );
-        String llmFinalResponse = callGemini(finalPrompt, null);
-
-        return buildFinalResponse(request, llmFinalResponse, criteria.getTool());
-    }
-
-    private String buildSystemPrompt(ChatBotRequest request) {
-        return promptLoader.load("prompts/chatbot_system_prompt.txt")
-                .replace("{chat_history}", Optional.ofNullable(getChatHistory(request.getUserId())).orElse(""))
-                .replace("{user_message}", Optional.ofNullable(request.getMessage()).orElse(""))
-                .replace("{weather}",
-                        Optional.ofNullable(request.getLocation())
-                                .map(loc -> WeatherCodeMapperUtils
-                                        .getCurrentWeather(loc.getLatitude(), loc.getLongitude())
-                                        .getDescription())
-                                .orElse(""))
-                .replace("{image_url}", Optional.ofNullable(request.getImageUrl()).orElse(""))
-                .replace("{location}",
-                        Optional.ofNullable(request.getLocation().getProvince())
-                                .orElse(""))
-                .replace("{time_present}", Optional.ofNullable(request.getTime()).orElse(""));
-    }
-
-    private String buildFinalPrompt(
-            String userQuery,
-            List<PostResponse> posts,
-            ChatbotSearchCriteria criteria
-    ) {
-        // Convert posts to JSON
-        String postJson = convertPostToJsonObject(posts);
-
-        // Build criteria description
-        String criteriaDescription = buildCriteriaDescription(criteria);
-
-        // Load template và replace placeholders
-        String template = promptLoader.load("prompts/chatbot_response_prompt.txt");
-
-        return template
-                .replace("{user_query}", userQuery)
-                .replace("{criteria_description}", criteriaDescription)
-                .replace("{post_data}", postJson);
-    }
-
-    private String buildCriteriaDescription(ChatbotSearchCriteria criteria) {
-        List<String> filters = new ArrayList<>();
-
-        if (criteria.getMaxCookTime() != null) {
-            filters.add("thời gian nấu tối đa " + criteria.getMaxCookTime() + " phút");
-        }
-
-        if (criteria.getDifficulty() != null && !criteria.getDifficulty().isEmpty()) {
-            String difficultyText = switch (criteria.getDifficulty().toUpperCase()) {
-                case "EASY" -> "dễ làm";
-                case "MEDIUM" -> "độ khó trung bình";
-                case "HARD" -> "nâng cao";
-                default -> criteria.getDifficulty();
-            };
-            filters.add("độ khó: " + difficultyText);
-        }
-
-        if (criteria.getCategory() != null && !criteria.getCategory().isEmpty()) {
-            filters.add("danh mục: " + criteria.getCategory());
-        }
-
-        if (criteria.getLocation() != null && !criteria.getLocation().isEmpty()) {
-            filters.add("khu vực: " + criteria.getLocation());
-        }
-
-        if (criteria.getIngredient() != null && !criteria.getIngredient().isEmpty()) {
-            filters.add("sử dụng nguyên liệu: " + String.join(", ", criteria.getIngredient()));
-        }
-
-        if (filters.isEmpty()) {
-            return "phù hợp với yêu cầu của bạn";
-        }
-
-        return String.join(", ", filters);
-    }
-
-    private ChatbotResponse buildFinalResponse(ChatBotRequest request, String llmResponse, String tool) {
-        try {
-            String cleaned = extractJson(llmResponse);
-            JsonNode json = objectMapper.readTree(cleaned);
-
-            createChat(
-                    request,
-                    json,
-                    json.has("token") ? json.get("token").asInt() : null,
-                    tool
+            CompletableFuture<String> weatherFuture = CompletableFuture.supplyAsync(
+                    () -> {
+                        SecurityContextHolder.setContext(context); // Set context vào thread mới
+                        try {
+                            return weatherCacheService.getWeatherInfo(
+                                    request.getLocation().getLatitude(),
+                                    request.getLocation().getLongitude()
+                            );
+                        } finally {
+                            SecurityContextHolder.clearContext(); // Clear sau khi xong
+                        }
+                    },
+                    asyncExecutor
             );
 
-            return ChatbotResponse.builder()
-                    .message(json.get("message").asText())
-                    .data(objectMapper.convertValue(json.get("data"), List.class))
-                    .build();
+            CompletableFuture<String> categoryFuture = CompletableFuture.supplyAsync(
+                    () -> {
+                        SecurityContextHolder.setContext(context);
+                        try {
+                            String weather = weatherFuture.join();
+                            return categoryHintService.generateCategoryHint(
+                                    request.getMessage(),
+                                    request.getTime(),
+                                    weather
+                            );
+                        } finally {
+                            SecurityContextHolder.clearContext();
+                        }
+                    },
+                    asyncExecutor
+            );
 
+            String weather = weatherFuture.join();
+            String categoryHint = categoryFuture.join();
+
+            String userMessage = buildUserMessage(request, weather, categoryHint);
+            ChatbotResponse response =  chatbotAIService.chat(userMessage);
+            saveAsync(request, response);
+            log.info("Log end");
+            return response;
+        }
+        catch (Exception e) {
+            if (isGeminiRateLimit(e)) {
+                log.warn("Gemini overloaded – fallback response");
+                return buildOverloadedResponse();
+            }
+
+            throw e;
+        }
+    }
+
+    private String extractTool(ChatbotResponse response) {
+        if (response.getMeta() != null && response.getMeta().get("tool") != null) {
+            return String.valueOf(response.getMeta().get("tool"));
+        }
+        return "NONE";
+    }
+
+    @Async
+    @Transactional
+    public void saveAsync(ChatBotRequest request, ChatbotResponse response) {
+        try {
+            JsonNode outputJson = objectMapper.valueToTree(response.getData());
+            String tool = extractTool(response);
+            createChat(request, outputJson, tool.equals("NONE") ? -1 : null, tool);
         } catch (Exception e) {
-            log.error("Failed to parse final Gemini response", e);
-            return ChatbotResponse.builder()
-                    .message("Đây là các món ăn phù hợp với bạn 🍽️")
-                    .data(List.of())
-                    .build();
+            log.error("Failed to save chat async", e);
         }
     }
 
@@ -273,73 +199,97 @@ public class ChatbotService {
         chatbotRepository.save(chatMessage);
     }
 
-    public String callGemini(String prompt, String imageUrl) {
-        List<Content> contents = new ArrayList<>();
-        contents.add(TextContent.from(prompt));
-
-        if (imageUrl != null && !imageUrl.isEmpty()) {
-            contents.add(handleImageUrl(imageUrl));
-        }
-
-        ChatRequest chatRequest = ChatRequest.builder()
-                .messages(UserMessage.from(contents))
-                .build();
-
-        ChatResponse response = geminiChatModel.chat(chatRequest);
-        return response.aiMessage().text();
-    }
-
+    // Get 2 chat history
     private String getChatHistory(Long userId) {
-        List<ChatMessage> history = chatbotRepository.findTop5ByUserIdOrderByCreatedAtDesc(userId);
+        List<ChatMessage> history = chatbotRepository.findTop2ByUserIdAndIsDeletedFalseOrderByCreatedAtDesc(userId);
+        if(history.isEmpty()) {
+            return "";
+        }
         return history.stream()
                 .map(h -> h.getRole() + ": " + h.getInputText())
                 .collect(Collectors.joining("\n"));
     }
 
-    private String convertPostToJsonObject(List<PostResponse> posts) {
+    // Build user input
+    private String buildUserMessage(ChatBotRequest request, String weather, String categoryHint) {
+        return """
+                CÂU HỎI NGƯỜI DÙNG:
+                %s
+                THÔNG TIN NGỮ CẢNH:
+                - Địa điểm hiện tại: %s
+                - Thời tiết hiện tại: %s
+                - Thời gian: %s
+                GỢI Ý DANH MỤC HỆ THỐNG:
+                %s
+                LỊCH SỬ HỘI THOẠI:
+                %s
+                HÌNH ẢNH:
+                %s
+                THÔNG TIN NGƯỜI DÙNG:
+                %d
+                """.formatted(
+                request.getMessage(),
+                request.getLocation().getProvince(),
+                weather,
+                request.getTime(),
+                categoryHint,
+                getChatHistory(request.getUserId()),
+                request.getImageUrl(),
+                request.getUserId()
+                );
+    }
+
+    // Handle error like rate limit, overload,...
+    private boolean isGeminiRateLimit(Throwable e) {
+        Throwable cause = e;
+
+        while (cause != null) {
+            String msg = cause.getMessage();
+            if (msg != null) {
+                msg = msg.toLowerCase();
+                if (
+                        msg.contains("429") ||
+                                msg.contains("resource_exhausted") ||
+                                msg.contains("rate limit") ||
+                                msg.contains("overloaded") ||
+                                msg.contains("quota")
+                ) {
+                    return true;
+                }
+            }
+            cause = cause.getCause();
+        }
+        return false;
+    }
+
+    private ChatbotResponse buildOverloadedResponse() {
+        return ChatbotResponse.builder()
+                .data(List.of())
+                .meta(Map.of(
+                        "tool", "NONE",
+                        "message", "Hệ thống đang bận, vui lòng thử lại sau vài giây 🙏"
+                ))
+                .build();
+    }
+
+    private void handleStreamError(
+            SseEmitter emitter,
+            Throwable e
+    ) {
         try {
-            Map<String, Object> wrapper = Map.of(
-                    "total", posts == null ? 0 : posts.size(),
-                    "items", posts == null ? List.of() : posts
-            );
+            if (isGeminiRateLimit(e)) {
+                log.warn("Gemini rate limit / overloaded");
+                sseUtils.sendError(emitter, "Hệ thống đang quá tải, vui lòng thử lại sau ít giây 🙏");
+            }
+            else {
+                log.error("Stream error", e);
+                sseUtils.sendError(emitter, "Đã xảy ra lỗi, vui lòng thử lại sau");
+            }
+            emitter.complete();
 
-            return objectMapper.writeValueAsString(wrapper);
-        } catch (Exception e) {
-            log.error("Error converting posts to JSON", e);
-            return "{\"total\":0,\"items\":[]}";
+        } catch (Exception ex) {
+            log.error("Failed to send error event", ex);
+            emitter.completeWithError(ex);
         }
-    }
-
-    private ImageContent handleImageUrl(String imageUrl) {
-        String base64Image = ImageUtils.downloadAndEncodeImage(imageUrl);
-        if (base64Image != null) {
-            String mimeType = ImageUtils.getMimeType(imageUrl);
-            Image image = Image.builder()
-                    .base64Data(base64Image)
-                    .mimeType(mimeType)
-                    .build();
-            return  ImageContent.from(image);
-        }
-        return null;
-    }
-
-    private String extractJson(String llmResponse) {
-        if (llmResponse == null) return null;
-
-        // Xóa ```json ... ```
-        String cleaned = llmResponse
-                .replaceAll("(?s)^```json", "")   // bỏ ```json ở đầu
-                .replaceAll("```$", "")          // bỏ ``` ở cuối
-                .trim();
-
-        // Nếu Gemini trả về text trước JSON, lấy phần từ { đầu tiên
-        int firstBrace = cleaned.indexOf("{");
-        int lastBrace = cleaned.lastIndexOf("}");
-
-        if (firstBrace != -1 && lastBrace != -1 && lastBrace > firstBrace) {
-            cleaned = cleaned.substring(firstBrace, lastBrace + 1);
-        }
-
-        return cleaned;
     }
 }

@@ -39,35 +39,60 @@ public class WeatherCodeMapperUtils {
 
     static String description(int code) {
         switch (code) {
+
+            // Trời quang – nắng rõ
             case 0:
-                return "Trời quang";
+                return "Trời nắng, quang mây";
+
+            // Ít mây → nhiều mây (nhưng vẫn oi)
             case 1:
+                return "Trời nắng nhẹ, có mây";
             case 2:
+                return "Nhiều mây, trời oi";
             case 3:
-                return "Có mây";
+                return "Trời nhiều mây, khá oi bức";
+
+            // Sương mù – trời âm u
             case 45:
             case 48:
-                return "Sương mù";
+                return "Trời âm u, có sương mù";
+
+            // Mưa phùn – mưa nhẹ
             case 51:
+                return "Mưa phùn nhẹ";
             case 53:
-            case 55:
                 return "Mưa phùn";
+            case 55:
+                return "Mưa phùn dày, ẩm ướt";
+
+            // Mưa thường
             case 61:
+                return "Mưa nhỏ";
             case 63:
+                return "Mưa vừa";
             case 65:
-                return "Mưa";
+                return "Mưa to";
+
+            // Tuyết – không phù hợp VN
             case 71:
             case 73:
             case 75:
-                return "Tuyết rơi";
+                return "Thời tiết lạnh bất thường";
+
+            // Mưa rào
             case 80:
+                return "Mưa rào nhẹ";
             case 81:
-            case 82:
                 return "Mưa rào";
+            case 82:
+                return "Mưa rào lớn";
+
+            // Dông, sấm sét
             case 95:
-                return "Dông";
+                return "Mưa dông, sấm sét";
+
             default:
-                return "Thời tiết không xác định";
+                return "Thời tiết thất thường";
         }
     }
 }

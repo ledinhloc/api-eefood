@@ -32,4 +32,11 @@ public class CategoryController {
         var result = categoryService.getAllCategories(name, pageable);
         return new ResponseData<>(HttpStatus.OK.value(), "Success", result);
     }
+
+
+    @GetMapping("/all")
+    ResponseData<List<CategoryResponse>> getListOfCategories() {
+        var result = categoryService.getListCategories();
+        return new ResponseData<>(HttpStatus.OK.value(), "Success", result);
+    }
 }
