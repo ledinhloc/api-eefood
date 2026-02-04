@@ -28,77 +28,11 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 public class ChromaEmbeddingService {
-
     private final EmbeddingModel embeddingModel;
     private final EmbeddingStore<TextSegment> chromaStore;
     private final PostRepository postRepo;
     private final PostChromaEmbeddingRepository chromaRepo;
     private final EmbeddingCacheService embeddingCacheService;
-
-
-    @Transactional
-    public void embedBatch(List<Long> postIds) {
-
-        if (postIds == null || postIds.isEmpty()) return;
-
-        List<Post> posts = postRepo.findAllById(postIds);
-
-        Map<Long, PostChromaEmbedding> existingMap =
-                chromaRepo.findAllById(postIds)
-                        .stream()
-                        .collect(Collectors.toMap(
-                                PostChromaEmbedding::getPostId,
-                                e -> e
-                        ));
-
-        List<TextSegment> segments = new ArrayList<>();
-        List<PostChromaEmbedding> records = new ArrayList<>();
-
-        for (Post post : posts) {
-            String content = buildEmbeddingContent(post);
-            String hash = hash(content);
-
-            PostChromaEmbedding existing = existingMap.get(post.getId());
-
-            if (existing != null) {
-                if (hash.equals(existing.getContentHash())) {
-                    continue;
-                }
-                chromaStore.remove(existing.getChromaEmbeddingId());
-            }
-
-            Metadata metadata = Metadata.from(Map.of(
-                    "postId", post.getId().toString(),
-                    "contentHash", hash,
-                    "updatedAt", post.getUpdatedAt().toString()
-            ));
-
-            segments.add(TextSegment.from(content, metadata));
-        }
-
-        if (segments.isEmpty()) return;
-
-        List<Embedding> embeddings =
-                embeddingModel.embedAll(segments).content();
-
-        List<String> ids = chromaStore.addAll(embeddings, segments);
-
-        for (int i = 0; i < ids.size(); i++) {
-            records.add(PostChromaEmbedding.builder()
-                    .postId(Long.valueOf(
-                            segments.get(i).metadata().getString("postId")))
-                    .chromaEmbeddingId(ids.get(i))
-                    .contentHash(
-                            segments.get(i).metadata().getString("contentHash"))
-                    .updatedAt(
-                            LocalDateTime.parse(
-                                    segments.get(i).metadata().getString("updatedAt")))
-                    .build());
-        }
-
-        chromaRepo.saveAll(records);
-    }
-
 
     @Transactional
     public void syncSinglePostToChroma(Long postId) {

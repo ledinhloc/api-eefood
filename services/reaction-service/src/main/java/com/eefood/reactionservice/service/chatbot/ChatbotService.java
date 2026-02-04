@@ -2,22 +2,16 @@ package com.eefood.reactionservice.service.chatbot;
 
 import com.eefood.reactionservice.dto.request.ChatBotRequest;
 import com.eefood.reactionservice.dto.response.chatbot.ChatbotResponse;
-import com.eefood.reactionservice.enums.ChatRole;
-import com.eefood.reactionservice.enums.ChatTool;
 import com.eefood.reactionservice.model.chatbot.ChatMessage;
 import com.eefood.reactionservice.repository.chatbot.ChatbotRepository;
 import com.eefood.reactionservice.service.chatbot.cache.WeatherCacheService;
 import com.eefood.reactionservice.util.SseUtils;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.service.TokenStream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.*;
@@ -36,7 +30,7 @@ public class ChatbotService {
     private final Executor asyncExecutor;
     private final SseUtils sseUtils;
     private final ChatbotToolExecutor chatbotToolExecutor;
-    private final ObjectMapper objectMapper;
+    private final ChatbotSaveService chatbotSaveService;
 
     public void handleChatStream(ChatBotRequest request, SseEmitter emitter) {
         try {
@@ -74,6 +68,8 @@ public class ChatbotService {
 
         sseUtils.sendStatus(emitter, "Đang phân tích yêu cầu...");
 
+        chatbotSaveService.saveForUserAsync(request);
+
         String userMessage = buildUserMessage(request, weather, categoryHint);
 
         startAiStream(userMessage, request, emitter);
@@ -104,7 +100,7 @@ public class ChatbotService {
                 .onCompleteResponse(r -> {
                     sseUtils.sendFinal(emitter, finalResponse);
                     emitter.complete();
-                    saveAsync(request, finalResponse);
+                    chatbotSaveService.saveForAIAsync(request, finalResponse);
                 })
                 .onError(e -> handleStreamError(emitter, e))
                 .start();
@@ -152,7 +148,7 @@ public class ChatbotService {
 
             String userMessage = buildUserMessage(request, weather, categoryHint);
             ChatbotResponse response =  chatbotAIService.chat(userMessage);
-            saveAsync(request, response);
+            chatbotSaveService.saveForAIAsync(request, response);
             log.info("Log end");
             return response;
         }
@@ -164,39 +160,6 @@ public class ChatbotService {
 
             throw e;
         }
-    }
-
-    private String extractTool(ChatbotResponse response) {
-        if (response.getMeta() != null && response.getMeta().get("tool") != null) {
-            return String.valueOf(response.getMeta().get("tool"));
-        }
-        return "NONE";
-    }
-
-    @Async
-    @Transactional
-    public void saveAsync(ChatBotRequest request, ChatbotResponse response) {
-        try {
-            JsonNode outputJson = objectMapper.valueToTree(response.getData());
-            String tool = extractTool(response);
-            createChat(request, outputJson, tool.equals("NONE") ? -1 : null, tool);
-        } catch (Exception e) {
-            log.error("Failed to save chat async", e);
-        }
-    }
-
-    public void createChat(ChatBotRequest chatBotRequest, JsonNode output, Integer token, String tool) {
-        ChatMessage chatMessage = ChatMessage.builder()
-                .role(ChatRole.valueOf(chatBotRequest.getChatRole()))
-                .inputImageUrl(chatBotRequest.getImageUrl())
-                .inputText(chatBotRequest.getMessage())
-                .chatTool(ChatTool.valueOf(tool))
-                .tokenUsage(token)
-                .userId(chatBotRequest.getUserId())
-                .outputJson(output)
-                .build();
-
-        chatbotRepository.save(chatMessage);
     }
 
     // Get 2 chat history

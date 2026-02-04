@@ -26,7 +26,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 public class ChromaRagService {
-    private final EmbeddingModel embeddingModel;
     private final EmbeddingStore<TextSegment> chromaStore;
     private final PostRepository postRepo;
     private final PostMapper postMapper;
