@@ -1,13 +1,13 @@
-package com.eefood.reactionservice.service.livestream;
+package com.eefood.reactionservice.livestream.service;
 
 import com.eefood.reactionservice.config.LiveKitConfig;
-import com.eefood.reactionservice.dto.response.LiveStreamResponse;
+import com.eefood.reactionservice.livestream.dto.response.LiveStreamResponse;
 import com.eefood.reactionservice.enums.ErrorMessage;
 import com.eefood.reactionservice.enums.LiveStreamStatus;
 import com.eefood.reactionservice.exception.ExceptionUtil;
-import com.eefood.reactionservice.mapper.LiveStreamMapper;
-import com.eefood.reactionservice.model.livestream.*;
-import com.eefood.reactionservice.repository.livestream.LiveStreamRepository;
+import com.eefood.reactionservice.livestream.model.LiveStream;
+import com.eefood.reactionservice.livestream.mapper.LiveStreamMapper;
+import com.eefood.reactionservice.livestream.repository.LiveStreamRepository;
 import io.livekit.server.AccessToken;
 import io.livekit.server.RoomServiceClient;
 import io.livekit.server.RoomJoin;
@@ -122,7 +122,7 @@ public class LiveStreamService {
   @Transactional
   public LiveStreamResponse endLiveStream(Long liveStreamId, Long userId) {
     LiveStream liveStream = liveStreamRepository.findById(liveStreamId)
-      .orElseThrow(() -> new RuntimeException("Live stream not found"));;
+      .orElseThrow(() -> new RuntimeException("Live stream not found"));
 
 //    System.out.printf("Live stream ended: %s %s\n", liveStream.getUserId(), userId);
     if (!liveStream.getUserId().equals(userId)) {
@@ -148,7 +148,7 @@ public class LiveStreamService {
   @Transactional(readOnly = true)
   public LiveStreamResponse getLiveStream(Long liveStreamId, Long userId) {
     LiveStream liveStream = liveStreamRepository.findById(liveStreamId)
-      .orElseThrow(() -> new RuntimeException("Live stream not found"));;
+      .orElseThrow(() -> new RuntimeException("Live stream not found"));
 
     String viewerToken = generateViewerToken(liveStream.getRoomName(),userId);
     LiveStreamResponse res = liveStreamMapper.toResponse(liveStream);

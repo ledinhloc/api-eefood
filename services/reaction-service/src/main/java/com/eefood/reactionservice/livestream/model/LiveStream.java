@@ -1,7 +1,6 @@
-package com.eefood.reactionservice.model.livestream;
+package com.eefood.reactionservice.livestream.model;
 
 import com.eefood.reactionservice.enums.LiveStreamStatus;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -62,7 +61,7 @@ public class LiveStream {
   @Builder.Default
   private List<LiveReaction> reactions = new ArrayList<>();
 
-  @OneToMany(mappedBy = "liveStream", cascade = CascadeType.ALL)
-  @Builder.Default
-  private List<LiveView> views = new ArrayList<>();
+//  @OneToMany(mappedBy = "liveStream", cascade = CascadeType.ALL)
+//  @Builder.Default
+//  private List<LiveView> views = new ArrayList<>();
 }

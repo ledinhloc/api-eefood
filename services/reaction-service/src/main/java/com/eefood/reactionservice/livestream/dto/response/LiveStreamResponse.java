@@ -1,6 +1,5 @@
-package com.eefood.reactionservice.dto.response;
+package com.eefood.reactionservice.livestream.dto.response;
 import com.eefood.reactionservice.enums.LiveStreamStatus;
-import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

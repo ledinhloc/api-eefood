@@ -1,8 +1,8 @@
-package com.eefood.reactionservice.controller;
+package com.eefood.reactionservice.livestream.controller;
 
-import com.eefood.reactionservice.dto.response.LiveStreamResponse;
+import com.eefood.reactionservice.livestream.dto.response.LiveStreamResponse;
 import com.eefood.reactionservice.dto.response.ResponseData;
-import com.eefood.reactionservice.service.livestream.LiveStreamService;
+import com.eefood.reactionservice.livestream.service.LiveStreamService;
 import com.eefood.reactionservice.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

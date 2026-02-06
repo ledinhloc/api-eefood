@@ -1,7 +1,7 @@
-package com.eefood.reactionservice.mapper;
+package com.eefood.reactionservice.livestream.mapper;
 
-import com.eefood.reactionservice.dto.response.LiveReactionResponse;
-import com.eefood.reactionservice.model.livestream.LiveReaction;
+import com.eefood.reactionservice.livestream.dto.response.LiveReactionResponse;
+import com.eefood.reactionservice.livestream.model.LiveReaction;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.factory.Mappers;
