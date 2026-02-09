@@ -35,6 +35,14 @@ public class CollectionService {
   private final SecurityUtil securityUtil;
   private final IamClient iamClient;
 
+  public CollectionResponse getCollectionByName(String name) {
+    Optional<Collection> c = collectionRepo.findByNameAndIsDeletedFalse(name);
+    if (!c.isPresent()) {
+      throw ExceptionUtil.badRequest(ErrorMessage.COLLECTION_NOT_FOUND);
+    }
+    return mapper.toDto(c.get());
+  }
+
   @Transactional
   public List<CollectionResponse> updatePostCollections(PostCollectionsRequest request) {
     Long postId = request.getPostId();
@@ -296,6 +304,30 @@ public class CollectionService {
     collectionRepo.save(collection);
   }
 
+  public void addPost(Long collectionId, Long postId, Long userId){
+    Collection collection = collectionRepo.findById(collectionId)
+            .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.COLLECTION_NOT_FOUND));
+    validateOwner(collection, userId);
+
+    if (collectionPostRepo.existsByCollectionIdAndPostId(collectionId, postId)) {
+      throw ExceptionUtil.badRequest(ErrorMessage.ALREADY_EXISTS);
+    }
+
+    Post post = postRepo.findById(postId)
+            .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.POST_NOT_FOUND));
+
+    // Lưu record
+    CollectionPost collectionPost = CollectionPost.builder()
+            .collection(collection)
+            .post(post)
+            .build();
+    collectionPostRepo.save(collectionPost);
+
+    // Cập nhật coverImageUrl = ảnh của post mới nhất
+    collection.setCoverImageUrl(post.getImageUrl());
+    collectionRepo.save(collection);
+  }
+
   /**
    * Remove post khỏi collection
    * => Nếu collection còn post khác, dùng ảnh bài cuối cùng làm cover.
@@ -323,6 +355,16 @@ public class CollectionService {
 
   private void validateOwner(Collection collection) {
     if (!Objects.equals(collection.getUserId(), securityUtil.getCurrentUserId())) {
+      throw ExceptionUtil.forbidden(ErrorMessage.ACCESS_DENIED);
+    }
+  }
+
+  private void validateOwner(Collection collection, Long userId) {
+    if (userId == null) {
+      throw ExceptionUtil.forbidden(ErrorMessage.ACCESS_DENIED);
+    }
+
+    if (!Objects.equals(collection.getUserId(), userId)) {
       throw ExceptionUtil.forbidden(ErrorMessage.ACCESS_DENIED);
     }
   }

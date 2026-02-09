@@ -3,25 +3,28 @@ package com.eefood.reactionservice.service.chatbot.tools;
 import com.eefood.reactionservice.dto.request.UserContext;
 import com.eefood.reactionservice.dto.response.CollectionResponse;
 import com.eefood.reactionservice.dto.response.PostResponse;
+import com.eefood.reactionservice.dto.response.ShoppingItemDto;
 import com.eefood.reactionservice.dto.response.UserResponse;
 import com.eefood.reactionservice.dto.response.chatbot.ChatbotResponse;
-import com.eefood.reactionservice.model.chatbot.ChatMessage;
+import com.eefood.reactionservice.enums.ChatRole;
+import com.eefood.reactionservice.enums.ChatTool;
+import com.eefood.reactionservice.enums.ErrorMessage;
 import com.eefood.reactionservice.repository.chatbot.ChatbotRepository;
 import com.eefood.reactionservice.repository.httpclient.IamClient;
+import com.eefood.reactionservice.service.chatbot.ChatbotShoppingListService;
 import com.eefood.reactionservice.service.chatbot.ChromaRagService;
 import com.eefood.reactionservice.service.collection.CollectionService;
 import com.eefood.reactionservice.service.follow.FollowService;
 import com.eefood.reactionservice.service.post.PostScrollSearchService;
-import com.eefood.reactionservice.util.SecurityUtil;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Component
 @Slf4j
@@ -33,7 +36,8 @@ public class ChatbotTools {
     private final CollectionService collectionService;
     private final IamClient iamClient;
     private final FollowService followService;
-    private final SecurityUtil securityUtil;
+    private final ChatbotShoppingListService chatbotShoppingListService;
+    private static final AtomicInteger atomicInteger = new AtomicInteger(1);
 
     // Tool: Đề xuất bài viết
     @Tool("SUGGEST_POST")
@@ -106,74 +110,227 @@ public class ChatbotTools {
             log.info("Candidate ids:{}", candidateIds);
 
             if(candidateIds.isEmpty()) {
-                return ChatbotResponse.builder()
-                        .data(new ArrayList<>())
-                        .meta(Map.of("total", 0, "tool", "SUGGEST_POST"))
-                        .build();
+                return buildEmptyResponse(ChatTool.SUGGEST_POST.name(), ChatRole.AI.name());
             }
             List<PostResponse> posts = chromaRagService.retrieveTopKSimilarPosts(candidateIds, originalQuery, ingredient, 5);
-            return ChatbotResponse.builder()
-                    .data(new ArrayList<>(posts))
-                    .meta(Map.of(
-                            "total", posts.size(),
-                            "tool", "SUGGEST_POST"
-                    ))
-                    .build();
+            return buildResponse(posts,ChatTool.SUGGEST_POST.name(), ChatRole.AI.name());
         }
         catch(Exception e) {
             log.error("[TOOL] SUGGEST_POST called with exception", e);
-            return ChatbotResponse.builder()
-                    .data(new ArrayList<>())
-                    .meta(Map.of("total", 0, "tool", "SUGGEST_POST"))
-                    .build();
-
+            return buildEmptyResponse(ChatTool.SUGGEST_POST.name(), ChatRole.AI.name());
         }
     }
 
-    // Tool: Tạo collection từ lich su gần nhất
+    // Tool: Tạo favourite collection
     @Tool("GENERATE_COLLECTION")
-    public ChatbotResponse generateCollection(Long userId, String collectionName) {
-
-        log.info("[TOOL] GENERATE_COLLECTION called");
-
-        // Lấy 5 message gần nhất có output data
-        List<ChatMessage> recentChats =
-                chatbotRepository.findByUserIdAndIsDeletedFalseOrderByCreatedAtDesc(userId);
-
-        List<Long> postIds = recentChats.stream()
-                .filter(c -> c.getOutputJson() != null)
-                .flatMap(c -> c.getOutputJson()
-                        .path("data")
-                        .findValues("id")
-                        .stream())
-                .map(j -> j.asLong())
-                .distinct()
-                .limit(5)
-                .toList();
-
-        if (postIds.isEmpty()) {
-            return ChatbotResponse.builder()
-                    .data(List.of())
-                    .meta(Map.of(
-                            "total", 0,
-                            "tool", "GENERATE_COLLECTION"
-                    ))
-                    .build();
+    public ChatbotResponse generateCollection(
+    @P("""
+        Id người dùng, lấy từ THÔNG TIN NGƯỜI DÙNG
+        """)
+        Long userId,
+        @P("""
+        Danh sách Id bài viết, lấy từ THÔNG TIN BÀI VIẾT:
+        """)
+        List<Long> listPostIds,
+        @P("""
+        Id danh mục yêu thích, lấy từ THÔNG TIN DANH SÁCH YÊU THÍCH
+        """)
+        String collectionName)
+    {
+        try {
+            // Trường hợp chọn collection có sẵn
+            CollectionResponse collectionResponse = collectionService.getCollectionByName(collectionName);
+            if(collectionResponse!= null) {
+                // Trường hợp chọn collection có sẵn và chỉ định lưu 1 post vào collection đó
+                if(!listPostIds.isEmpty()) {
+                    listPostIds.forEach(id -> collectionService.addPost(collectionResponse.getId(), id, userId));
+                    return buildResponse(
+                            List.of(collectionService.getById(collectionResponse.getId())),
+                            ChatTool.GENERATE_COLLECTION.name(),
+                            ChatRole.AI.name()
+                    );
+                }
+                // Trường hợp chọn collection có sẵn và không chỉ định => lấy tất cả lưu vào collection
+                else {
+                    List<Long> postIds = getRecentPostIds(userId);
+                    if (postIds.isEmpty()) {
+                        return buildEmptyResponse(ChatTool.GENERATE_COLLECTION.name(), ChatRole.AI.name());
+                    }
+                    postIds.forEach(id -> collectionService.addPost(collectionResponse.getId(), id, userId));
+                    return buildResponse(
+                            List.of(collectionService.getById(collectionResponse.getId())),
+                            ChatTool.GENERATE_COLLECTION.name(),
+                            ChatRole.AI.name()
+                    );
+                }
+            }
+            // Trường hợp tạo collection mới
+            else {
+                String nameOfClt = generateCollectionName(collectionName);
+                CollectionResponse newCollection = collectionService.create(userId, nameOfClt);
+                // Trường hợp collection mới và chỉ định lưu 1 post vào collection đó
+                if(!listPostIds.isEmpty()) {
+                    listPostIds.forEach(id -> collectionService.addPost(newCollection.getId(), id, userId));
+                    return buildResponse(
+                            List.of(collectionService.getById(newCollection.getId())),
+                            ChatTool.GENERATE_COLLECTION.name(),
+                            ChatRole.AI.name()
+                    );
+                }
+                else {
+                    List<Long> postIds = getRecentPostIds(userId);
+                    if (postIds.isEmpty()) {
+                        return buildEmptyResponse(ChatTool.GENERATE_COLLECTION.name(),ChatRole.AI.name());
+                    }
+                    postIds.forEach(id -> collectionService.addPost(newCollection.getId(), id, userId));
+                    return buildResponse(
+                            List.of(collectionService.getById(newCollection.getId())),
+                            ChatTool.GENERATE_COLLECTION.name(),
+                            ChatRole.AI.name()
+                    );
+                }
+            }
+        }
+        catch(Exception e) {
+            if(e.getMessage().contains(ErrorMessage.DUPLICATE_COLLECTION_NAME.getMessage())) {
+                return buildErrorResponse(ChatTool.GENERATE_COLLECTION.name(),ChatRole.AI.name(), "DUPLICATE_NAME");
+            }
+            if(e.getMessage().contains(ErrorMessage.ALREADY_EXISTS.getMessage())) {
+                return buildErrorResponse(ChatTool.GENERATE_COLLECTION.name(),ChatRole.AI.name(), "ALREADY_EXISTS");
+            }
+            log.error("[TOOL] GENERATE_COLLECTION error", e);
+            return buildEmptyResponse(ChatTool.GENERATE_COLLECTION.name(),ChatRole.AI.name());
         }
 
+    }
 
-        CollectionResponse collectionResponse = collectionService.create(userId, collectionName);
+    @Tool("GENERATE_SHOPPING_LIST")
+    public ChatbotResponse generateShoppingList(
+        @P("""
+        Id người dùng, lấy từ THÔNG TIN NGƯỜI DÙNG
+        """)
+        Long userId,
+        @P("""
+        Danh sách Id công thức/món ăn, lấy từ ID CÔNG THỨC
+        """)
+        List<Long> recipeId
+    )
+    {
+        try {
+            List<ShoppingItemDto> results = new ArrayList<>();
+            if(!recipeId.isEmpty()) {
+                recipeId.forEach(id -> results.add(
+                        chatbotShoppingListService.addItem(id, userId)
+                ));
+            }
+            else {
+                List<Long> recipeIds = getRecentRecipeIds(userId);
 
-        postIds.forEach(postId ->
-                collectionService.addPost(collectionResponse.getId(), postId)
-        );
+                if(recipeIds.isEmpty()) {
+                    return buildEmptyResponse(
+                            ChatTool.GENERATE_SHOPPING_LIST.name(),
+                            ChatRole.AI.name()
+                    );
+                }
 
+                results.addAll(
+                        recipeIds.stream()
+                                .map(id -> {
+                                    try {
+                                        return chatbotShoppingListService.addItem(id, userId);
+                                    } catch (Exception ex) {
+                                        log.warn("Skip recipeId={} due to error: {}", id, ex.getMessage());
+                                        return null;
+                                    }
+                                })
+                                .filter(Objects::nonNull)
+                                .toList()
+                );
+            }
+
+            return buildResponse(
+                    results,
+                    ChatTool.GENERATE_SHOPPING_LIST.name(),
+                    ChatRole.AI.name()
+            );
+        }
+        catch(Exception e) {
+            log.error("[TOOL] GENERATE_SHOPPING_LIST called with exception", e);
+            return buildEmptyResponse(
+                    ChatTool.GENERATE_SHOPPING_LIST.name(),
+                    ChatRole.AI.name()
+            );
+        }
+        finally {
+            SecurityContextHolder.clearContext();
+        }
+    }
+
+    private String generateCollectionName(String userProvidedName) {
+        if (userProvidedName != null && !userProvidedName.isBlank()) {
+            return userProvidedName;
+        }
+        int index = atomicInteger.getAndIncrement();
+        return "collection " + index;
+    }
+
+    private List<Long> getRecentPostIds(Long userId) {
+        return chatbotRepository
+                .findTop1ByUserIdAndRoleAndChatToolAndIsDeletedFalseOrderByCreatedAtDesc(
+                        userId,
+                        ChatRole.AI,
+                        ChatTool.SUGGEST_POST
+                )
+                .map(c -> c.getData())                     // JsonNode
+                .filter(data -> data != null && !data.isNull())
+                .map(data -> data.path("data")             // JsonNode array
+                        .findValues("id")
+                        .stream()
+                        .map(j -> j.asLong())
+                        .distinct()
+                        .limit(5)
+                        .toList()
+                )
+                .orElse(List.of());
+    }
+
+    private List<Long> getRecentRecipeIds(Long userId) {
+        return chatbotRepository
+                .findTop1ByUserIdAndRoleAndChatToolAndIsDeletedFalseOrderByCreatedAtDesc(
+                        userId,
+                        ChatRole.AI,
+                        ChatTool.SUGGEST_POST
+                )
+                .map(c -> c.getData())                     // JsonNode
+                .filter(data -> data != null && !data.isNull())
+                .map(data -> data.path("data")             // JsonNode array
+                        .findValues("recipeId")
+                        .stream()
+                        .map(j -> j.asLong())
+                        .distinct()
+                        .limit(5)
+                        .toList()
+                )
+                .orElse(List.of());
+    }
+
+    private <T> ChatbotResponse buildResponse(List<T> data, String tool, String role) {
         return ChatbotResponse.builder()
-                .data(List.of(collectionResponse))
-                .meta(Map.of(
-                        "total", 1,
-                        "tool", "GENERATE_COLLECTION"
-                ))
+                .data(new ArrayList<>(data))
+                .role(role)
+                .meta(Map.of("total", data.size(), "tool", tool))
+                .build();
+    }
+
+    private ChatbotResponse buildEmptyResponse(String tool, String role) {
+        return buildResponse(List.of(), tool, role);
+    }
+
+    private ChatbotResponse buildErrorResponse(String tool, String role, String error) {
+        return ChatbotResponse.builder()
+                .data(List.of())
+                .role(role)
+                .meta(Map.of("error", error, "tool", tool))
                 .build();
     }
 
@@ -195,5 +352,4 @@ public class ChatbotTools {
             return UserContext.guest();
         }
     }
-
 }

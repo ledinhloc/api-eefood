@@ -2,13 +2,16 @@ package com.eefood.reactionservice.service.chatbot;
 
 import com.eefood.reactionservice.dto.request.ChatBotRequest;
 import com.eefood.reactionservice.dto.response.chatbot.ChatbotResponse;
-import com.eefood.reactionservice.model.chatbot.ChatMessage;
+import com.eefood.reactionservice.enums.ChatRole;
+import com.eefood.reactionservice.enums.ChatTool;
+import com.eefood.reactionservice.model.chatbot.ChatbotMessage;
 import com.eefood.reactionservice.repository.chatbot.ChatbotRepository;
 import com.eefood.reactionservice.service.chatbot.cache.WeatherCacheService;
 import com.eefood.reactionservice.util.SseUtils;
 import dev.langchain4j.service.TokenStream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -30,7 +33,27 @@ public class ChatbotService {
     private final Executor asyncExecutor;
     private final SseUtils sseUtils;
     private final ChatbotToolExecutor chatbotToolExecutor;
-    private final ChatbotSaveService chatbotSaveService;
+    private final ChatbotCrudService chatbotCrudService;
+
+    private Pair<String, String> resolveContext(ChatBotRequest request) {
+
+        CompletableFuture<String> weatherFuture =
+                CompletableFuture.supplyAsync(() ->
+                        weatherCacheService.getWeatherInfo(
+                                request.getLocation().getLatitude(),
+                                request.getLocation().getLongitude()
+                        ), asyncExecutor);
+
+        CompletableFuture<String> categoryFuture =
+                weatherFuture.thenApplyAsync(weather ->
+                        categoryHintService.generateCategoryHint(
+                                request.getMessage(),
+                                request.getTime(),
+                                weather
+                        ), asyncExecutor);
+
+        return Pair.of(weatherFuture.join(), categoryFuture.join());
+    }
 
     public void handleChatStream(ChatBotRequest request, SseEmitter emitter) {
         try {
@@ -44,33 +67,13 @@ public class ChatbotService {
 
         sseUtils.sendStatus(emitter, "Đang xử lý yêu cầu...");
 
-        CompletableFuture<String> weatherFuture =
-                CompletableFuture.supplyAsync(
-                        () -> weatherCacheService.getWeatherInfo(
-                                request.getLocation().getLatitude(),
-                                request.getLocation().getLongitude()
-                        ),
-                        asyncExecutor
-                );
+        Pair<String,String> ctx = resolveContext(request);
 
-        CompletableFuture<String> categoryFuture =
-                weatherFuture.thenApplyAsync(
-                        weather -> categoryHintService.generateCategoryHint(
-                                request.getMessage(),
-                                request.getTime(),
-                                weather
-                        ),
-                        asyncExecutor
-                );
+        String userMessage = buildUserMessage(request, ctx.getLeft(), ctx.getRight());
 
-        String weather = weatherFuture.join();
-        String categoryHint = categoryFuture.join();
+        chatbotCrudService.saveForUserAsync(request);
 
         sseUtils.sendStatus(emitter, "Đang phân tích yêu cầu...");
-
-        chatbotSaveService.saveForUserAsync(request);
-
-        String userMessage = buildUserMessage(request, weather, categoryHint);
 
         startAiStream(userMessage, request, emitter);
     }
@@ -81,28 +84,38 @@ public class ChatbotService {
             SseEmitter emitter
     ) {
 
+
         TokenStream stream = chatbotAIService.chatStream(userMessage);
         ChatbotResponse finalResponse = ChatbotResponse.empty();
+        StringBuilder messageBuffer = new StringBuilder();
 
         stream
                 .onPartialResponse(partial -> {
-                    finalResponse.setMessage(finalResponse.getMessage()+partial);
+                    log.info("PARTIAL: [{}]", partial);
+                    messageBuffer.append(partial);
                     sseUtils.sendMessage(emitter, partial);
                 })
                 .onToolExecuted(tool -> {
-                    ChatbotResponse toolResponse =
-                            chatbotToolExecutor.execute(tool);
 
-                    finalResponse.setData(toolResponse.getData());
-                    finalResponse.setMeta(toolResponse.getMeta());
-                    sseUtils.sendData(emitter, toolResponse.getData());
+                    try {
+                        ChatbotResponse toolResponse = chatbotToolExecutor.execute(tool);
+                        finalResponse.setData(toolResponse.getData());
+                        finalResponse.setMeta(toolResponse.getMeta());
+                        sseUtils.sendData(emitter, toolResponse.getData());
+                    } catch (Exception e) {
+                        log.error("Tool execution error", e);
+                        sseUtils.sendError(emitter, "Không thể thực hiện tác vụ. Vui lòng thử lại!");
+                    }
                 })
                 .onCompleteResponse(r -> {
+                    finalResponse.setMessage(messageBuffer.toString());
                     sseUtils.sendFinal(emitter, finalResponse);
                     emitter.complete();
-                    chatbotSaveService.saveForAIAsync(request, finalResponse);
+                    chatbotCrudService.saveForAIAsync(request, finalResponse);
                 })
-                .onError(e -> handleStreamError(emitter, e))
+                .onError(e -> {
+                    handleStreamError(emitter, e);
+                })
                 .start();
     }
 
@@ -148,7 +161,7 @@ public class ChatbotService {
 
             String userMessage = buildUserMessage(request, weather, categoryHint);
             ChatbotResponse response =  chatbotAIService.chat(userMessage);
-            chatbotSaveService.saveForAIAsync(request, response);
+            chatbotCrudService.saveForAIAsync(request, response);
             log.info("Log end");
             return response;
         }
@@ -164,42 +177,138 @@ public class ChatbotService {
 
     // Get 2 chat history
     private String getChatHistory(Long userId) {
-        List<ChatMessage> history = chatbotRepository.findTop2ByUserIdAndIsDeletedFalseOrderByCreatedAtDesc(userId);
+        List<ChatbotMessage> history = chatbotRepository.findTop2ByUserIdAndRoleAndIsDeletedFalseOrderByCreatedAtDesc(userId, ChatRole.USER);
         if(history.isEmpty()) {
             return "";
         }
         return history.stream()
-                .map(h -> h.getRole() + ": " + h.getInputText())
+                .map(h -> h.getRole() + ": " + h.getMessage())
                 .collect(Collectors.joining("\n"));
     }
 
+    private String getAiChatHistory(Long userId) {
+        List<ChatbotMessage> aiHistory = chatbotRepository.findTop2ByUserIdAndRoleAndChatToolAndIsDeletedFalseOrderByCreatedAtDesc(userId, ChatRole.AI, ChatTool.SUGGEST_POST);
+        if(aiHistory.isEmpty()) {
+            return "";
+        }
+        return aiHistory
+                .stream()
+                .map(h -> {
+                    String content = "";
+                    if(h.getData()!=null && !h.getData().isNull())
+                    {
+                        content = h.getData().toString();
+                    }
+                    return h.getRole() + ": " + content;
+                }).collect(Collectors.joining("\n"));
+    }
+
     // Build user input
-    private String buildUserMessage(ChatBotRequest request, String weather, String categoryHint) {
-        return """
-                CÂU HỎI NGƯỜI DÙNG:
-                %s
-                THÔNG TIN NGỮ CẢNH:
-                - Địa điểm hiện tại: %s
-                - Thời tiết hiện tại: %s
-                - Thời gian: %s
-                GỢI Ý DANH MỤC HỆ THỐNG:
-                %s
-                LỊCH SỬ HỘI THOẠI:
-                %s
-                HÌNH ẢNH:
-                %s
-                THÔNG TIN NGƯỜI DÙNG:
-                %d
-                """.formatted(
-                request.getMessage(),
-                request.getLocation().getProvince(),
-                weather,
-                request.getTime(),
-                categoryHint,
-                getChatHistory(request.getUserId()),
-                request.getImageUrl(),
-                request.getUserId()
-                );
+    private String buildUserMessage(
+            ChatBotRequest request,
+            String weather,
+            String categoryHint
+    ) {
+        StringBuilder sb = new StringBuilder();
+
+        // Câu hỏi
+        if (isNotBlank(request.getMessage())) {
+            sb.append("CÂU HỎI NGƯỜI DÙNG:\n")
+                    .append(request.getMessage())
+                    .append("\n\n");
+        }
+
+        // Thông tin ngữ cảnh
+        boolean hasContext =
+                isNotBlank(request.getLocation().getProvince()) ||
+                        isNotBlank(weather) ||
+                        isNotBlank(request.getTime());
+
+        if (hasContext) {
+            sb.append("THÔNG TIN NGỮ CẢNH:\n");
+
+            if (isNotBlank(request.getLocation().getProvince())) {
+                sb.append("- Địa điểm hiện tại: ")
+                        .append(request.getLocation().getProvince())
+                        .append("\n");
+            }
+
+            if (isNotBlank(weather)) {
+                sb.append("- Thời tiết hiện tại: ")
+                        .append(weather)
+                        .append("\n");
+            }
+
+            if (isNotBlank(request.getTime())) {
+                sb.append("- Thời gian: ")
+                        .append(request.getTime())
+                        .append("\n");
+            }
+
+            sb.append("\n");
+        }
+
+        // Gợi ý danh mục
+        if (isNotBlank(categoryHint)) {
+            sb.append("GỢI Ý DANH MỤC HỆ THỐNG:\n")
+                    .append(categoryHint)
+                    .append("\n\n");
+        }
+
+        // Lịch sử hội thoại
+        String chatHistory = getChatHistory(request.getUserId());
+        if (isNotBlank(chatHistory)) {
+            sb.append("LỊCH SỬ HỘI THOẠI:\n")
+                    .append(chatHistory)
+                    .append("\n\n");
+        }
+
+        // Lịch sử AI
+        String aiHistory = getAiChatHistory(request.getUserId());
+        if (isNotBlank(aiHistory)) {
+            sb.append("LỊCH SỬ AI:\n")
+                    .append(aiHistory)
+                    .append("\n\n");
+        }
+
+        // Hình ảnh
+        if (isNotBlank(request.getImageUrl())) {
+            sb.append("HÌNH ẢNH:\n")
+                    .append(request.getImageUrl())
+                    .append("\n\n");
+        }
+
+        // UserId
+        if (request.getUserId() != null) {
+            sb.append("THÔNG TIN NGƯỜI DÙNG:\n")
+                    .append(request.getUserId())
+                    .append("\n\n");
+        }
+
+        // Post / Recipe
+        if (!request.getPostId().isEmpty() || !request.getRecipeId().isEmpty() ) {
+            sb.append("THÔNG TIN BÀI VIẾT:\n");
+
+            if (!request.getPostId().isEmpty()) {
+                sb.append("- ID BÀI VIẾT: ")
+                        .append(request.getPostId())
+                        .append("\n");
+            }
+
+            if (!request.getRecipeId().isEmpty()) {
+                sb.append("- ID CÔNG THỨC: ")
+                        .append(request.getRecipeId())
+                        .append("\n");
+            }
+
+            sb.append("\n");
+        }
+
+        return sb.toString();
+    }
+
+    private boolean isNotBlank(String s) {
+        return s != null && !s.isBlank();
     }
 
     // Handle error like rate limit, overload,...

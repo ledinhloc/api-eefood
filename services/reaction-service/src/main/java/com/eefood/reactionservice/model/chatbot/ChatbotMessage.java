@@ -11,13 +11,13 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 @Entity
-@Table(name = "chat_message")
+@Table(name = "chatbot_message")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @SuperBuilder
-public class ChatMessage extends BaseEntity {
+public class ChatbotMessage extends BaseEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -30,13 +30,17 @@ public class ChatMessage extends BaseEntity {
     private ChatRole role;
 
     @Column(columnDefinition = "text")
-    private String inputText;
+    private String message;
 
-    private String inputImageUrl;
+    private String imageUrl;
 
-    @Column(name = "output_json", columnDefinition = "jsonb")
+    @Column(name = "data", columnDefinition = "jsonb")
     @JdbcTypeCode(SqlTypes.JSON)
-    private JsonNode outputJson;
+    private JsonNode data;
+
+    @Column(name = "meta", columnDefinition = "jsonb")
+    @JdbcTypeCode(SqlTypes.JSON)
+    private JsonNode meta;
 
     @Enumerated(EnumType.STRING)
     private ChatTool chatTool;

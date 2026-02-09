@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -15,5 +17,7 @@ public class ChatBotRequest {
     private String imageUrl;
     private LocationInfoRequest location;
     private String time;
-    Long userId;
+    private List<Long> postId;
+    private List<Long> recipeId;
+    private Long userId;
 }

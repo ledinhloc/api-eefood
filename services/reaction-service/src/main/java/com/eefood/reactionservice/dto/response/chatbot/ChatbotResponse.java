@@ -1,5 +1,6 @@
 package com.eefood.reactionservice.dto.response.chatbot;
 
+import com.eefood.reactionservice.enums.ChatRole;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -16,12 +17,14 @@ import java.util.Map;
 @Builder
 public class ChatbotResponse {
     private String message;
+    private String role;
     private List<Object> data;
     private Map<String, Object> meta;
 
     public static ChatbotResponse empty() {
         return ChatbotResponse.builder()
                 .message("")
+                .role(ChatRole.AI.name())
                 .data(new ArrayList<>())
                 .meta(new HashMap<>())
                 .build();

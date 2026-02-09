@@ -4,7 +4,8 @@ import com.eefood.reactionservice.dto.request.ChatBotRequest;
 import com.eefood.reactionservice.dto.response.chatbot.ChatbotResponse;
 import com.eefood.reactionservice.enums.ChatRole;
 import com.eefood.reactionservice.enums.ChatTool;
-import com.eefood.reactionservice.model.chatbot.ChatMessage;
+import com.eefood.reactionservice.mapper.ChatbotMessageMapper;
+import com.eefood.reactionservice.model.chatbot.ChatbotMessage;
 import com.eefood.reactionservice.repository.chatbot.ChatbotRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -14,23 +15,35 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class ChatbotSaveService {
+public class ChatbotCrudService {
     private final ObjectMapper objectMapper;
     private final ChatbotRepository chatbotRepository;
+    private final ChatbotMessageMapper chatbotMessageMapper;
+
+    public List<ChatbotResponse> getListChatbotHistory(Long userId) {
+        List<ChatbotMessage> listChatbotHistory = chatbotRepository.findAllByUserIdAndIsDeletedFalse(userId);
+        List<ChatbotResponse> responses = listChatbotHistory.stream()
+                .map(chatbotMessageMapper::toResponse)
+                .toList();
+        return responses;
+    }
 
     @Transactional
-    public void saveChatForAI(ChatBotRequest chatBotRequest, ChatbotResponse chatbotResponse ,JsonNode output, Integer token, String tool) {
-        ChatMessage chatMessage = ChatMessage.builder()
+    public void saveChatForAI(ChatBotRequest chatBotRequest, ChatbotResponse chatbotResponse, Integer token, String tool) {
+        ChatbotMessage chatMessage = ChatbotMessage.builder()
                 .role(ChatRole.AI)
-                .inputImageUrl("")
-                .inputText(chatbotResponse.getMessage())
+                .imageUrl("")
+                .message(chatbotResponse.getMessage())
                 .chatTool(ChatTool.valueOf(tool))
                 .tokenUsage(token)
                 .userId(chatBotRequest.getUserId())
-                .outputJson(output)
+                .data(objectMapper.valueToTree(chatbotResponse.getData()))
+                .meta(objectMapper.valueToTree(chatbotResponse.getMeta()))
                 .build();
 
         chatbotRepository.save(chatMessage);
@@ -40,9 +53,8 @@ public class ChatbotSaveService {
     @Transactional
     public void saveForAIAsync(ChatBotRequest request, ChatbotResponse response) {
         try {
-            JsonNode outputJson = objectMapper.valueToTree(response.getData());
             String tool = extractTool(response);
-            saveChatForAI(request, response,outputJson, (tool!=null || tool.equals("NONE")) ? -1 : null, tool);
+            saveChatForAI(request, response, (tool!=null || tool.equals("NONE")) ? -1 : null, tool);
         } catch (Exception e) {
             log.error("Failed to save chat async", e);
         }
@@ -59,14 +71,15 @@ public class ChatbotSaveService {
     }
 
     public void saveChatForUser(ChatBotRequest chatBotRequest, Integer token) {
-        ChatMessage chatMessage = ChatMessage.builder()
+        ChatbotMessage chatMessage = ChatbotMessage.builder()
                 .role(ChatRole.valueOf(chatBotRequest.getChatRole()))
-                .inputImageUrl(chatBotRequest.getImageUrl())
-                .inputText(chatBotRequest.getMessage())
+                .imageUrl(chatBotRequest.getImageUrl())
+                .message(chatBotRequest.getMessage())
                 .chatTool(ChatTool.NONE)
                 .tokenUsage(token)
                 .userId(chatBotRequest.getUserId())
-                .outputJson(null)
+                .data(null)
+                .meta(null)
                 .build();
 
         chatbotRepository.save(chatMessage);

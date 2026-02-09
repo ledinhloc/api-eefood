@@ -4,9 +4,9 @@ import com.eefood.reactionservice.dto.response.chatbot.ChatbotResponse;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
-
 import java.util.List;
 import java.util.Map;
+
 @Component
 public class SseUtils {
     public void sendStatus(SseEmitter emitter, String msg) {
