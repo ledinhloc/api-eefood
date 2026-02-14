@@ -5,6 +5,7 @@ import com.eefood.reactionservice.livestream.dto.response.LiveStreamResponse;
 import com.eefood.reactionservice.enums.ErrorMessage;
 import com.eefood.reactionservice.enums.LiveStreamStatus;
 import com.eefood.reactionservice.exception.ExceptionUtil;
+import com.eefood.reactionservice.livestream.dto.ws.LiveStreamEndMessage;
 import com.eefood.reactionservice.livestream.model.LiveStream;
 import com.eefood.reactionservice.livestream.mapper.LiveStreamMapper;
 import com.eefood.reactionservice.livestream.repository.LiveStreamRepository;
@@ -14,6 +15,7 @@ import io.livekit.server.RoomJoin;
 import io.livekit.server.RoomName;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +30,7 @@ public class LiveStreamService {
   private final LiveStreamMapper liveStreamMapper;
   private final RoomServiceClient roomServiceClient;
   private final LiveKitConfig liveKitConfig;
+  private final SimpMessagingTemplate messagingTemplate;
 
   @Transactional(readOnly = true)
   public LiveStreamResponse checkUserStream(Long userId) {
@@ -141,8 +144,32 @@ public class LiveStreamService {
       log.error("Error deleting LiveKit room", e);
     }
 
+    broadcastStreamEnded(liveStreamId, liveStream.getEndedAt());
+
     log.info("Live stream ended: {}", liveStreamId);
     return liveStreamMapper.toResponse(liveStream);
+  }
+
+  private void broadcastStreamEnded(Long liveStreamId, LocalDateTime endedAt) {
+    try {
+      LiveStreamEndMessage message = LiveStreamEndMessage.builder()
+        .type("STREAM_ENDED")
+        .liveStreamId(liveStreamId)
+        .message("Phiên phát trực tiếp đã kết thúc")
+        .endedAt(endedAt)
+        .build();
+
+      // Gửi đến topic chung của livestream
+      messagingTemplate.convertAndSend(
+        "/topic/livestream/" + liveStreamId,
+        message
+      );
+
+      log.info("Broadcasted STREAM_ENDED for livestream {}", liveStreamId);
+
+    } catch (Exception e) {
+      log.error("Error broadcasting stream ended", e);
+    }
   }
 
   @Transactional(readOnly = true)

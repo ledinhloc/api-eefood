@@ -2,12 +2,10 @@ package com.eefood.reactionservice.livestream.service;
 
 import com.eefood.reactionservice.dto.response.UserInfo;
 import com.eefood.reactionservice.livestream.dto.response.ViewerResponse;
-import com.eefood.reactionservice.livestream.dto.response.ViewerUpdateMessage;
+import com.eefood.reactionservice.livestream.dto.ws.ViewerUpdateMessage;
 import com.eefood.reactionservice.livestream.model.LiveView;
-import com.eefood.reactionservice.livestream.repository.LiveStreamRepository;
 import com.eefood.reactionservice.livestream.repository.LiveViewRepository;
 import com.eefood.reactionservice.repository.httpclient.IamClient;
-import io.livekit.server.RoomServiceClient;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;

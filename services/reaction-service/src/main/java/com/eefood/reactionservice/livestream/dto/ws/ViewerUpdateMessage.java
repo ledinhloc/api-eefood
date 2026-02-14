@@ -1,5 +1,6 @@
-package com.eefood.reactionservice.livestream.dto.response;
+package com.eefood.reactionservice.livestream.dto.ws;
 
+import com.eefood.reactionservice.livestream.dto.response.ViewerResponse;
 import lombok.*;
 
 @Getter

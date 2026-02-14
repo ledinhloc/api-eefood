@@ -54,9 +54,4 @@ public class LiveStreamController {
     Long userId = securityUtil.getCurrentUserId();
     return new ResponseData<>(HttpStatus.OK.value(), "success", liveStreamService.getLiveStream(liveStreamId, userId));
   }
-
-//  @GetMapping("/{liveStreamId}/stats")
-//  public ResponseData<LiveStreamResponse> getLiveStreamStats(@PathVariable Long liveStreamId) {
-////    return
-//  }
 }
