@@ -1,6 +1,7 @@
 package com.eefood.reactionservice.controller;
 
 import com.eefood.reactionservice.dto.request.ChatBotRequest;
+import com.eefood.reactionservice.dto.response.PostResponse;
 import com.eefood.reactionservice.dto.response.ResponseData;
 import com.eefood.reactionservice.dto.response.chatbot.ChatbotResponse;
 import com.eefood.reactionservice.service.chatbot.ChatbotCrudService;
@@ -44,6 +45,15 @@ public class ChatbotController {
                 HttpStatus.OK.value(),
                 HttpStatus.OK.getReasonPhrase(),
                 chatbotCrudService.getListChatbotHistory(userId)
+        );
+    }
+
+    @GetMapping("/recent-data")
+    public ResponseData<List<PostResponse>> getRecentPostsFromHistory() {
+        return new ResponseData<>(
+                HttpStatus.OK.value(),
+                HttpStatus.OK.getReasonPhrase(),
+                chatbotCrudService.getListPostFromHistory()
         );
     }
 }

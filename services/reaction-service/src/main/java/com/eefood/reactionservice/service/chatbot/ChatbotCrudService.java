@@ -1,12 +1,15 @@
 package com.eefood.reactionservice.service.chatbot;
 
 import com.eefood.reactionservice.dto.request.ChatBotRequest;
+import com.eefood.reactionservice.dto.response.PostResponse;
 import com.eefood.reactionservice.dto.response.chatbot.ChatbotResponse;
 import com.eefood.reactionservice.enums.ChatRole;
 import com.eefood.reactionservice.enums.ChatTool;
 import com.eefood.reactionservice.mapper.ChatbotMessageMapper;
 import com.eefood.reactionservice.model.chatbot.ChatbotMessage;
 import com.eefood.reactionservice.repository.chatbot.ChatbotRepository;
+import com.eefood.reactionservice.util.SecurityUtil;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -15,7 +18,11 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -24,6 +31,26 @@ public class ChatbotCrudService {
     private final ObjectMapper objectMapper;
     private final ChatbotRepository chatbotRepository;
     private final ChatbotMessageMapper chatbotMessageMapper;
+    private final SecurityUtil securityUtil;
+
+    public List<PostResponse> getListPostFromHistory() {
+        Long userId = securityUtil.getCurrentUserId();
+
+        Optional<ChatbotMessage> chatbotMessage = chatbotRepository
+                .findTop1ByUserIdAndRoleAndChatToolAndIsDeletedFalseOrderByCreatedAtDesc(userId,ChatRole.AI, ChatTool.SUGGEST_POST);
+
+        if(!chatbotMessage.isPresent()) {
+            return Collections.emptyList();
+        }
+
+        return chatbotMessage
+                .stream()
+                .map(ChatbotMessage::getData)
+                .filter(Objects::nonNull)
+                .filter(JsonNode::isArray)
+                .map(dataNode -> objectMapper.convertValue(dataNode, new TypeReference<PostResponse>() {}))
+                .collect(Collectors.toList());
+    }
 
     public List<ChatbotResponse> getListChatbotHistory(Long userId) {
         List<ChatbotMessage> listChatbotHistory = chatbotRepository.findAllByUserIdAndIsDeletedFalse(userId);

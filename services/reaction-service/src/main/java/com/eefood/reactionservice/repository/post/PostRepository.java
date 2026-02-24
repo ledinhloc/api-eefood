@@ -47,6 +47,5 @@ public interface PostRepository extends JpaRepository<Post, Long>, JpaSpecificat
    LEFT JOIN FETCH p.recipeCategories
    LEFT JOIN FETCH p.recipeIngredientKeywords
    WHERE p.id IN :ids""")
-  @QueryHints(@QueryHint(name = "org.hibernate.cacheable", value = "true"))
   List<Post> findAllById(@Param("ids") Iterable<Long> ids);
 }
