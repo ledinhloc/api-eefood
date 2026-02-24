@@ -1,19 +1,21 @@
-package com.eefood.reactionservice.service.livestream;
+package com.eefood.reactionservice.livestream.service;
 
 import com.eefood.reactionservice.config.LiveKitConfig;
-import com.eefood.reactionservice.dto.response.LiveStreamResponse;
+import com.eefood.reactionservice.livestream.dto.response.LiveStreamResponse;
 import com.eefood.reactionservice.enums.ErrorMessage;
 import com.eefood.reactionservice.enums.LiveStreamStatus;
 import com.eefood.reactionservice.exception.ExceptionUtil;
-import com.eefood.reactionservice.mapper.LiveStreamMapper;
-import com.eefood.reactionservice.model.livestream.*;
-import com.eefood.reactionservice.repository.livestream.LiveStreamRepository;
+import com.eefood.reactionservice.livestream.dto.ws.LiveStreamEndMessage;
+import com.eefood.reactionservice.livestream.model.LiveStream;
+import com.eefood.reactionservice.livestream.mapper.LiveStreamMapper;
+import com.eefood.reactionservice.livestream.repository.LiveStreamRepository;
 import io.livekit.server.AccessToken;
 import io.livekit.server.RoomServiceClient;
 import io.livekit.server.RoomJoin;
 import io.livekit.server.RoomName;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +30,7 @@ public class LiveStreamService {
   private final LiveStreamMapper liveStreamMapper;
   private final RoomServiceClient roomServiceClient;
   private final LiveKitConfig liveKitConfig;
+  private final SimpMessagingTemplate messagingTemplate;
 
   @Transactional(readOnly = true)
   public LiveStreamResponse checkUserStream(Long userId) {
@@ -122,7 +125,7 @@ public class LiveStreamService {
   @Transactional
   public LiveStreamResponse endLiveStream(Long liveStreamId, Long userId) {
     LiveStream liveStream = liveStreamRepository.findById(liveStreamId)
-      .orElseThrow(() -> new RuntimeException("Live stream not found"));;
+      .orElseThrow(() -> new RuntimeException("Live stream not found"));
 
 //    System.out.printf("Live stream ended: %s %s\n", liveStream.getUserId(), userId);
     if (!liveStream.getUserId().equals(userId)) {
@@ -141,14 +144,38 @@ public class LiveStreamService {
       log.error("Error deleting LiveKit room", e);
     }
 
+    broadcastStreamEnded(liveStreamId, liveStream.getEndedAt());
+
     log.info("Live stream ended: {}", liveStreamId);
     return liveStreamMapper.toResponse(liveStream);
+  }
+
+  private void broadcastStreamEnded(Long liveStreamId, LocalDateTime endedAt) {
+    try {
+      LiveStreamEndMessage message = LiveStreamEndMessage.builder()
+        .type("STREAM_ENDED")
+        .liveStreamId(liveStreamId)
+        .message("Phiên phát trực tiếp đã kết thúc")
+        .endedAt(endedAt)
+        .build();
+
+      // Gửi đến topic chung của livestream
+      messagingTemplate.convertAndSend(
+        "/topic/livestream/" + liveStreamId,
+        message
+      );
+
+      log.info("Broadcasted STREAM_ENDED for livestream {}", liveStreamId);
+
+    } catch (Exception e) {
+      log.error("Error broadcasting stream ended", e);
+    }
   }
 
   @Transactional(readOnly = true)
   public LiveStreamResponse getLiveStream(Long liveStreamId, Long userId) {
     LiveStream liveStream = liveStreamRepository.findById(liveStreamId)
-      .orElseThrow(() -> new RuntimeException("Live stream not found"));;
+      .orElseThrow(() -> new RuntimeException("Live stream not found"));
 
     String viewerToken = generateViewerToken(liveStream.getRoomName(),userId);
     LiveStreamResponse res = liveStreamMapper.toResponse(liveStream);

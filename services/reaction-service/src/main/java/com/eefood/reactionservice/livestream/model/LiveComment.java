@@ -1,6 +1,5 @@
-package com.eefood.reactionservice.model.livestream;
-import com.eefood.reactionservice.enums.FoodEmotion;
-import com.eefood.reactionservice.enums.ReactionType;
+package com.eefood.reactionservice.livestream.model;
+
 import com.eefood.reactionservice.model.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -9,11 +8,11 @@ import lombok.experimental.SuperBuilder;
 @Getter
 @Setter
 @Entity
-@Table(name = "live_reaction")
+@Table(name = "live_comment")
 @SuperBuilder
 @NoArgsConstructor
 @AllArgsConstructor
-public class LiveReaction extends BaseEntity{
+public class LiveComment extends BaseEntity {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   private Long id;
@@ -21,9 +20,8 @@ public class LiveReaction extends BaseEntity{
   @Column(nullable = false)
   private Long userId;
 
-  @Enumerated(EnumType.STRING)
   @Column(nullable = false)
-  private FoodEmotion emotion;
+  private String message;
 
   @ManyToOne
   @JoinColumn(name = "live_stream_id", nullable = false)

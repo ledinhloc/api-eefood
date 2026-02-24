@@ -42,8 +42,8 @@ services:
       LIVEKIT_PORT: "7880"
 
       # RTC Configuration - IP máy thật
-      LIVEKIT_RTC_NODE_IP: "172.16.2.254"
-      LIVEKIT_RTC_ANNOUNCE_IP: "172.16.2.254"
+      LIVEKIT_RTC_NODE_IP: "192.168.1.2"
+      LIVEKIT_RTC_ANNOUNCE_IP: "192.168.1.2"
 
       # Port range cho RTC (UDP)
       LIVEKIT_RTC_PORT_RANGE_START: "50000"
@@ -64,7 +64,7 @@ services:
       - "7880:7880"                    # WebSocket
       - "50000-50100:50000-50100/udp"  # RTC ports
 
-    restart: unless-stopped
+#    restart: unless-stopped
     networks:
       - microservices-net
 
@@ -83,7 +83,7 @@ services:
       - "5435:5432"
     networks:
       - microservices-net
-    restart: unless-stopped
+#    restart: unless-stopped
 
   zookeeper:
     image: confluentinc/cp-zookeeper:latest
@@ -161,7 +161,7 @@ services:
       - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9093
       - KAFKA_CLUSTERS_0_ZOOKEEPER=zookeeper:2181
       - KAFKA_CLUSTERS_0_SCHEMAREGISTRY=http://schema-registry:8081
-    restart: always
+#    restart: always
     networks:
       - microservices-net
 
@@ -195,7 +195,7 @@ services:
   redis:
     image: redis:latest
     container_name: redis-server
-    restart: always
+#    restart: always
     ports:
       - "6379:6379"
     #    command: [ "redis-server", "--requirepass", "12345678" ]
@@ -205,7 +205,7 @@ services:
   redisinsight:
     image: redis/redisinsight:latest
     container_name: redis-ui
-    restart: always
+#    restart: always
     ports:
       - "5540:5540"
     depends_on:
