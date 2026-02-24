@@ -1,6 +1,5 @@
-package com.eefood.reactionservice.model.livestream;
+package com.eefood.reactionservice.livestream.model;
 
-import com.eefood.reactionservice.model.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -29,7 +28,9 @@ public class LiveView{
   // thời điểm user rời phòng (null nếu đang xem)
   private LocalDateTime leftAt;
 
-  @ManyToOne
-  @JoinColumn(name = "live_stream_id", nullable = false)
-  private LiveStream liveStream;
+//  @ManyToOne
+//  @JoinColumn(name = "live_stream_id", nullable = false)
+//  private LiveStream liveStream;
+  @Column(nullable = false)
+  private Long liveStreamId;
 }

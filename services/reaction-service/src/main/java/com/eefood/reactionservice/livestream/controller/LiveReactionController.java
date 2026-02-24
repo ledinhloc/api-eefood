@@ -1,9 +1,9 @@
-package com.eefood.reactionservice.controller;
+package com.eefood.reactionservice.livestream.controller;
 
-import com.eefood.reactionservice.dto.response.LiveReactionResponse;
+import com.eefood.reactionservice.livestream.dto.response.LiveReactionResponse;
 import com.eefood.reactionservice.dto.response.ResponseData;
 import com.eefood.reactionservice.enums.FoodEmotion;
-import com.eefood.reactionservice.service.livestream.LiveReactionService;
+import com.eefood.reactionservice.livestream.service.LiveReactionService;
 import com.eefood.reactionservice.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;

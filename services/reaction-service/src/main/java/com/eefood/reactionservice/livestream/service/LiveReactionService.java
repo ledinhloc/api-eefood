@@ -1,16 +1,16 @@
-package com.eefood.reactionservice.service.livestream;
+package com.eefood.reactionservice.livestream.service;
 
-import com.eefood.reactionservice.dto.response.LiveReactionResponse;
+import com.eefood.reactionservice.livestream.dto.response.LiveReactionResponse;
 import com.eefood.reactionservice.dto.response.UserInfo;
 import com.eefood.reactionservice.enums.ErrorMessage;
 import com.eefood.reactionservice.enums.FoodEmotion;
 import com.eefood.reactionservice.exception.ExceptionUtil;
-import com.eefood.reactionservice.mapper.LiveReactionMapper;
-import com.eefood.reactionservice.model.livestream.LiveReaction;
-import com.eefood.reactionservice.model.livestream.LiveStream;
+import com.eefood.reactionservice.livestream.mapper.LiveReactionMapper;
+import com.eefood.reactionservice.livestream.model.LiveReaction;
+import com.eefood.reactionservice.livestream.model.LiveStream;
 import com.eefood.reactionservice.repository.httpclient.IamClient;
-import com.eefood.reactionservice.repository.livestream.LiveReactionRepository;
-import com.eefood.reactionservice.repository.livestream.LiveStreamRepository;
+import com.eefood.reactionservice.livestream.repository.LiveReactionRepository;
+import com.eefood.reactionservice.livestream.repository.LiveStreamRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;

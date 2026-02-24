@@ -1,6 +1,6 @@
-package com.eefood.reactionservice.controller;
+package com.eefood.reactionservice.livestream.controller;
 
-import com.eefood.reactionservice.service.livestream.LiveCommentService;
+import com.eefood.reactionservice.livestream.service.LiveCommentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.stereotype.Controller;

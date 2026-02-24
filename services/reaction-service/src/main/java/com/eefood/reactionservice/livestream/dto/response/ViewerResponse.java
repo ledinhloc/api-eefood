@@ -1,4 +1,4 @@
-package com.eefood.reactionservice.dto.response;
+package com.eefood.reactionservice.livestream.dto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,13 +9,11 @@ import java.time.LocalDateTime;
 
 @Data
 @Builder
-@AllArgsConstructor
 @NoArgsConstructor
-public class LiveCommentResponse {
-  private Long id;
+@AllArgsConstructor
+public class ViewerResponse {
   private Long userId;
   private String username;
   private String avatarUrl;
-  private String message;
-  private LocalDateTime createdAt;
+  private LocalDateTime joinedAt;
 }

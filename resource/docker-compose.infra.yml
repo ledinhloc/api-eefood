@@ -57,8 +57,8 @@ services:
       LIVEKIT_PORT: "7880"
 
       # RTC Configuration - IP máy thật
-      LIVEKIT_RTC_NODE_IP: "172.16.2.254"
-      LIVEKIT_RTC_ANNOUNCE_IP: "172.16.2.254"
+      LIVEKIT_RTC_NODE_IP: "192.168.1.2"
+      LIVEKIT_RTC_ANNOUNCE_IP: "192.168.1.2"
 
       # Port range cho RTC (UDP)
       LIVEKIT_RTC_PORT_RANGE_START: "50000"
@@ -79,7 +79,7 @@ services:
       - "7880:7880"                    # WebSocket
       - "50000-50100:50000-50100/udp"  # RTC ports
 
-    restart: unless-stopped
+#    restart: unless-stopped
     networks:
       - microservices-net
 
@@ -99,7 +99,7 @@ services:
       - "5435:5432"
     networks:
       - microservices-net
-    restart: unless-stopped
+#    restart: unless-stopped
 
   zookeeper:
     image: confluentinc/cp-zookeeper:latest

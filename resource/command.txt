@@ -6,3 +6,4 @@ link ui swagger: https://editor.swagger.io/
 # Nhập password mới khi được hỏi: kibana123
 -> vào ui kibana: login với els: elastic - elastic123
 
+build avro: mvn clean compile

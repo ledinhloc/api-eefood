@@ -1,12 +1,12 @@
-package com.eefood.reactionservice.service.livestream;
+package com.eefood.reactionservice.livestream.service;
 
-import com.eefood.reactionservice.dto.response.LiveCommentResponse;
+import com.eefood.reactionservice.livestream.dto.response.LiveCommentResponse;
 import com.eefood.reactionservice.dto.response.UserInfo;
-import com.eefood.reactionservice.model.livestream.LiveComment;
-import com.eefood.reactionservice.model.livestream.LiveStream;
+import com.eefood.reactionservice.livestream.model.LiveComment;
+import com.eefood.reactionservice.livestream.model.LiveStream;
 import com.eefood.reactionservice.repository.httpclient.IamClient;
-import com.eefood.reactionservice.repository.livestream.LiveCommentRepository;
-import com.eefood.reactionservice.repository.livestream.LiveStreamRepository;
+import com.eefood.reactionservice.livestream.repository.LiveCommentRepository;
+import com.eefood.reactionservice.livestream.repository.LiveStreamRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;

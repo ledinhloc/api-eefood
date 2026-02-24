@@ -1,6 +1,6 @@
-package com.eefood.reactionservice.repository.livestream;
+package com.eefood.reactionservice.livestream.repository;
 
-import com.eefood.reactionservice.model.livestream.LiveComment;
+import com.eefood.reactionservice.livestream.model.LiveComment;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

@@ -1,8 +1,7 @@
-package com.eefood.reactionservice.repository.livestream;
+package com.eefood.reactionservice.livestream.repository;
 
 import com.eefood.reactionservice.enums.LiveStreamStatus;
-import com.eefood.reactionservice.model.Collection;
-import com.eefood.reactionservice.model.livestream.LiveStream;
+import com.eefood.reactionservice.livestream.model.LiveStream;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
