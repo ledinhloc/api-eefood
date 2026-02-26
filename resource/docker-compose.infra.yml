@@ -1,4 +1,18 @@
 services:
+  chroma:
+    image: chromadb/chroma:0.4.24
+    container_name: chroma
+    ports:
+      - "8010:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+    environment:
+      - IS_PERSISTENT=TRUE
+      - PERSIST_DIRECTORY=/chroma/chroma
+    restart: unless-stopped
+    mem_limit: 512m
+    mem_reservation: 256m
+
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.1
     container_name: elasticsearch
@@ -6,7 +20,8 @@ services:
       - discovery.type=single-node
       - xpack.security.enabled=true
       - ELASTIC_PASSWORD=elastic123
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - ES_JAVA_OPTS=-Xms256m -Xmx256m
+    mem_limit: 1g
     ports:
       - "9200:9200"
     volumes:
@@ -59,7 +74,7 @@ services:
       LIVEKIT_ROOM_AUTO_CREATE: "true"
       LIVEKIT_ROOM_EMPTY_TIMEOUT: "300"
       LIVEKIT_ROOM_MAX_PARTICIPANTS: "100"
-
+    mem_limit: 512m
     ports:
       - "7880:7880"                    # WebSocket
       - "50000-50100:50000-50100/udp"  # RTC ports
@@ -76,6 +91,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
       PGDATA: /data/postgres
+    mem_limit: 512m
     volumes:
       - postgres:/data/postgres
 #      - ./init-multiple-db.sh:/docker-entrypoint-initdb.d/init-multiple-db.sh
@@ -92,6 +108,7 @@ services:
       ZOOKEEPER_SERVER_ID: 1
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+    mem_limit: 512m
     ports:
       - "22181:2181"
     networks:
@@ -121,6 +138,8 @@ services:
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT_INTERNAL://kafka:29092,PLAINTEXT_L://localhost:9092,PLAINTEXT_C://kafka:9093
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT_INTERNAL:PLAINTEXT,PLAINTEXT_L:PLAINTEXT,PLAINTEXT_C:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
+      KAFKA_HEAP_OPTS: "-Xms512m -Xmx512m"
+    mem_limit: 1g
     networks:
       - microservices-net
     healthcheck:
@@ -141,6 +160,8 @@ services:
       SCHEMA_REGISTRY_HOST_NAME: schema-registry
       SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'kafka:29092'
       SCHEMA_REGISTRY_LISTENERS: http://schema-registry:8081
+      SCHEMA_REGISTRY_HEAP_OPTS: "-Xms256m -Xmx256m"
+    mem_limit: 512m
     networks:
       - microservices-net
     healthcheck:
@@ -161,7 +182,9 @@ services:
       - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9093
       - KAFKA_CLUSTERS_0_ZOOKEEPER=zookeeper:2181
       - KAFKA_CLUSTERS_0_SCHEMAREGISTRY=http://schema-registry:8081
-#    restart: always
+      - JAVA_OPTS=-Xms128m -Xmx256m
+    mem_limit: 512m
+    restart: always
     networks:
       - microservices-net
 
@@ -187,6 +210,8 @@ services:
 #      KEYCLOAK_FRONTEND_URL: http://localhost:9098/
       KC_HOSTNAME_URL: http://localhost:9098
       KC_HOSTNAME_ADMIN_URL: http://localhost:9098
+      JAVA_OPTS_APPEND: "-Xms256m -Xmx512m"
+    mem_limit: 512m
     networks:
       - microservices-net
     command:
@@ -195,7 +220,8 @@ services:
   redis:
     image: redis:latest
     container_name: redis-server
-#    restart: always
+    mem_limit: 256m
+    restart: always
     ports:
       - "6379:6379"
     #    command: [ "redis-server", "--requirepass", "12345678" ]
@@ -205,7 +231,8 @@ services:
   redisinsight:
     image: redis/redisinsight:latest
     container_name: redis-ui
-#    restart: always
+    mem_limit: 512m
+    restart: always
     ports:
       - "5540:5540"
     depends_on:
@@ -222,22 +249,22 @@ services:
 #    networks:
 #      - microservices-net
 #
-#  prometheus:
-#    container_name: prometheus
-#    image: prom/prometheus:latest
-#    command:
-#      - --enable-feature=exemplar-storage
-#      - --config.file=/etc/prometheus/prometheus.yml
-#    volumes:
-#      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-#    ports:
-#      - '9090:9090'
-#    networks:
-#      - microservices-net
+
 #
 #  grafana:
 #    container_name: grafana
-#    image: grafana/grafana:10.1.0
+#    image: grafan#  prometheus:
+##    container_name: prometheus
+##    image: prom/prometheus:latest
+##    command:
+##      - --enable-feature=exemplar-storage
+##      - --config.file=/etc/prometheus/prometheus.yml
+##    volumes:
+##      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+##    ports:
+##      - '9090:9090'
+##    networks:
+##      - microservices-neta/grafana:10.1.0
 #    volumes:
 #      - ./docker/grafana:/etc/grafana/provisioning/datasources:ro
 #    environment:
@@ -256,3 +283,4 @@ volumes:
   postgres:
   pgadmin:
   elasticsearch-data:
+  chroma_data:

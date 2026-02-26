@@ -27,6 +27,15 @@ public class ShoppingController {
     return new ResponseData<>(HttpStatus.OK.value(), "Success", shoppingListService.addRecipe(userId, recipeId, servings));
   }
 
+  @PostMapping("/chatbot/add")
+  public ResponseData<ShoppingItemDto> addRecipe(
+          @RequestParam Long recipeId,
+          @RequestParam Long userId,
+          @RequestParam(defaultValue = "1") Integer servings
+  ){
+    return new ResponseData<>(HttpStatus.OK.value(), "Success", shoppingListService.addRecipe(userId, recipeId, servings));
+  }
+
   @DeleteMapping("/{itemId}")
   public ResponseData<Void> removeRecipe(
     @PathVariable Long itemId

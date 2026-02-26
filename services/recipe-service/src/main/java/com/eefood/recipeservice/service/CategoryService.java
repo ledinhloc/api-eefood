@@ -7,6 +7,8 @@ import com.eefood.recipeservice.repository.CategoryRepository;
 import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -14,9 +16,11 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class CategoryService {
     private final CategoryRepository categoryRepository;
     private final RecipeMapper recipeMapper;
@@ -39,5 +43,11 @@ public class CategoryService {
         };
 
         return categoryRepository.findAll(spec, pageable).map(recipeMapper::toResponse);
+    }
+
+    @Cacheable(value = "categoryListCache")
+    public List<CategoryResponse> getListCategories() {
+        log.info("Fetching categories from DB...");
+        return categoryRepository.findAll().stream().map(recipeMapper::toResponse).collect(Collectors.toList());
     }
 }

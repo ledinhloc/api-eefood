@@ -83,9 +83,13 @@ public enum ErrorMessage {
   USER_ALREADY_BLOCKED("This user is already blocked by you"),
   USER_NOT_BLOCKED("This user is not blocked"),
   USER_INFO_NOT_FOUND("User info not found"),
-  USER_BATCH_INFO_FAILED("Failed to fetch user info batch");
+  USER_BATCH_INFO_FAILED("Failed to fetch user info batch"),
 
-  ;
+  // chatbot
+  AI_FREE_QUOTA_EXCEEDED("Xin lỗi. Bạn đã hết lượt miễn phí !!!"),
+  AI_OVERLOADED("Hệ thống đang quá tải. Vui lòng thử lại sau vài giây."),
+  AI_NOT_EXCUTED("Không thể thực hiện tác vụ. Vui lòng thử lại!"),
+  AI_INTERNAL_ERROR("Hệ thống đang gặp sự cố. Vui lòng thử lại.");
 
 
   private final String message;

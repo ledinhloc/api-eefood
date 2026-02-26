@@ -119,6 +119,10 @@ spring:
               uri: lb://REACTION-SERVICE
               predicates:
                 - Path=/api/v1/reports/**
+            - id: chatbot-reaction-service
+              uri: lb://REACTION-SERVICE
+              predicates:
+                - Path=/api/v1/chatbot/**
     bus:
       enabled: true
     stream:

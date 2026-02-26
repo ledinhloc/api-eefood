@@ -1,7 +1,6 @@
 package com.eefood.reactionservice.service.post;
 
 import com.eefood.common.avro.NotificationEvent;
-import com.eefood.common.avro.PostApprovalRequest;
 import com.eefood.reactionservice.dto.SearchResult;
 import com.eefood.reactionservice.dto.request.PostCreateRequest;
 import com.eefood.reactionservice.dto.response.*;
@@ -15,6 +14,7 @@ import com.eefood.reactionservice.model.Post;
 import com.eefood.reactionservice.repository.post.PostRepository;
 import com.eefood.reactionservice.repository.httpclient.IamClient;
 import com.eefood.reactionservice.repository.httpclient.RecipeClient;
+import com.eefood.reactionservice.service.chatbot.ChromaEmbeddingService;
 import com.eefood.reactionservice.service.follow.FollowService;
 import com.eefood.reactionservice.service.ai.GeminiService;
 import com.eefood.reactionservice.util.SecurityUtil;
@@ -47,6 +47,7 @@ public class PostService {
   private final PostAdminSearchService postAdminSearchService;
   private final NotificationProducer notificationProducer;
   private final PostApprovalProducer postApprovalProducer;
+  private final ChromaEmbeddingService chromaEmbeddingService;
 
   public List<PostPublishResponse> getPostsPublishByUser() {
     Long userId = securityUtil.getCurrentUserId();
@@ -91,6 +92,8 @@ public class PostService {
       .build();
 
     postRepo.save(post);
+    // Sync post to chromaDB
+    chromaEmbeddingService.syncSinglePostToChroma(post.getId());
 
     //gui thong bao
     NotificationEvent notification = NotificationEvent.newBuilder()
@@ -139,6 +142,8 @@ public class PostService {
     post.setContent(content);
     post.setStatus(PostStatus.EDITED_PENDING);
     postRepo.save(post);
+    // Sync post to chromaDB
+    chromaEmbeddingService.syncSinglePostToChroma(post.getId());
 
     NotificationEvent notification = NotificationEvent.newBuilder()
       .setTitle("Bài đăng đang chờ duyệt lại")
