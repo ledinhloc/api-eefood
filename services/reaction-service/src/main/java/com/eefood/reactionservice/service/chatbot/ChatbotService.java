@@ -4,6 +4,7 @@ import com.eefood.reactionservice.dto.request.ChatBotRequest;
 import com.eefood.reactionservice.dto.response.chatbot.ChatbotResponse;
 import com.eefood.reactionservice.enums.ChatRole;
 import com.eefood.reactionservice.enums.ChatTool;
+import com.eefood.reactionservice.enums.ErrorMessage;
 import com.eefood.reactionservice.model.chatbot.ChatbotMessage;
 import com.eefood.reactionservice.repository.chatbot.ChatbotRepository;
 import com.eefood.reactionservice.service.chatbot.cache.WeatherCacheService;
@@ -12,8 +13,6 @@ import dev.langchain4j.service.TokenStream;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
-import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -59,21 +58,18 @@ public class ChatbotService {
         try {
             processStream(request, emitter);
         } catch (Exception e) {
-            handleStreamError(emitter, e);
+            handleStreamError(request,emitter, e);
+
         }
     }
 
     private void processStream(ChatBotRequest request, SseEmitter emitter) {
-
-        sseUtils.sendStatus(emitter, "Đang xử lý yêu cầu...");
 
         Pair<String,String> ctx = resolveContext(request);
 
         String userMessage = buildUserMessage(request, ctx.getLeft(), ctx.getRight());
 
         chatbotCrudService.saveForUserAsync(request);
-
-        sseUtils.sendStatus(emitter, "Đang phân tích yêu cầu...");
 
         startAiStream(userMessage, request, emitter);
     }
@@ -96,15 +92,14 @@ public class ChatbotService {
                     sseUtils.sendMessage(emitter, partial);
                 })
                 .onToolExecuted(tool -> {
-
                     try {
                         ChatbotResponse toolResponse = chatbotToolExecutor.execute(tool);
                         finalResponse.setData(toolResponse.getData());
                         finalResponse.setMeta(toolResponse.getMeta());
-                        sseUtils.sendData(emitter, toolResponse.getData());
+                        sseUtils.sendData(emitter, toolResponse);
                     } catch (Exception e) {
                         log.error("Tool execution error", e);
-                        sseUtils.sendError(emitter, "Không thể thực hiện tác vụ. Vui lòng thử lại!");
+                        sseUtils.sendError(emitter, ErrorMessage.AI_NOT_EXCUTED.getMessage());
                     }
                 })
                 .onCompleteResponse(r -> {
@@ -114,65 +109,9 @@ public class ChatbotService {
                     chatbotCrudService.saveForAIAsync(request, finalResponse);
                 })
                 .onError(e -> {
-                    handleStreamError(emitter, e);
+                    handleStreamError(request,emitter, e);
                 })
                 .start();
-    }
-
-    public ChatbotResponse handleChat(ChatBotRequest request) {
-
-        try {
-            SecurityContext context = SecurityContextHolder.getContext();
-
-            CompletableFuture<String> weatherFuture = CompletableFuture.supplyAsync(
-                    () -> {
-                        SecurityContextHolder.setContext(context); // Set context vào thread mới
-                        try {
-                            return weatherCacheService.getWeatherInfo(
-                                    request.getLocation().getLatitude(),
-                                    request.getLocation().getLongitude()
-                            );
-                        } finally {
-                            SecurityContextHolder.clearContext(); // Clear sau khi xong
-                        }
-                    },
-                    asyncExecutor
-            );
-
-            CompletableFuture<String> categoryFuture = CompletableFuture.supplyAsync(
-                    () -> {
-                        SecurityContextHolder.setContext(context);
-                        try {
-                            String weather = weatherFuture.join();
-                            return categoryHintService.generateCategoryHint(
-                                    request.getMessage(),
-                                    request.getTime(),
-                                    weather
-                            );
-                        } finally {
-                            SecurityContextHolder.clearContext();
-                        }
-                    },
-                    asyncExecutor
-            );
-
-            String weather = weatherFuture.join();
-            String categoryHint = categoryFuture.join();
-
-            String userMessage = buildUserMessage(request, weather, categoryHint);
-            ChatbotResponse response =  chatbotAIService.chat(userMessage);
-            chatbotCrudService.saveForAIAsync(request, response);
-            log.info("Log end");
-            return response;
-        }
-        catch (Exception e) {
-            if (isGeminiRateLimit(e)) {
-                log.warn("Gemini overloaded – fallback response");
-                return buildOverloadedResponse();
-            }
-
-            throw e;
-        }
     }
 
     // Get 2 chat history
@@ -312,21 +251,41 @@ public class ChatbotService {
     }
 
     // Handle error like rate limit, overload,...
-    private boolean isGeminiRateLimit(Throwable e) {
+    private boolean isQuotaExceeded(Throwable e) {
+        return containsAny(e,
+                "quota",
+                "free tier",
+                "exceeded your current quota",
+                "billing"
+        );
+    }
+
+    private boolean isOverloaded(Throwable e) {
+        return containsAny(e,
+                "overloaded",
+                "resource_exhausted",
+                "temporarily unavailable"
+        );
+    }
+
+    private boolean isRateLimit(Throwable e) {
+        return containsAny(e,
+                "429",
+                "rate limit"
+        );
+    }
+
+    private boolean containsAny(Throwable e, String... keywords) {
         Throwable cause = e;
 
         while (cause != null) {
             String msg = cause.getMessage();
             if (msg != null) {
                 msg = msg.toLowerCase();
-                if (
-                        msg.contains("429") ||
-                                msg.contains("resource_exhausted") ||
-                                msg.contains("rate limit") ||
-                                msg.contains("overloaded") ||
-                                msg.contains("quota")
-                ) {
-                    return true;
+                for (String keyword : keywords) {
+                    if (msg.contains(keyword)) {
+                        return true;
+                    }
                 }
             }
             cause = cause.getCause();
@@ -334,29 +293,44 @@ public class ChatbotService {
         return false;
     }
 
-    private ChatbotResponse buildOverloadedResponse() {
+    private ChatbotResponse buildErrorResponse(String message) {
         return ChatbotResponse.builder()
+                .message(message)
+                .role(ChatRole.AI.name())
                 .data(List.of())
                 .meta(Map.of(
                         "tool", "NONE",
-                        "message", "Hệ thống đang bận, vui lòng thử lại sau vài giây 🙏"
+                        "message", message
                 ))
                 .build();
     }
 
     private void handleStreamError(
+            ChatBotRequest request,
             SseEmitter emitter,
             Throwable e
     ) {
         try {
-            if (isGeminiRateLimit(e)) {
-                log.warn("Gemini rate limit / overloaded");
-                sseUtils.sendError(emitter, "Hệ thống đang quá tải, vui lòng thử lại sau ít giây 🙏");
+
+            String message;
+
+            if (isQuotaExceeded(e)) {
+                log.warn("AI quota exceeded");
+                message = ErrorMessage.AI_FREE_QUOTA_EXCEEDED.getMessage();
+            }
+            else if (isOverloaded(e) || isRateLimit(e)) {
+                log.warn("AI overloaded or rate limited");
+                message = ErrorMessage.AI_OVERLOADED.getMessage();
             }
             else {
-                log.error("Stream error", e);
-                sseUtils.sendError(emitter, "Đã xảy ra lỗi, vui lòng thử lại sau");
+                log.error("AI internal error", e);
+                message = ErrorMessage.AI_INTERNAL_ERROR.getMessage();
             }
+
+            ChatbotResponse fallbackResponse = buildErrorResponse(message);
+            chatbotCrudService.saveForAIAsync(request, fallbackResponse);
+
+            sseUtils.sendError(emitter, message);
             emitter.complete();
 
         } catch (Exception ex) {

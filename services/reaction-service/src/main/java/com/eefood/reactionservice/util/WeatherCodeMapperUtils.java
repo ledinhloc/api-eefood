@@ -2,18 +2,21 @@ package com.eefood.reactionservice.util;
 
 import com.eefood.reactionservice.dto.request.WeatherInfoRequest;
 import com.eefood.reactionservice.dto.response.OpenMeteoResponse;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
-
+@Component
+@RequiredArgsConstructor
 public class WeatherCodeMapperUtils {
     private static final String OPEN_METEO_URL =
             "https://api.open-meteo.com/v1/forecast";
 
-    private static final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
 
-    public static WeatherInfoRequest getCurrentWeather(double latitude, double longitude) {
+    public WeatherInfoRequest getCurrentWeather(double latitude, double longitude) {
 
         String url = UriComponentsBuilder.fromHttpUrl(OPEN_METEO_URL)
                 .queryParam("latitude", latitude)

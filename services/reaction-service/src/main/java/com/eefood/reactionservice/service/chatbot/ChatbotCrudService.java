@@ -39,21 +39,24 @@ public class ChatbotCrudService {
         Optional<ChatbotMessage> chatbotMessage = chatbotRepository
                 .findTop1ByUserIdAndRoleAndChatToolAndIsDeletedFalseOrderByCreatedAtDesc(userId,ChatRole.AI, ChatTool.SUGGEST_POST);
 
-        if(!chatbotMessage.isPresent()) {
+        if (chatbotMessage.isEmpty()) {
             return Collections.emptyList();
         }
 
-        return chatbotMessage
-                .stream()
-                .map(ChatbotMessage::getData)
-                .filter(Objects::nonNull)
-                .filter(JsonNode::isArray)
-                .map(dataNode -> objectMapper.convertValue(dataNode, new TypeReference<PostResponse>() {}))
-                .collect(Collectors.toList());
+        JsonNode dataNode = chatbotMessage.get().getData();
+
+        if (dataNode == null || !dataNode.isArray()) {
+            return Collections.emptyList();
+        }
+
+        return objectMapper.convertValue(
+                dataNode,
+                new TypeReference<List<PostResponse>>() {}
+        );
     }
 
     public List<ChatbotResponse> getListChatbotHistory(Long userId) {
-        List<ChatbotMessage> listChatbotHistory = chatbotRepository.findAllByUserIdAndIsDeletedFalse(userId);
+        List<ChatbotMessage> listChatbotHistory = chatbotRepository.findAllByUserIdAndIsDeletedFalseOrderByCreatedAtAsc(userId);
         List<ChatbotResponse> responses = listChatbotHistory.stream()
                 .map(chatbotMessageMapper::toResponse)
                 .toList();

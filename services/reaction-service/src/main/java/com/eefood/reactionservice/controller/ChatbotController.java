@@ -21,15 +21,6 @@ public class ChatbotController {
     private final ChatbotService chatbotService;
     private final ChatbotCrudService chatbotCrudService;
 
-    @PostMapping
-    public ResponseData<ChatbotResponse> chat(@RequestBody ChatBotRequest request) {
-        return new ResponseData<>(
-                HttpStatus.OK.value(),
-                HttpStatus.OK.getReasonPhrase(),
-                chatbotService.handleChat(request)
-        );
-    }
-
     @PostMapping(path = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter chatbotStream(@RequestBody ChatBotRequest request) {
         SseEmitter emitter = new SseEmitter(60000L);

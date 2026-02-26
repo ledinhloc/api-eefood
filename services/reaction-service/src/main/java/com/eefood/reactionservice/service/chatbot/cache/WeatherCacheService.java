@@ -11,12 +11,14 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class WeatherCacheService {
 
+    private final WeatherCodeMapperUtils weatherCodeMapperUtils;
+
     @Cacheable(
             value = "weatherInfoCache",
             key = "#lat + ':' + #lng"
     )
     public String getWeatherInfo(double lat, double lng) {
-        return WeatherCodeMapperUtils
+        return weatherCodeMapperUtils
                 .getCurrentWeather(lat, lng)
                 .getDescription();
     }

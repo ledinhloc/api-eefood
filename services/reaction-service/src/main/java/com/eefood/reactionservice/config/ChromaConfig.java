@@ -7,6 +7,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import java.time.Duration;
+
 @Configuration
 public class ChromaConfig {
     @Value("${chroma.host}")
@@ -20,8 +22,10 @@ public class ChromaConfig {
 
     @Bean
     public EmbeddingStore<TextSegment> chromaEmbeddingStore() {
+
         return ChromaEmbeddingStore.builder()
                 .baseUrl("http://" + host + ":" + port)
+                .timeout(Duration.ofSeconds(60))
                 .collectionName(collection)
                 .build();
     }

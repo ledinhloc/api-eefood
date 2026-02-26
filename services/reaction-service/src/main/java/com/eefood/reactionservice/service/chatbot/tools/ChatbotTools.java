@@ -89,9 +89,12 @@ public class ChatbotTools {
         log.info("Max Cook: " + maxCookTime);
         log.info("Ingredient: " + ingredient);
         log.info("Query: " + originalQuery);
+        log.info("UserId: " + userId);
 
         try {
             UserContext ctx = loadUserContext(userId);
+
+            log.info("UserContext: " + ctx.user().getId());
 
             List<Long> candidateIds = postScrollSearchService.searchAllPostIds(
                     keyword,
@@ -145,7 +148,7 @@ public class ChatbotTools {
                 if(!listPostIds.isEmpty()) {
                     listPostIds.forEach(id -> collectionService.addPost(collectionResponse.getId(), id, userId));
                     return buildResponse(
-                            List.of(collectionService.getById(collectionResponse.getId())),
+                            List.of(collectionService.getByIdForChatbot(collectionResponse.getId(), userId)),
                             ChatTool.GENERATE_COLLECTION.name(),
                             ChatRole.AI.name()
                     );
@@ -158,7 +161,7 @@ public class ChatbotTools {
                     }
                     postIds.forEach(id -> collectionService.addPost(collectionResponse.getId(), id, userId));
                     return buildResponse(
-                            List.of(collectionService.getById(collectionResponse.getId())),
+                            List.of(collectionService.getByIdForChatbot(collectionResponse.getId(), userId)),
                             ChatTool.GENERATE_COLLECTION.name(),
                             ChatRole.AI.name()
                     );
@@ -172,7 +175,7 @@ public class ChatbotTools {
                 if(!listPostIds.isEmpty()) {
                     listPostIds.forEach(id -> collectionService.addPost(newCollection.getId(), id, userId));
                     return buildResponse(
-                            List.of(collectionService.getById(newCollection.getId())),
+                            List.of(collectionService.getByIdForChatbot(newCollection.getId(), userId)),
                             ChatTool.GENERATE_COLLECTION.name(),
                             ChatRole.AI.name()
                     );
@@ -184,7 +187,7 @@ public class ChatbotTools {
                     }
                     postIds.forEach(id -> collectionService.addPost(newCollection.getId(), id, userId));
                     return buildResponse(
-                            List.of(collectionService.getById(newCollection.getId())),
+                            List.of(collectionService.getByIdForChatbot(newCollection.getId(), userId)),
                             ChatTool.GENERATE_COLLECTION.name(),
                             ChatRole.AI.name()
                     );

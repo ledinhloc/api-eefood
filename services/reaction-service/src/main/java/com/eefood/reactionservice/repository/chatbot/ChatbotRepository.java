@@ -15,5 +15,5 @@ public interface ChatbotRepository extends JpaRepository<ChatbotMessage, Long> {
     List<ChatbotMessage> findTop2ByUserIdAndRoleAndIsDeletedFalseOrderByCreatedAtDesc(Long userId, ChatRole role);
     Optional<ChatbotMessage> findTop1ByUserIdAndRoleAndChatToolAndIsDeletedFalseOrderByCreatedAtDesc(Long userId, ChatRole role, ChatTool chatTool);
     List<ChatbotMessage> findTop2ByUserIdAndRoleAndChatToolAndIsDeletedFalseOrderByCreatedAtDesc(Long userId, ChatRole role, ChatTool chatTool);
-    List<ChatbotMessage> findAllByUserIdAndIsDeletedFalse(Long userId);
+    List<ChatbotMessage> findAllByUserIdAndIsDeletedFalseOrderByCreatedAtAsc(Long userId);
 }

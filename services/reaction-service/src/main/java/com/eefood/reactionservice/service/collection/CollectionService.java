@@ -36,11 +36,10 @@ public class CollectionService {
   private final IamClient iamClient;
 
   public CollectionResponse getCollectionByName(String name) {
-    Optional<Collection> c = collectionRepo.findByNameAndIsDeletedFalse(name);
-    if (!c.isPresent()) {
-      throw ExceptionUtil.badRequest(ErrorMessage.COLLECTION_NOT_FOUND);
-    }
-    return mapper.toDto(c.get());
+    return collectionRepo
+            .findByNameAndIsDeletedFalse(name)
+            .map(mapper::toDto)
+            .orElse(null);
   }
 
   @Transactional
@@ -280,6 +279,56 @@ public class CollectionService {
     return response;
   }
 
+  public CollectionResponse getByIdForChatbot(Long id, Long userId){
+    if (id == null)
+      throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
+    //tim collection
+    Collection collection = collectionRepo.findByIdWithPosts(id)
+            .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.COLLECTION_NOT_FOUND));
+
+    validateOwnerForChatbot(collection,userId);
+    // Sắp xếp ngay trong entity trước khi map
+    if (collection.getCollectionPosts() != null && !collection.getCollectionPosts().isEmpty()) {
+      collection.getCollectionPosts().sort(
+              Comparator.comparing(CollectionPost::getId).reversed()
+      );
+    }
+
+    CollectionResponse response = mapper.toDto(collection);
+
+    // Lấy danh sách userId trong các bài post
+    Set<Long> userIds = response.getPosts().stream()
+            .map(PostCollectionResponse::getUserId)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toSet());
+
+    if (userIds.isEmpty()) {
+      return response;
+    }
+    //Gọi IAM để lấy thông tin user
+    ResponseData<List<UserInfo>> iamResponse =
+            iamClient.getUserInfoBatch(new ArrayList<>(userIds));
+
+    if (iamResponse == null || iamResponse.getData() == null) {
+      return response;
+    }
+    // Map userId → UserInfo
+    Map<Long, UserInfo> userInfoMap = iamResponse.getData().stream()
+            .collect(Collectors.toMap(UserInfo::getId, u -> u));
+
+    // Merge thông tin user vào từng post
+    for (PostCollectionResponse post : response.getPosts()) {
+      UserInfo info = userInfoMap.get(post.getUserId());
+      if (info != null) {
+        post.setUsername(info.getUsername());
+        post.setEmail(info.getEmail());
+        post.setAvatarUrl(info.getAvatarUrl());
+      }
+    }
+
+    return response;
+  }
+
   public void addPost(Long collectionId, Long postId){
     Collection collection = collectionRepo.findById(collectionId)
       .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.COLLECTION_NOT_FOUND));
@@ -307,7 +356,7 @@ public class CollectionService {
   public void addPost(Long collectionId, Long postId, Long userId){
     Collection collection = collectionRepo.findById(collectionId)
             .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.COLLECTION_NOT_FOUND));
-    validateOwner(collection, userId);
+    validateOwnerForChatbot(collection, userId);
 
     if (collectionPostRepo.existsByCollectionIdAndPostId(collectionId, postId)) {
       throw ExceptionUtil.badRequest(ErrorMessage.ALREADY_EXISTS);
@@ -359,7 +408,7 @@ public class CollectionService {
     }
   }
 
-  private void validateOwner(Collection collection, Long userId) {
+  private void validateOwnerForChatbot(Collection collection, Long userId) {
     if (userId == null) {
       throw ExceptionUtil.forbidden(ErrorMessage.ACCESS_DENIED);
     }
