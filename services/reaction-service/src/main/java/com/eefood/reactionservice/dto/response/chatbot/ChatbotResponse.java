@@ -16,6 +16,7 @@ import java.util.Map;
 @NoArgsConstructor
 @Builder
 public class ChatbotResponse {
+    private Long id;
     private String message;
     private String role;
     private List<Object> data;

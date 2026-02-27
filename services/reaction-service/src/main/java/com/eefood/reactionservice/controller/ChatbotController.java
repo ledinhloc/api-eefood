@@ -21,6 +21,12 @@ public class ChatbotController {
     private final ChatbotService chatbotService;
     private final ChatbotCrudService chatbotCrudService;
 
+    @DeleteMapping("/{id}")
+    public ResponseData<Void> deleteChatbotMessage(@PathVariable Long id) {
+        chatbotCrudService.deleteChatbotMessage(id);
+        return new ResponseData<>(HttpStatus.OK.value(), HttpStatus.OK.getReasonPhrase());
+    }
+
     @PostMapping(path = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter chatbotStream(@RequestBody ChatBotRequest request) {
         SseEmitter emitter = new SseEmitter(60000L);
