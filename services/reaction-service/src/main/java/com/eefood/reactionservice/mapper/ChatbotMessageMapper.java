@@ -19,6 +19,7 @@ public interface ChatbotMessageMapper {
 
     ObjectMapper objectMapper = new ObjectMapper();
 
+    @Mapping(source = "id", target = "id")
     @Mapping(source = "role", target = "role")
     @Mapping(source = "message", target = "message")
     @Mapping(source = "data", target = "data")
