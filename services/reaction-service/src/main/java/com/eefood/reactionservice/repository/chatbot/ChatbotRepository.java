@@ -4,6 +4,9 @@ import com.eefood.reactionservice.enums.ChatRole;
 import com.eefood.reactionservice.enums.ChatTool;
 import com.eefood.reactionservice.model.chatbot.ChatbotMessage;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
@@ -16,4 +19,11 @@ public interface ChatbotRepository extends JpaRepository<ChatbotMessage, Long> {
     Optional<ChatbotMessage> findTop1ByUserIdAndRoleAndChatToolAndIsDeletedFalseOrderByCreatedAtDesc(Long userId, ChatRole role, ChatTool chatTool);
     List<ChatbotMessage> findTop2ByUserIdAndRoleAndChatToolAndIsDeletedFalseOrderByCreatedAtDesc(Long userId, ChatRole role, ChatTool chatTool);
     List<ChatbotMessage> findAllByUserIdAndIsDeletedFalseOrderByCreatedAtAsc(Long userId);
+
+    @Modifying
+    @Query("""
+    UPDATE ChatbotMessage c SET c.isDeleted = true
+    WHERE c.userId = :userId AND c.createdAt >= :createdAt AND c.isDeleted = false
+    """)
+    void softDeleteFromCreatedAt(@Param("userId") Long userId, @Param("createdAt") LocalDateTime createdAt);
 }

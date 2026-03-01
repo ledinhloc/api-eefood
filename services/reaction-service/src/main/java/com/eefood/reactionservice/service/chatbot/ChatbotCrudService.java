@@ -33,6 +33,23 @@ public class ChatbotCrudService {
     private final ChatbotMessageMapper chatbotMessageMapper;
     private final SecurityUtil securityUtil;
 
+    @Transactional
+    public void deleteChatbotMessage(Long chatbotId) {
+        Long userId = securityUtil.getCurrentUserId();
+
+        ChatbotMessage message = chatbotRepository.findById(chatbotId)
+                .orElseThrow(() -> new RuntimeException("Message not found"));
+
+        if (!message.getUserId().equals(userId)) {
+            throw new RuntimeException("You are not allowed to delete this message");
+        }
+
+        chatbotRepository.softDeleteFromCreatedAt(
+                userId,
+                message.getCreatedAt()
+        );
+    }
+
     public List<PostResponse> getListPostFromHistory() {
         Long userId = securityUtil.getCurrentUserId();
 
