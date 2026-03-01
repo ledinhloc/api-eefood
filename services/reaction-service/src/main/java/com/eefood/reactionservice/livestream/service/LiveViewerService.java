@@ -5,8 +5,6 @@ import com.eefood.reactionservice.livestream.dto.response.ViewerResponse;
 import com.eefood.reactionservice.livestream.dto.ws.ViewerUpdateMessage;
 import com.eefood.reactionservice.livestream.model.LiveStream;
 import com.eefood.reactionservice.livestream.model.LiveView;
-import com.eefood.reactionservice.livestream.repository.LiveStreamBlockRepository;
-import com.eefood.reactionservice.livestream.repository.LiveStreamRepository;
 import com.eefood.reactionservice.livestream.repository.LiveViewRepository;
 import com.eefood.reactionservice.repository.httpclient.IamClient;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -27,19 +26,15 @@ public class LiveViewerService {
   private final LiveViewRepository liveViewRepository;
   private final IamClient iamClient;
   private final SimpMessagingTemplate messagingTemplate;
-  private final LiveStreamRepository liveStreamRepository;
-  private final LiveStreamBlockRepository liveStreamBlockRepository;
+  private final LiveStreamService liveStreamService;
 
   @Transactional
   public void joinLive(Long liveStreamId, Long userId) {
     // 1. Lấy livestream
-    LiveStream liveStream = liveStreamRepository
-      .findById(liveStreamId)
-      .orElseThrow(() -> new RuntimeException("Live stream not found"));
+    LiveStream liveStream = liveStreamService.getLiveStreamEntity(liveStreamId);
 
     Long streamerId = liveStream.getUserId();
-    boolean isBlocked = liveStreamBlockRepository
-      .existsByStreamerIdAndBlockedUserId(streamerId, userId);
+    boolean isBlocked = liveStreamService.isUserBlockedByStreamer(streamerId, userId);
 
     if (isBlocked) {
       log.warn(
@@ -194,5 +189,10 @@ public class LiveViewerService {
     } catch (Exception e) {
       log.error("Error broadcasting viewer leave", e);
     }
+  }
+
+  @Transactional(readOnly = true)
+  public Optional<LiveView> findActiveViewByUserId(Long userId) {
+    return liveViewRepository.findFirstByUserIdAndLeftAtIsNullOrderByJoinedAtDesc(userId);
   }
 }

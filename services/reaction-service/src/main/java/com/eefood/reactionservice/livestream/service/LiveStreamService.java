@@ -36,8 +36,7 @@ public class LiveStreamService {
 
   @Transactional(readOnly = true)
   public LiveStreamResponse checkUserStream(Long currentUserId,Long userId) {
-    boolean isBlocked = liveStreamBlockRepository
-      .existsByStreamerIdAndBlockedUserId(userId, currentUserId);
+    boolean isBlocked = isUserBlockedByStreamer(userId, currentUserId);
 
     if(isBlocked) {
       log.info(
@@ -188,11 +187,9 @@ public class LiveStreamService {
 
   @Transactional(readOnly = true)
   public LiveStreamResponse getLiveStream(Long liveStreamId, Long userId) {
-    LiveStream liveStream = liveStreamRepository.findById(liveStreamId)
-      .orElseThrow(() -> new RuntimeException("Live stream not found"));
+    LiveStream liveStream = getLiveStreamEntity(liveStreamId);
 
-    boolean isBlocked = liveStreamBlockRepository
-      .existsByStreamerIdAndBlockedUserId(liveStream.getUserId(), userId);
+    boolean isBlocked = isUserBlockedByStreamer(liveStream.getUserId(), userId);
     if(isBlocked) {
       log.warn(
         "Blocked user {} tried to access livestream {} of streamer {}",
@@ -207,6 +204,23 @@ public class LiveStreamService {
     LiveStreamResponse res = liveStreamMapper.toResponse(liveStream);
     res.setLivekitToken(viewerToken);
     return res;
+  }
+
+  @Transactional(readOnly = true)
+  public LiveStream getLiveStreamEntity(Long liveStreamId) {
+    return liveStreamRepository.findById(liveStreamId)
+      .orElseThrow(() -> new RuntimeException("Live stream not found"));
+  }
+
+  @Transactional(readOnly = true)
+  public boolean isLiveStreamOwnedByStreamer(Long liveStreamId, Long streamerId) {
+    LiveStream liveStream = getLiveStreamEntity(liveStreamId);
+    return liveStream.getUserId().equals(streamerId);
+  }
+
+  @Transactional(readOnly = true)
+  public boolean isUserBlockedByStreamer(Long streamerId, Long userId) {
+    return liveStreamBlockRepository.existsByStreamerIdAndBlockedUserId(streamerId, userId);
   }
 
   private LiveStreamResponse buildLiveResponse(LiveStream live, Long userId) {
