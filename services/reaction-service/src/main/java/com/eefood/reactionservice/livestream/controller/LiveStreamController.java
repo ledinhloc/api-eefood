@@ -19,7 +19,7 @@ public class LiveStreamController {
 
   @GetMapping("/check")
   public ResponseData<LiveStreamResponse> checkUserStream(@RequestParam Long userId) {
-    var response = liveStreamService.checkUserStream(userId);
+    var response = liveStreamService.checkUserStream(securityUtil.getCurrentUserId(), userId);
     return new ResponseData<>(HttpStatus.OK.value(), "success", response);
   }
 

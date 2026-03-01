@@ -3,7 +3,10 @@ package com.eefood.reactionservice.livestream.service;
 import com.eefood.reactionservice.dto.response.UserInfo;
 import com.eefood.reactionservice.livestream.dto.response.ViewerResponse;
 import com.eefood.reactionservice.livestream.dto.ws.ViewerUpdateMessage;
+import com.eefood.reactionservice.livestream.model.LiveStream;
 import com.eefood.reactionservice.livestream.model.LiveView;
+import com.eefood.reactionservice.livestream.repository.LiveStreamBlockRepository;
+import com.eefood.reactionservice.livestream.repository.LiveStreamRepository;
 import com.eefood.reactionservice.livestream.repository.LiveViewRepository;
 import com.eefood.reactionservice.repository.httpclient.IamClient;
 import lombok.RequiredArgsConstructor;
@@ -24,9 +27,30 @@ public class LiveViewerService {
   private final LiveViewRepository liveViewRepository;
   private final IamClient iamClient;
   private final SimpMessagingTemplate messagingTemplate;
+  private final LiveStreamRepository liveStreamRepository;
+  private final LiveStreamBlockRepository liveStreamBlockRepository;
 
   @Transactional
   public void joinLive(Long liveStreamId, Long userId) {
+    // 1. Lấy livestream
+    LiveStream liveStream = liveStreamRepository
+      .findById(liveStreamId)
+      .orElseThrow(() -> new RuntimeException("Live stream not found"));
+
+    Long streamerId = liveStream.getUserId();
+    boolean isBlocked = liveStreamBlockRepository
+      .existsByStreamerIdAndBlockedUserId(streamerId, userId);
+
+    if (isBlocked) {
+      log.warn(
+        "Blocked user {} tried to join livestream {} of streamer {}",
+        userId,
+        liveStreamId,
+        streamerId
+      );
+      return;
+
+    }
     // Kiểm tra user đã join chưa
     boolean alreadyJoined = liveViewRepository
       .existsByLiveStreamIdAndUserIdAndLeftAtIsNull(liveStreamId, userId);
@@ -153,7 +177,7 @@ public class LiveViewerService {
     }
   }
 
-  private void broadcastViewerLeave(Long liveStreamId, Long userId) {
+  public void broadcastViewerLeave(Long liveStreamId, Long userId) {
     try {
       ViewerUpdateMessage message = ViewerUpdateMessage.builder()
         .type("LEAVE")

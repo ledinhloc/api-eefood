@@ -8,6 +8,7 @@ import com.eefood.reactionservice.exception.ExceptionUtil;
 import com.eefood.reactionservice.livestream.dto.ws.LiveStreamEndMessage;
 import com.eefood.reactionservice.livestream.model.LiveStream;
 import com.eefood.reactionservice.livestream.mapper.LiveStreamMapper;
+import com.eefood.reactionservice.livestream.repository.LiveStreamBlockRepository;
 import com.eefood.reactionservice.livestream.repository.LiveStreamRepository;
 import io.livekit.server.AccessToken;
 import io.livekit.server.RoomServiceClient;
@@ -31,9 +32,22 @@ public class LiveStreamService {
   private final RoomServiceClient roomServiceClient;
   private final LiveKitConfig liveKitConfig;
   private final SimpMessagingTemplate messagingTemplate;
+  private final LiveStreamBlockRepository liveStreamBlockRepository;
 
   @Transactional(readOnly = true)
-  public LiveStreamResponse checkUserStream(Long userId) {
+  public LiveStreamResponse checkUserStream(Long currentUserId,Long userId) {
+    boolean isBlocked = liveStreamBlockRepository
+      .existsByStreamerIdAndBlockedUserId(userId, currentUserId);
+
+    if(isBlocked) {
+      log.info(
+        "User {} is blocked by streamer {}. Hide livestream",
+        currentUserId, userId
+      );
+
+      return null;
+    }
+
     LiveStream live = liveStreamRepository
       .findTopByUserIdAndStatusInOrderByIdDesc(
         userId,
@@ -176,6 +190,18 @@ public class LiveStreamService {
   public LiveStreamResponse getLiveStream(Long liveStreamId, Long userId) {
     LiveStream liveStream = liveStreamRepository.findById(liveStreamId)
       .orElseThrow(() -> new RuntimeException("Live stream not found"));
+
+    boolean isBlocked = liveStreamBlockRepository
+      .existsByStreamerIdAndBlockedUserId(liveStream.getUserId(), userId);
+    if(isBlocked) {
+      log.warn(
+        "Blocked user {} tried to access livestream {} of streamer {}",
+        userId,
+        liveStreamId,
+        liveStream.getUserId()
+      );
+      return null;
+    }
 
     String viewerToken = generateViewerToken(liveStream.getRoomName(),userId);
     LiveStreamResponse res = liveStreamMapper.toResponse(liveStream);
