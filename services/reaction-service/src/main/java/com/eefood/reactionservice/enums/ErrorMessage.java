@@ -85,6 +85,17 @@ public enum ErrorMessage {
   USER_INFO_NOT_FOUND("User info not found"),
   USER_BATCH_INFO_FAILED("Failed to fetch user info batch"),
 
+  //poll
+  POLL_NOT_FOUND("Poll not found"),
+  POLL_SETTING_NOT_FOUND("Poll setting not found"),
+  POLL_NOT_OPEN("Poll is not open"),
+  POLL_OPTION_INVALID("Invalid poll option"),
+  POLL_ALREADY_VOTED("User already voted"),
+  POLL_MULTIPLE_CHOICE_NOT_SUPPORTED("Multiple choice is enabled but not supported in vote schema v1"),
+  INVALID_LIVESTREAM_ID("Invalid livestream id"),
+  INVALID_POLL_QUESTION("Invalid poll question"),
+  INVALID_POLL_OPTIONS("Invalid poll options"),
+
   // chatbot
   AI_FREE_QUOTA_EXCEEDED("Xin lỗi. Bạn đã hết lượt miễn phí !!!"),
   AI_OVERLOADED("Hệ thống đang quá tải. Vui lòng thử lại sau vài giây."),

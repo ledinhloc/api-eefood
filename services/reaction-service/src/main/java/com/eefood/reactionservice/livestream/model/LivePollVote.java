@@ -8,7 +8,10 @@ import java.time.LocalDateTime;
 // LivePollVote.java
 @Entity
 @Table(name = "live_poll_votes",
-  uniqueConstraints = @UniqueConstraint(name = "uk_poll_user", columnNames = {"pollId","userId"}),
+  uniqueConstraints = @UniqueConstraint(
+    name = "uk_poll_user_option",
+    columnNames = {"pollId", "userId", "optionId"}
+  ),
   indexes = {
     @Index(name = "idx_votes_poll", columnList = "pollId")
   }
