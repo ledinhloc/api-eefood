@@ -4,12 +4,15 @@ import com.eefood.reactionservice.dto.response.ResponseData;
 import com.eefood.reactionservice.livestream.dto.request.CreateLivePollRequest;
 import com.eefood.reactionservice.livestream.dto.response.LivePollResponse;
 import com.eefood.reactionservice.livestream.dto.response.PollResultResponse;
+import com.eefood.reactionservice.livestream.enums.PollStatus;
 import com.eefood.reactionservice.livestream.service.LivePollService;
 import com.eefood.reactionservice.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import org.apache.kafka.common.requests.VoteRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/livestreams/{liveStreamId}/polls")
@@ -18,11 +21,24 @@ public class LivePollController {
   private final LivePollService livePollService;
   private final SecurityUtil securityUtil;
 
+  @PatchMapping("/{pollId}/status")
+  public ResponseData<LivePollResponse> updateStatus(
+    @PathVariable Long liveStreamId,
+    @PathVariable Long pollId,
+    @RequestParam PollStatus pollStatus
+  ) {
+    Long userId = securityUtil.getCurrentUserId();
+    return new ResponseData<>(
+      HttpStatus.OK.value(),
+      "Success",
+      livePollService.updateStatus(liveStreamId, pollId, userId, pollStatus)
+    );
+  }
+
   @PostMapping
   public ResponseData<LivePollResponse> create(@PathVariable Long liveStreamId,
                              @RequestBody CreateLivePollRequest req) {
-    req.setLiveStreamId(liveStreamId);
-    return new ResponseData<>(HttpStatus.OK.value(), "Success", livePollService.create(req));
+    return new ResponseData<>(HttpStatus.OK.value(), "Success", livePollService.create(req, liveStreamId));
   }
 
   @GetMapping("/{pollId}")
@@ -32,11 +48,12 @@ public class LivePollController {
   }
 
   @PostMapping("/{pollId}/vote")
-  public ResponseData<PollResultResponse> vote(@PathVariable Long liveStreamId,
+  public ResponseData<PollResultResponse> vote(
+                                  @PathVariable Long liveStreamId,
                                  @PathVariable Long pollId,
-                                 @RequestParam Long optionId) {
+                                 @RequestParam List<Long> optionIds) {
     Long userId = securityUtil.getCurrentUserId();
-    return new ResponseData<>(HttpStatus.OK.value(), "Success", livePollService.vote(liveStreamId, pollId, userId, optionId));
+    return new ResponseData<>(HttpStatus.OK.value(), "Success", livePollService.vote(liveStreamId, pollId, userId, optionIds));
   }
 
   @GetMapping("/{pollId}/result")

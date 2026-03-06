@@ -95,6 +95,10 @@ public enum ErrorMessage {
   INVALID_LIVESTREAM_ID("Invalid livestream id"),
   INVALID_POLL_QUESTION("Invalid poll question"),
   INVALID_POLL_OPTIONS("Invalid poll options"),
+  POLL_OPTION_ALREADY_SELECTED("Option already selected"),
+  POLL_MAX_CHOICES_EXCEEDED("Maximum number of choices exceeded"),
+  POLL_SINGLE_CHOICE_ONLY("This poll only allows one choice"),
+  INVALID_POLL_STATUS_TRANSITION("Invalid poll status transition"),
 
   // chatbot
   AI_FREE_QUOTA_EXCEEDED("Xin lỗi. Bạn đã hết lượt miễn phí !!!"),

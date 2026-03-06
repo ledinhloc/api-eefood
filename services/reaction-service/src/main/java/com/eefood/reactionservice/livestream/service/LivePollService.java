@@ -19,7 +19,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -33,9 +37,46 @@ public class LivePollService {
   private final LivePollMapper pollMapper;
 
   @Transactional
-  public LivePollResponse create(CreateLivePollRequest req) {
+  public LivePollResponse updateStatus(Long liveStreamId, Long pollId, Long userId, PollStatus newStatus) {
+    if (newStatus == null) {
+      throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
+    }
+
+    LivePoll poll = pollRepo.findByIdAndLiveStreamId(pollId, liveStreamId)
+      .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.POLL_NOT_FOUND));
+
+    PollStatus current = poll.getStatus();
+
+    if (current == newStatus) {
+      LivePollSetting setting = settingRepo.findByPollId(pollId)
+        .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.POLL_SETTING_NOT_FOUND));
+      List<LivePollOption> options = optionRepo.findByPollIdOrderByIdAsc(pollId);
+      return pollMapper.toFullResponse(poll, setting, options);
+    }
+
+    if (current == PollStatus.DRAFT && newStatus == PollStatus.OPEN) {
+      poll.setStatus(PollStatus.OPEN);
+      poll.setOpenedAt(LocalDateTime.now());
+    } else if (current == PollStatus.OPEN && newStatus == PollStatus.CLOSED) {
+      poll.setStatus(PollStatus.CLOSED);
+      poll.setClosedAt(LocalDateTime.now());
+    } else {
+      throw ExceptionUtil.badRequest(ErrorMessage.INVALID_POLL_STATUS_TRANSITION);
+    }
+
+    pollRepo.save(poll);
+
+    LivePollSetting setting = settingRepo.findByPollId(pollId)
+      .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.POLL_SETTING_NOT_FOUND));
+    List<LivePollOption> options = optionRepo.findByPollIdOrderByIdAsc(pollId);
+
+    return pollMapper.toFullResponse(poll, setting, options);
+  }
+
+  @Transactional
+  public LivePollResponse create(CreateLivePollRequest req, Long liveStreamId) {
     if (req == null) throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
-    if (req.getLiveStreamId() == null) throw ExceptionUtil.badRequest(ErrorMessage.INVALID_LIVESTREAM_ID);
+    if (liveStreamId == null) throw ExceptionUtil.badRequest(ErrorMessage.INVALID_LIVESTREAM_ID);
     if (req.getQuestion() == null || req.getQuestion().trim().isBlank()) {
       throw ExceptionUtil.badRequest(ErrorMessage.INVALID_POLL_QUESTION);
     }
@@ -44,7 +85,7 @@ public class LivePollService {
     }
 
     LivePoll poll = pollRepo.save(LivePoll.builder()
-      .liveStreamId(req.getLiveStreamId())
+      .liveStreamId(liveStreamId)
       .question(req.getQuestion().trim())
       .status(PollStatus.DRAFT)
       .build());
@@ -91,10 +132,16 @@ public class LivePollService {
   }
 
   @Transactional
-  public PollResultResponse vote(Long liveStreamId, Long pollId, Long userId, Long optionId) {
-    if (optionId == null) {
+  public PollResultResponse vote(Long liveStreamId, Long pollId, Long userId, List<Long> optionIds) {
+
+    if (optionIds == null || optionIds.isEmpty()) {
       throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
     }
+
+    optionIds = optionIds.stream()
+      .filter(Objects::nonNull)
+      .distinct()
+      .toList();
 
     LivePoll poll = pollRepo.findByIdAndLiveStreamId(pollId, liveStreamId)
       .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.POLL_NOT_FOUND));
@@ -106,45 +153,99 @@ public class LivePollService {
     LivePollSetting setting = settingRepo.findByPollId(pollId)
       .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.POLL_SETTING_NOT_FOUND));
 
-    LivePollOption selected = optionRepo.findByIdAndPollId(optionId, pollId)
-      .orElseThrow(() -> ExceptionUtil.badRequest(ErrorMessage.POLL_OPTION_INVALID));
+    List<LivePollOption> selectedOptions = optionRepo.findAllByPollIdAndIdIn(pollId, optionIds);
 
-    // schema vote đang là 1 user 1 option, không support multipleChoice thật
-    if (Boolean.TRUE.equals(setting.getMultipleChoice())) {
-      throw ExceptionUtil.badRequest(ErrorMessage.POLL_MULTIPLE_CHOICE_NOT_SUPPORTED);
+    if (selectedOptions.size() != optionIds.size()) {
+      throw ExceptionUtil.badRequest(ErrorMessage.POLL_OPTION_INVALID);
     }
 
-    var existing = voteRepo.findByPollIdAndUserId(pollId, userId);
+    // =========================
+    // SINGLE CHOICE
+    // =========================
+    if (!Boolean.TRUE.equals(setting.getMultipleChoice())) {
 
-    if (existing.isEmpty()) {
-      try {
+      if (optionIds.size() != 1) {
+        throw ExceptionUtil.badRequest(ErrorMessage.POLL_SINGLE_CHOICE_ONLY);
+      }
+
+      Long optionId = optionIds.get(0);
+
+      List<LivePollVote> existingVotes = voteRepo.findAllByPollIdAndUserId(pollId, userId);
+      LivePollVote existing = existingVotes.isEmpty() ? null : existingVotes.get(0);
+
+      if (existing == null) {
+
         voteRepo.save(LivePollVote.builder()
           .pollId(pollId)
           .userId(userId)
-          .optionId(selected.getId())
+          .optionId(optionId)
           .createdAt(LocalDateTime.now())
           .build());
-      } catch (DataIntegrityViolationException e) {
+
+        optionRepo.addCount(optionId, 1);
+
+        return buildResult(pollId);
+      }
+
+      if (!Boolean.TRUE.equals(setting.getAllowChangeVote())) {
         throw ExceptionUtil.conflict(ErrorMessage.POLL_ALREADY_VOTED);
       }
-      optionRepo.addCount(selected.getId(), 1);
+
+      if (existing.getOptionId().equals(optionId)) {
+        return buildResult(pollId);
+      }
+
+      optionRepo.addCount(existing.getOptionId(), -1);
+      optionRepo.addCount(optionId, 1);
+
+      existing.setOptionId(optionId);
+      voteRepo.save(existing);
+
       return buildResult(pollId);
     }
 
-    if (!Boolean.TRUE.equals(setting.getAllowChangeVote())) {
+    // =========================
+    // MULTIPLE CHOICE
+    // =========================
+
+    int maxChoices = setting.getMaxChoices() != null ? setting.getMaxChoices() : 1;
+
+    if (optionIds.size() > maxChoices) {
+      throw ExceptionUtil.conflict(ErrorMessage.POLL_MAX_CHOICES_EXCEEDED);
+    }
+
+    List<LivePollVote> existingVotes = voteRepo.findAllByPollIdAndUserId(pollId, userId);
+    Set<Long> oldOptionIds = existingVotes.stream()
+      .map(LivePollVote::getOptionId)
+      .collect(Collectors.toSet());
+
+    Set<Long> newOptionIds = new HashSet<>(optionIds);
+
+    if (!oldOptionIds.isEmpty() && !Boolean.TRUE.equals(setting.getAllowChangeVote())) {
       throw ExceptionUtil.conflict(ErrorMessage.POLL_ALREADY_VOTED);
     }
 
-    //neu trung lua chon cu
-    LivePollVote v = existing.get();
-    if (v.getOptionId().equals(selected.getId())) {
-      return buildResult(pollId);
+    Set<Long> toAdd = new HashSet<>(newOptionIds);
+    toAdd.removeAll(oldOptionIds);
+
+    Set<Long> toRemove = new HashSet<>(oldOptionIds);
+    toRemove.removeAll(newOptionIds);
+
+    for (Long optionId : toRemove) {
+      voteRepo.deleteByPollIdAndUserIdAndOptionId(pollId, userId, optionId);
+      optionRepo.addCount(optionId, -1);
     }
 
-    optionRepo.addCount(v.getOptionId(), -1);
-    optionRepo.addCount(selected.getId(), 1);
-    v.setOptionId(selected.getId());
-    voteRepo.save(v);
+    for (Long optionId : toAdd) {
+      voteRepo.save(LivePollVote.builder()
+        .pollId(pollId)
+        .userId(userId)
+        .optionId(optionId)
+        .createdAt(LocalDateTime.now())
+        .build());
+
+      optionRepo.addCount(optionId, 1);
+    }
 
     return buildResult(pollId);
   }

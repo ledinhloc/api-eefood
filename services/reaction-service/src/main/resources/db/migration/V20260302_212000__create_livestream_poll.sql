@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS live_poll_votes (
     option_id  BIGINT NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(),
 
-    CONSTRAINT uk_poll_user UNIQUE (poll_id, user_id)
+    CONSTRAINT uk_poll_user UNIQUE (poll_id, user_id, option_id)
 );
 
 CREATE INDEX IF NOT EXISTS idx_votes_poll

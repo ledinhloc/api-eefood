@@ -11,7 +11,6 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class CreateLivePollRequest {
-  private Long liveStreamId;
   private String question;
   private List<String> options;
 

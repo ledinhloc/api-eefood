@@ -13,7 +13,9 @@ public interface LivePollOptionRepository extends JpaRepository<LivePollOption, 
   List<LivePollOption> findByPollIdOrderByIdAsc(Long livePollId);
   Optional<LivePollOption> findByIdAndPollId(Long id, Long pollId);
 
-  @Modifying
+  @Modifying(flushAutomatically = true, clearAutomatically = true)
   @Query("update LivePollOption o set o.count = o.count + :delta where o.id = :optionId")
   int addCount(@Param("optionId") Long optionId, @Param("delta") long delta);
+
+  List<LivePollOption> findAllByPollIdAndIdIn(Long pollId, List<Long> ids);
 }
