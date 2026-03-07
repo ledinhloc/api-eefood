@@ -29,4 +29,5 @@ public class ChromaConfig {
                 .collectionName(collection)
                 .build();
     }
+
 }

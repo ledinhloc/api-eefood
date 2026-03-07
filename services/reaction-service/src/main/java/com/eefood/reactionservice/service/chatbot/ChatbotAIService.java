@@ -11,10 +11,6 @@ import org.springframework.cache.annotation.Cacheable;
 import java.util.List;
 
 public interface ChatbotAIService {
-    @SystemMessage(fromResource = "prompts/chatbot_system_prompt.txt")
-    ChatbotResponse chat(
-            @UserMessage String userMessage
-    );
 
     @SystemMessage(fromResource = "prompts/chatbot_system_prompt.txt")
     TokenStream chatStream(@UserMessage String userMessage);
