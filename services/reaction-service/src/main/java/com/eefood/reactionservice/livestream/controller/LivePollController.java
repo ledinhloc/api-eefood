@@ -21,6 +21,15 @@ public class LivePollController {
   private final LivePollService livePollService;
   private final SecurityUtil securityUtil;
 
+  @GetMapping("/active")
+  public ResponseData<LivePollResponse> getActivePoll(@PathVariable Long liveStreamId) {
+    return new ResponseData<>(
+      HttpStatus.OK.value(),
+      "Success",
+      livePollService.getActivePoll(liveStreamId)
+    );
+  }
+
   @PatchMapping("/{pollId}/status")
   public ResponseData<LivePollResponse> updateStatus(
     @PathVariable Long liveStreamId,

@@ -35,6 +35,25 @@ public class LivePollService {
   private final LivePollVoteRepository voteRepo;
 
   private final LivePollMapper pollMapper;
+  private final LivePollBroadcastService livePollBroadcastService;
+
+  @Transactional(readOnly = true)
+  public LivePollResponse getActivePoll(Long liveStreamId) {
+    LivePoll poll = pollRepo
+      .findFirstByLiveStreamIdAndStatusOrderByOpenedAtDescIdDesc(liveStreamId, PollStatus.OPEN)
+      .orElse(null);
+
+    if (poll == null) {
+      return null;
+    }
+
+    LivePollSetting setting = settingRepo.findByPollId(poll.getId())
+      .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.POLL_SETTING_NOT_FOUND));
+
+    List<LivePollOption> options = optionRepo.findByPollIdOrderByIdAsc(poll.getId());
+
+    return pollMapper.toFullResponse(poll, setting, options);
+  }
 
   @Transactional
   public LivePollResponse updateStatus(Long liveStreamId, Long pollId, Long userId, PollStatus newStatus) {
@@ -70,7 +89,12 @@ public class LivePollService {
       .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.POLL_SETTING_NOT_FOUND));
     List<LivePollOption> options = optionRepo.findByPollIdOrderByIdAsc(pollId);
 
-    return pollMapper.toFullResponse(poll, setting, options);
+    LivePollResponse response = pollMapper.toFullResponse(poll, setting, options);
+    livePollBroadcastService.broadcastPoll(liveStreamId, response);
+
+    PollResultResponse result = buildResult(pollId);
+    livePollBroadcastService.broadcastPollResult(liveStreamId, result);
+    return response;
   }
 
   @Transactional
@@ -101,7 +125,7 @@ public class LivePollService {
         .build());
     }
 
-    // setting default (v1)
+    // setting
     LivePollSetting setting = LivePollSetting.builder()
       .pollId(poll.getId())
       .allowChangeVote(req.getAllowChangeVote() != null ? req.getAllowChangeVote() : false)
@@ -184,7 +208,9 @@ public class LivePollService {
 
         optionRepo.addCount(optionId, 1);
 
-        return buildResult(pollId);
+        PollResultResponse result = buildResult(pollId);
+        livePollBroadcastService.broadcastPollResult(liveStreamId, result);
+        return result;
       }
 
       if (!Boolean.TRUE.equals(setting.getAllowChangeVote())) {
@@ -201,7 +227,9 @@ public class LivePollService {
       existing.setOptionId(optionId);
       voteRepo.save(existing);
 
-      return buildResult(pollId);
+      PollResultResponse result = buildResult(pollId);
+      livePollBroadcastService.broadcastPollResult(liveStreamId, result);
+      return result;
     }
 
     // =========================
@@ -247,7 +275,9 @@ public class LivePollService {
       optionRepo.addCount(optionId, 1);
     }
 
-    return buildResult(pollId);
+    PollResultResponse result = buildResult( pollId);
+    livePollBroadcastService.broadcastPollResult(liveStreamId, result);
+    return result;
   }
 
   @Transactional(readOnly = true)
