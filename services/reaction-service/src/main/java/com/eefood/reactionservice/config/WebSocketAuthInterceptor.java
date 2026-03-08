@@ -28,7 +28,7 @@ public class WebSocketAuthInterceptor implements HandshakeInterceptor {
       String authHeader = servletRequest.getServletRequest().getHeader("Authorization");
       if (authHeader != null && authHeader.startsWith("Bearer ")) {
         token = authHeader.substring(7);
-        log.info("token da co trong header: {}", token);
+//        log.info("token da co trong header: {}", token);
       }else {
         log.info("token chua cho trong header: {}", token);
       }
@@ -49,7 +49,7 @@ public class WebSocketAuthInterceptor implements HandshakeInterceptor {
         }
       }
 
-      log.info("token queryString: {}", token);
+//      log.info("token queryString: {}", token);
 
 
       // 3. Validate token

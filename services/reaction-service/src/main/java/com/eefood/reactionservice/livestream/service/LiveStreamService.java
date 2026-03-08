@@ -8,6 +8,7 @@ import com.eefood.reactionservice.exception.ExceptionUtil;
 import com.eefood.reactionservice.livestream.dto.ws.LiveStreamEndMessage;
 import com.eefood.reactionservice.livestream.model.LiveStream;
 import com.eefood.reactionservice.livestream.mapper.LiveStreamMapper;
+import com.eefood.reactionservice.livestream.repository.LiveStreamBlockRepository;
 import com.eefood.reactionservice.livestream.repository.LiveStreamRepository;
 import io.livekit.server.AccessToken;
 import io.livekit.server.RoomServiceClient;
@@ -31,9 +32,21 @@ public class LiveStreamService {
   private final RoomServiceClient roomServiceClient;
   private final LiveKitConfig liveKitConfig;
   private final SimpMessagingTemplate messagingTemplate;
+  private final LiveStreamBlockRepository liveStreamBlockRepository;
 
   @Transactional(readOnly = true)
-  public LiveStreamResponse checkUserStream(Long userId) {
+  public LiveStreamResponse checkUserStream(Long currentUserId,Long userId) {
+    boolean isBlocked = isUserBlockedByStreamer(userId, currentUserId);
+
+    if(isBlocked) {
+      log.info(
+        "User {} is blocked by streamer {}. Hide livestream",
+        currentUserId, userId
+      );
+
+      return null;
+    }
+
     LiveStream live = liveStreamRepository
       .findTopByUserIdAndStatusInOrderByIdDesc(
         userId,
@@ -174,13 +187,40 @@ public class LiveStreamService {
 
   @Transactional(readOnly = true)
   public LiveStreamResponse getLiveStream(Long liveStreamId, Long userId) {
-    LiveStream liveStream = liveStreamRepository.findById(liveStreamId)
-      .orElseThrow(() -> new RuntimeException("Live stream not found"));
+    LiveStream liveStream = getLiveStreamEntity(liveStreamId);
+
+    boolean isBlocked = isUserBlockedByStreamer(liveStream.getUserId(), userId);
+    if(isBlocked) {
+      log.warn(
+        "Blocked user {} tried to access livestream {} of streamer {}",
+        userId,
+        liveStreamId,
+        liveStream.getUserId()
+      );
+      return null;
+    }
 
     String viewerToken = generateViewerToken(liveStream.getRoomName(),userId);
     LiveStreamResponse res = liveStreamMapper.toResponse(liveStream);
     res.setLivekitToken(viewerToken);
     return res;
+  }
+
+  @Transactional(readOnly = true)
+  public LiveStream getLiveStreamEntity(Long liveStreamId) {
+    return liveStreamRepository.findById(liveStreamId)
+      .orElseThrow(() -> new RuntimeException("Live stream not found"));
+  }
+
+  @Transactional(readOnly = true)
+  public boolean isLiveStreamOwnedByStreamer(Long liveStreamId, Long streamerId) {
+    LiveStream liveStream = getLiveStreamEntity(liveStreamId);
+    return liveStream.getUserId().equals(streamerId);
+  }
+
+  @Transactional(readOnly = true)
+  public boolean isUserBlockedByStreamer(Long streamerId, Long userId) {
+    return liveStreamBlockRepository.existsByStreamerIdAndBlockedUserId(streamerId, userId);
   }
 
   private LiveStreamResponse buildLiveResponse(LiveStream live, Long userId) {

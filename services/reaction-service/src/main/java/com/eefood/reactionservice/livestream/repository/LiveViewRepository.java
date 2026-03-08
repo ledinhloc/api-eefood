@@ -19,4 +19,6 @@ public interface LiveViewRepository extends JpaRepository<LiveView, Long> {
   Optional<LiveView> findByLiveStreamIdAndUserIdAndLeftAtIsNull(Long liveStreamId, Long userId);
 
   boolean existsByLiveStreamIdAndUserIdAndLeftAtIsNull(Long liveStreamId, Long userId);
+
+  Optional<LiveView> findFirstByUserIdAndLeftAtIsNullOrderByJoinedAtDesc(Long userId);
 }

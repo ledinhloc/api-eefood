@@ -9,7 +9,7 @@ services:
     environment:
       - IS_PERSISTENT=TRUE
       - PERSIST_DIRECTORY=/chroma/chroma
-    restart: unless-stopped
+#    restart: unless-stopped
     mem_limit: 512m
     mem_reservation: 256m
 
@@ -61,8 +61,8 @@ services:
       LIVEKIT_RTC_ANNOUNCE_IP: "192.168.1.2"
 
       # Port range cho RTC (UDP)
-      LIVEKIT_RTC_PORT_RANGE_START: "50000"
-      LIVEKIT_RTC_PORT_RANGE_END: "50100"
+      LIVEKIT_RTC_PORT_RANGE_START: "51000"
+      LIVEKIT_RTC_PORT_RANGE_END: "51100"
 
       # ICE Configuration
       LIVEKIT_RTC_USE_ICE_LITE: "false"
@@ -77,7 +77,7 @@ services:
     mem_limit: 512m
     ports:
       - "7880:7880"                    # WebSocket
-      - "50000-50100:50000-50100/udp"  # RTC ports
+      - "51000-51100:51000-51100/udp"  # RTC ports
 
 #    restart: unless-stopped
     networks:
@@ -184,7 +184,7 @@ services:
       - KAFKA_CLUSTERS_0_SCHEMAREGISTRY=http://schema-registry:8081
       - JAVA_OPTS=-Xms128m -Xmx256m
     mem_limit: 512m
-    restart: always
+#    restart: always
     networks:
       - microservices-net
 
@@ -221,7 +221,7 @@ services:
     image: redis:latest
     container_name: redis-server
     mem_limit: 256m
-    restart: always
+#    restart: always
     ports:
       - "6379:6379"
     #    command: [ "redis-server", "--requirepass", "12345678" ]
@@ -232,7 +232,7 @@ services:
     image: redis/redisinsight:latest
     container_name: redis-ui
     mem_limit: 512m
-    restart: always
+#    restart: always
     ports:
       - "5540:5540"
     depends_on:
