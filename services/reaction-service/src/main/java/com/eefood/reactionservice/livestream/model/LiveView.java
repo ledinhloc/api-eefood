@@ -28,9 +28,6 @@ public class LiveView{
   // thời điểm user rời phòng (null nếu đang xem)
   private LocalDateTime leftAt;
 
-//  @ManyToOne
-//  @JoinColumn(name = "live_stream_id", nullable = false)
-//  private LiveStream liveStream;
   @Column(nullable = false)
   private Long liveStreamId;
 }

@@ -1,0 +1,314 @@
+package com.eefood.reactionservice.livestream.service;
+
+
+import com.eefood.reactionservice.enums.ErrorMessage;
+import com.eefood.reactionservice.exception.ExceptionUtil;
+import com.eefood.reactionservice.livestream.dto.request.CreateLivePollRequest;
+import com.eefood.reactionservice.livestream.dto.response.LivePollResponse;
+import com.eefood.reactionservice.livestream.dto.response.PollResultResponse;
+import com.eefood.reactionservice.livestream.enums.PollStatus;
+import com.eefood.reactionservice.livestream.mapper.LivePollMapper;
+import com.eefood.reactionservice.livestream.model.*;
+import com.eefood.reactionservice.livestream.repository.LivePollOptionRepository;
+import com.eefood.reactionservice.livestream.repository.LivePollRepository;
+import com.eefood.reactionservice.livestream.repository.LivePollSettingRepository;
+import com.eefood.reactionservice.livestream.repository.LivePollVoteRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class LivePollService {
+
+  private final LivePollRepository pollRepo;
+  private final LivePollOptionRepository optionRepo;
+  private final LivePollSettingRepository settingRepo;
+  private final LivePollVoteRepository voteRepo;
+
+  private final LivePollMapper pollMapper;
+  private final LivePollBroadcastService livePollBroadcastService;
+
+  @Transactional(readOnly = true)
+  public LivePollResponse getActivePoll(Long liveStreamId) {
+    LivePoll poll = pollRepo
+      .findFirstByLiveStreamIdAndStatusOrderByOpenedAtDescIdDesc(liveStreamId, PollStatus.OPEN)
+      .orElse(null);
+
+    if (poll == null) {
+      return null;
+    }
+
+    LivePollSetting setting = settingRepo.findByPollId(poll.getId())
+      .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.POLL_SETTING_NOT_FOUND));
+
+    List<LivePollOption> options = optionRepo.findByPollIdOrderByIdAsc(poll.getId());
+
+    return pollMapper.toFullResponse(poll, setting, options);
+  }
+
+  @Transactional
+  public LivePollResponse updateStatus(Long liveStreamId, Long pollId, Long userId, PollStatus newStatus) {
+    if (newStatus == null) {
+      throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
+    }
+
+    LivePoll poll = pollRepo.findByIdAndLiveStreamId(pollId, liveStreamId)
+      .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.POLL_NOT_FOUND));
+
+    PollStatus current = poll.getStatus();
+
+    if (current == newStatus) {
+      LivePollSetting setting = settingRepo.findByPollId(pollId)
+        .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.POLL_SETTING_NOT_FOUND));
+      List<LivePollOption> options = optionRepo.findByPollIdOrderByIdAsc(pollId);
+      return pollMapper.toFullResponse(poll, setting, options);
+    }
+
+    if (current == PollStatus.DRAFT && newStatus == PollStatus.OPEN) {
+      poll.setStatus(PollStatus.OPEN);
+      poll.setOpenedAt(LocalDateTime.now());
+    } else if (current == PollStatus.OPEN && newStatus == PollStatus.CLOSED) {
+      poll.setStatus(PollStatus.CLOSED);
+      poll.setClosedAt(LocalDateTime.now());
+    } else {
+      throw ExceptionUtil.badRequest(ErrorMessage.INVALID_POLL_STATUS_TRANSITION);
+    }
+
+    pollRepo.save(poll);
+
+    LivePollSetting setting = settingRepo.findByPollId(pollId)
+      .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.POLL_SETTING_NOT_FOUND));
+    List<LivePollOption> options = optionRepo.findByPollIdOrderByIdAsc(pollId);
+
+    LivePollResponse response = pollMapper.toFullResponse(poll, setting, options);
+    livePollBroadcastService.broadcastPoll(liveStreamId, response);
+
+    PollResultResponse result = buildResult(pollId);
+    livePollBroadcastService.broadcastPollResult(liveStreamId, result);
+    return response;
+  }
+
+  @Transactional
+  public LivePollResponse create(CreateLivePollRequest req, Long liveStreamId) {
+    if (req == null) throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
+    if (liveStreamId == null) throw ExceptionUtil.badRequest(ErrorMessage.INVALID_LIVESTREAM_ID);
+    if (req.getQuestion() == null || req.getQuestion().trim().isBlank()) {
+      throw ExceptionUtil.badRequest(ErrorMessage.INVALID_POLL_QUESTION);
+    }
+    if (req.getOptions() == null || req.getOptions().size() < 2) {
+      throw ExceptionUtil.badRequest(ErrorMessage.INVALID_POLL_OPTIONS);
+    }
+
+    LivePoll poll = pollRepo.save(LivePoll.builder()
+      .liveStreamId(liveStreamId)
+      .question(req.getQuestion().trim())
+      .status(PollStatus.DRAFT)
+      .build());
+
+    for (String opt : req.getOptions()) {
+      if (opt == null || opt.trim().isBlank()) {
+        throw ExceptionUtil.badRequest(ErrorMessage.INVALID_POLL_OPTIONS);
+      }
+      optionRepo.save(LivePollOption.builder()
+        .pollId(poll.getId())
+        .text(opt.trim())
+        .count(0L)
+        .build());
+    }
+
+    // setting
+    LivePollSetting setting = LivePollSetting.builder()
+      .pollId(poll.getId())
+      .allowChangeVote(req.getAllowChangeVote() != null ? req.getAllowChangeVote() : false)
+      .multipleChoice(req.getMultipleChoice() != null ? req.getMultipleChoice() : false)
+      .maxChoices(req.getMaxChoices() != null ? req.getMaxChoices() : 1)
+      .resultVisibility(req.getResultVisibility() != null ? req.getResultVisibility() : settingDefault().getResultVisibility())
+      .voterVisibility(req.getVoterVisibility() != null ? req.getVoterVisibility() : settingDefault().getVoterVisibility())
+      .optionAddMode(req.getOptionAddMode() != null ? req.getOptionAddMode() : settingDefault().getOptionAddMode())
+      .build();
+
+    normalizeSetting(setting);
+    settingRepo.save(setting);
+
+    List<LivePollOption> options = optionRepo.findByPollIdOrderByIdAsc(poll.getId());
+    return pollMapper.toFullResponse(poll, setting, options);
+  }
+
+  @Transactional(readOnly = true)
+  public LivePollResponse detail(Long liveStreamId, Long pollId) {
+    LivePoll poll = pollRepo.findByIdAndLiveStreamId(pollId, liveStreamId)
+      .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.POLL_NOT_FOUND));
+
+    LivePollSetting setting = settingRepo.findByPollId(pollId)
+      .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.POLL_SETTING_NOT_FOUND));
+
+    List<LivePollOption> options = optionRepo.findByPollIdOrderByIdAsc(pollId);
+    return pollMapper.toFullResponse(poll, setting, options);
+  }
+
+  @Transactional
+  public PollResultResponse vote(Long liveStreamId, Long pollId, Long userId, List<Long> optionIds) {
+
+    if (optionIds == null || optionIds.isEmpty()) {
+      throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
+    }
+
+    optionIds = optionIds.stream()
+      .filter(Objects::nonNull)
+      .distinct()
+      .toList();
+
+    LivePoll poll = pollRepo.findByIdAndLiveStreamId(pollId, liveStreamId)
+      .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.POLL_NOT_FOUND));
+
+    if (poll.getStatus() != PollStatus.OPEN) {
+      throw ExceptionUtil.badRequest(ErrorMessage.POLL_NOT_OPEN);
+    }
+
+    LivePollSetting setting = settingRepo.findByPollId(pollId)
+      .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.POLL_SETTING_NOT_FOUND));
+
+    List<LivePollOption> selectedOptions = optionRepo.findAllByPollIdAndIdIn(pollId, optionIds);
+
+    if (selectedOptions.size() != optionIds.size()) {
+      throw ExceptionUtil.badRequest(ErrorMessage.POLL_OPTION_INVALID);
+    }
+
+    // =========================
+    // SINGLE CHOICE
+    // =========================
+    if (!Boolean.TRUE.equals(setting.getMultipleChoice())) {
+
+      if (optionIds.size() != 1) {
+        throw ExceptionUtil.badRequest(ErrorMessage.POLL_SINGLE_CHOICE_ONLY);
+      }
+
+      Long optionId = optionIds.get(0);
+
+      List<LivePollVote> existingVotes = voteRepo.findAllByPollIdAndUserId(pollId, userId);
+      LivePollVote existing = existingVotes.isEmpty() ? null : existingVotes.get(0);
+
+      if (existing == null) {
+
+        voteRepo.save(LivePollVote.builder()
+          .pollId(pollId)
+          .userId(userId)
+          .optionId(optionId)
+          .createdAt(LocalDateTime.now())
+          .build());
+
+        optionRepo.addCount(optionId, 1);
+
+        PollResultResponse result = buildResult(pollId);
+        livePollBroadcastService.broadcastPollResult(liveStreamId, result);
+        return result;
+      }
+
+      if (!Boolean.TRUE.equals(setting.getAllowChangeVote())) {
+        throw ExceptionUtil.conflict(ErrorMessage.POLL_ALREADY_VOTED);
+      }
+
+      if (existing.getOptionId().equals(optionId)) {
+        return buildResult(pollId);
+      }
+
+      optionRepo.addCount(existing.getOptionId(), -1);
+      optionRepo.addCount(optionId, 1);
+
+      existing.setOptionId(optionId);
+      voteRepo.save(existing);
+
+      PollResultResponse result = buildResult(pollId);
+      livePollBroadcastService.broadcastPollResult(liveStreamId, result);
+      return result;
+    }
+
+    // =========================
+    // MULTIPLE CHOICE
+    // =========================
+
+    int maxChoices = setting.getMaxChoices() != null ? setting.getMaxChoices() : 1;
+
+    if (optionIds.size() > maxChoices) {
+      throw ExceptionUtil.conflict(ErrorMessage.POLL_MAX_CHOICES_EXCEEDED);
+    }
+
+    List<LivePollVote> existingVotes = voteRepo.findAllByPollIdAndUserId(pollId, userId);
+    Set<Long> oldOptionIds = existingVotes.stream()
+      .map(LivePollVote::getOptionId)
+      .collect(Collectors.toSet());
+
+    Set<Long> newOptionIds = new HashSet<>(optionIds);
+
+    if (!oldOptionIds.isEmpty() && !Boolean.TRUE.equals(setting.getAllowChangeVote())) {
+      throw ExceptionUtil.conflict(ErrorMessage.POLL_ALREADY_VOTED);
+    }
+
+    Set<Long> toAdd = new HashSet<>(newOptionIds);
+    toAdd.removeAll(oldOptionIds);
+
+    Set<Long> toRemove = new HashSet<>(oldOptionIds);
+    toRemove.removeAll(newOptionIds);
+
+    for (Long optionId : toRemove) {
+      voteRepo.deleteByPollIdAndUserIdAndOptionId(pollId, userId, optionId);
+      optionRepo.addCount(optionId, -1);
+    }
+
+    for (Long optionId : toAdd) {
+      voteRepo.save(LivePollVote.builder()
+        .pollId(pollId)
+        .userId(userId)
+        .optionId(optionId)
+        .createdAt(LocalDateTime.now())
+        .build());
+
+      optionRepo.addCount(optionId, 1);
+    }
+
+    PollResultResponse result = buildResult( pollId);
+    livePollBroadcastService.broadcastPollResult(liveStreamId, result);
+    return result;
+  }
+
+  @Transactional(readOnly = true)
+  public PollResultResponse buildResult(Long pollId) {
+    List<LivePollOption> options = optionRepo.findByPollIdOrderByIdAsc(pollId);
+    long totalVotes = voteRepo.countByPollId(pollId);
+
+    return PollResultResponse.builder()
+      .pollId(pollId)
+      .totalVotes(totalVotes)
+      .options(pollMapper.toOptionResponses(options))
+      .build();
+  }
+
+  private LivePollSetting settingDefault() {
+    return LivePollSetting.builder()
+      .allowChangeVote(false)
+      .multipleChoice(false)
+      .maxChoices(1)
+      .resultVisibility(com.eefood.reactionservice.livestream.enums.PollResultVisibility.AFTER_VOTE)
+      .voterVisibility(com.eefood.reactionservice.livestream.enums.PollVoterVisibility.ANONYMOUS)
+      .optionAddMode(com.eefood.reactionservice.livestream.enums.PollOptionAddMode.HOST_ONLY)
+      .build();
+  }
+
+  private void normalizeSetting(LivePollSetting s) {
+    if (s.getMaxChoices() == null) s.setMaxChoices(1);
+    if (Boolean.TRUE.equals(s.getMultipleChoice())) {
+      if (s.getMaxChoices() < 2) s.setMaxChoices(2);
+    } else {
+      s.setMaxChoices(1);
+    }
+  }
+}
