@@ -12,7 +12,7 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class LivePollResponse {
-  private String id;
+  private Long id;
   private Long liveStreamId;
   private String question;
   private PollStatus status;
