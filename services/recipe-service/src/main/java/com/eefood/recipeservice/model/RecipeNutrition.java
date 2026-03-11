@@ -25,6 +25,7 @@ public class RecipeNutrition {
     private Double totalFat;
     private Double totalCarb;
     private Double totalFiber;
+    private Double totalSugar;
     private Double totalCalcium;
     private Double totalSodium;
 

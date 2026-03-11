@@ -12,4 +12,5 @@ import java.util.Optional;
 @Repository
 public interface RecipeRepository extends JpaRepository<Recipe, Long>, JpaSpecificationExecutor<Recipe> {
   Optional<Recipe> findByIdAndIsDeletedFalse(Long id);
+  Optional<Recipe> findFirstByTitleContainingIgnoreCaseAndIsDeletedFalse(String title);
 }

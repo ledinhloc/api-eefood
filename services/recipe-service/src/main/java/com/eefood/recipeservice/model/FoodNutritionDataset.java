@@ -23,6 +23,7 @@ public class FoodNutritionDataset {
     private Double fat;
     private Double carb;
     private Double fiber;
+    private Double sugar;
     private Double calcium;
     private Double sodium;
 }
