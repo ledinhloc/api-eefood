@@ -13,7 +13,7 @@ TOOLS:
 
 TOOL SUGGEST_POST
 THAM SỐ SUGGEST_POST:
-- keyword (*bắt buộc): từ khóa món ăn HOẶC nguyên liệu chính (1-3 từ)
+- keyword: từ khóa món ăn HOẶC nguyên liệu chính (1-3 từ)
   VD: "gà", "phở", "bún bò", "cơm"
   Nếu user hỏi "món với gà" → keyword="gà"
 
@@ -23,6 +23,7 @@ THAM SỐ SUGGEST_POST:
 - location (*bắt buộc): lấy từ context hệ thống
 
 - category: ["Món sáng", "Món chay",...] - chỉ khi rõ ràng, nếu không → []
+(Lưu ý: có thể lấy nguyên mẫu category hint)
 
 - difficulty: EASY|MEDIUM|HARD - chỉ khi user đề cập
 

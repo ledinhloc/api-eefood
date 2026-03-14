@@ -1,6 +1,9 @@
 package com.eefood.recipeservice.config;
 
+import com.eefood.recipeservice.service.nutrition.AIService;
 import dev.langchain4j.model.googleai.GoogleAiGeminiChatModel;
+import dev.langchain4j.model.googleai.GoogleAiGeminiStreamingChatModel;
+import dev.langchain4j.service.AiServices;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,6 +25,15 @@ public class GoogleAIGeminiConfig {
                 .apiKey(geminiApiKey)
                 .modelName(geminiModel)
                 .temperature(geminiTemperature)
+                .build();
+    }
+
+    @Bean
+    public AIService chatbotAIService(
+            GoogleAiGeminiChatModel geminiChatModel
+    ) {
+        return AiServices.builder(AIService.class)
+                .chatModel(geminiChatModel)
                 .build();
     }
 }
