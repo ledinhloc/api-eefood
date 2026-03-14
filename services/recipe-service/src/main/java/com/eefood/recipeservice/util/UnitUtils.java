@@ -10,29 +10,29 @@ public class UnitUtils {
 
         return switch (unit.trim().toLowerCase()) {
 
-            // ── Khối lượng ──────────────────────────────────────────────
+            //  Khối lượng
             case "g", "gram", "gam"             -> quantity;
             case "kg"                            -> quantity * 1000;
             case "lạng"                          -> quantity * 37.5;
 
-            // ── Thể tích ────────────────────────────────────────────────
+            //  Thể tích
             case "ml", "cc"                     -> quantity;
             case "l", "lít"                     -> quantity * 1000;
 
-            // ── Thìa / muỗng ────────────────────────────────────────────
+            //  Thìa / muỗng
             case "muỗng canh", "muống canh",
                  "thìa canh", "tbsp"            -> quantity * 15;
             case "muỗng cà phê", "muống cà phê",
                  "thìa cà phê", "tsp"           -> quantity * 5;
             case "muỗng", "muống", "thìa"       -> quantity * 5;   // mặc định = cà phê
 
-            // ── Bát / chén / tô / cốc / cup ────────────────────────────
+            //  Bát / chén / tô / cốc / cup
             case "cup", "cốc", "ly"             -> quantity * 240;
             case "chén"                          -> quantity * 150;
             case "bát"                           -> quantity * 200;
             case "tô"                            -> quantity * 400;
 
-            // ── Đơn vị đếm (không quy đổi chuẩn xác) ───────────────────
+            //  Đơn vị đếm (không quy đổi chuẩn xác)
             case "quả", "trái", "củ", "con",
                  "cái", "chiếc", "viên",
                  "miếng", "lát", "khúc",

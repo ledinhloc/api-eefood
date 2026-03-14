@@ -26,18 +26,6 @@ public interface AIService {
         """)
     String identifyDishFromImage(@UserMessage String base64Image);
 
-    @SystemMessage("""
-        You are a professional nutritionist. Given the nutrition summary of a recipe, provide:
-        1. A short summary (2-3 sentences) in Vietnamese about the nutritional profile.
-        2. A health level: one of [EXCELLENT, GOOD, FAIR, POOR].
-        3. Practical dietary recommendations in Vietnamese (2-3 sentences).
-
-        RESPOND ONLY IN THIS EXACT JSON FORMAT (no markdown, no backticks):
-        {
-          "summary": "...",
-          "healthLevel": "HEALTHY",
-          "recommendation": "..."
-        }
-        """)
+    @SystemMessage(fromResource = "prompts/nutrition_analyze.txt")
     String analyzeNutrition(@UserMessage String nutritionSummary);
 }

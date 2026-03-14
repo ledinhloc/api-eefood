@@ -35,4 +35,24 @@ public interface NutritionMapper {
             RecipeNutritionAnalysis analysis,
             List<IngredientNutritionDetail> ingredientDetails
     );
+
+    @Mapping(target = "recipeId",          source = "nutrition.recipe.id")
+    @Mapping(target = "recipeTitle",       source = "nutrition.recipe.title")
+    @Mapping(target = "totalCalories",     source = "nutrition.totalCalories")
+    @Mapping(target = "totalProtein",      source = "nutrition.totalProtein")
+    @Mapping(target = "totalFat",          source = "nutrition.totalFat")
+    @Mapping(target = "totalCarb",         source = "nutrition.totalCarb")
+    @Mapping(target = "totalFiber",        source = "nutrition.totalFiber")
+    @Mapping(target = "totalSugar",        source = "nutrition.totalSugar")
+    @Mapping(target = "totalCalcium",      source = "nutrition.totalCalcium")
+    @Mapping(target = "totalSodium",       source = "nutrition.totalSodium")
+    @Mapping(target = "healthScore",       source = "nutrition.healthScore")
+    @Mapping(target = "summary",           ignore = true)
+    @Mapping(target = "healthLevel",       ignore = true)
+    @Mapping(target = "recommendation",    ignore = true)
+    @Mapping(target = "ingredientDetails", source = "details")
+    NutritionAnalysisResponse toPartialResponse(
+            RecipeNutrition nutrition,
+            List<IngredientNutritionDetail> details
+    );
 }

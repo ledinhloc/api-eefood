@@ -6,5 +6,5 @@ import lombok.Data;
 @Data
 public class ImageAnalysisRequest {
     @NotBlank
-    private String base64Image;
+    private String imageUrl;
 }

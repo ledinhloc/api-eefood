@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @RestController
 @RequestMapping("/api/v1/nutrition")
@@ -17,16 +18,16 @@ public class NutritionAnalysisController {
     private final NutritionAnalysisService nutritionAnalysisService;
 
     //Phân tích dinh dưỡng từ recipeId
-    @PostMapping("/recipe/{recipeId}")
-    public ResponseData<NutritionAnalysisResponse> analyzeByRecipeId(@PathVariable Long recipeId) {
-        NutritionAnalysisResponse result = nutritionAnalysisService.analyzeByRecipeId(recipeId);
-        return new ResponseData<>(HttpStatus.OK.value(), "Success", result);
+    @PostMapping(value = "/recipe/{recipeId}/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter analyzeStreamByRecipeId(@PathVariable Long recipeId,  @RequestParam(defaultValue = "false") boolean forceRefresh)
+    {
+        return nutritionAnalysisService.analyzeStreamByRecipeId(recipeId, forceRefresh);
     }
 
     // Phân tích dinh dưỡng từ ảnh (base64)
-    @PostMapping( "/image")
-    public ResponseData<NutritionAnalysisResponse> analyzeByImage(@RequestBody ImageAnalysisRequest request) {
-        NutritionAnalysisResponse result = nutritionAnalysisService.analyzeByImage(request.getBase64Image());
-        return new ResponseData<>(HttpStatus.OK.value(), "Success", result);
+    @PostMapping( value = "/image/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter analyzeStreamByImage(@RequestBody ImageAnalysisRequest request)
+    {
+        return nutritionAnalysisService.analyzeStreamByImage(request.getImageUrl());
     }
 }

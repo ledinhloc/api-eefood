@@ -11,23 +11,26 @@ import com.eefood.recipeservice.model.*;
 import com.eefood.recipeservice.repository.RecipeRepository;
 import com.eefood.recipeservice.repository.nutrition.*;
 import com.eefood.recipeservice.util.ImageUtils;
-import com.fasterxml.jackson.core.JsonProcessingException;
+import com.eefood.recipeservice.util.NutritionSseUtils;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.time.Duration;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
-@Transactional
 public class NutritionAnalysisService {
     private final RecipeRepository recipeRepository;
     private final IngredientNutritionRepository ingredientNutritionRepository;
@@ -40,107 +43,243 @@ public class NutritionAnalysisService {
     private final ObjectMapper objectMapper;
     private final NutritionCalculator calculator;
     private final NutritionPromptBuilder promptBuilder;
+    private final RedisTemplate<String, Object> redisTemplate;
+    private final Executor nutritionAiExecutor;
+    private static final String CACHE_PREFIX = "nutrition:recipe:";
+    private static final Duration CACHE_TTL = Duration.ofHours(24);
+    private final NutritionSseUtils nutritionSseUtils;
+
 
     // Phân tích dinh dưỡng từ recipeId có sẵn trong DB
-    public NutritionAnalysisResponse analyzeByRecipeId(Long recipeId) {
-        Recipe recipe = recipeRepository.findByIdAndIsDeletedFalse(recipeId)
+    public SseEmitter analyzeStreamByRecipeId(Long recipeId, boolean forceRefresh) {
+        SseEmitter emitter = new SseEmitter(60_000L);
+
+        // TRƯỚC khi chuyển sang async thread
+        String cacheKey = CACHE_PREFIX + recipeId;
+
+        if (!forceRefresh) {
+            NutritionAnalysisResponse cached =
+                    (NutritionAnalysisResponse) redisTemplate.opsForValue().get(cacheKey);
+            if (cached != null) {
+                log.info("[Nutrition SSE] Cache hit for recipeId={}", recipeId);
+                try {
+                    nutritionSseUtils.sendAnalysisData(emitter, cached);
+                    nutritionSseUtils.sendComplete(emitter, "Phân tích hoàn tất");
+                    emitter.complete();
+                } catch (Exception e) {
+                    emitter.completeWithError(e);
+                }
+                return emitter;
+            }
+        }
+
+        Recipe recipe = recipeRepository.findByIdWithIngredients(recipeId)
                 .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.RECIPE_NOT_FOUND));
-        return analyze(recipe);
+
+        // Validate ngay trên main thread
+        if (recipe.getIngredients() == null || recipe.getIngredients().isEmpty()) {
+            try {
+                nutritionSseUtils.sendError(emitter, ErrorMessage.RECIPE_HAS_NO_INGREDIENTS.getMessage());
+                emitter.complete();
+            } catch (Exception e) {
+                emitter.completeWithError(e);
+            }
+            return emitter;
+        }
+
+        // Chuyển sang async sau khi đã có đủ data
+        CompletableFuture.runAsync(() -> {
+            try {
+                analyzeStream(recipe, emitter);
+            } catch (Exception e) {
+                log.error("[Nutrition SSE] Error: {}", e.getMessage(), e);
+                nutritionSseUtils.sendError(emitter, e.getMessage());
+                emitter.complete();
+            }
+        }, nutritionAiExecutor);
+
+        return emitter;
     }
 
     // Phân tích dinh dưỡng từ ảnh món ăn
-    public NutritionAnalysisResponse analyzeByImage(String imageUrl) {
-        String base64Image = ImageUtils.downloadAndEncodeImage(imageUrl);
+    public SseEmitter analyzeStreamByImage(String imageUrl) {
+        SseEmitter emitter = new SseEmitter(60_000L);
 
-        // AI nhận dạng tên món ăn từ ảnh
-        String dishName = aiService.identifyDishFromImage(base64Image);
-        log.info("[Nutrition] Identified dish from image: {}", dishName);
+        CompletableFuture.runAsync(() -> {
+            try {
+                nutritionSseUtils.sendStatus(emitter, "Đang nhận dạng món ăn từ ảnh...");
+                String base64Image = ImageUtils.downloadAndEncodeImage(imageUrl);
+                String dishName = aiService.identifyDishFromImage(base64Image);
+                log.info("[Nutrition SSE] Identified dish: {}", dishName);
 
-        // Tìm recipe phù hợp nhất theo tên món
-        Recipe recipe = recipeRepository
-                .findFirstByTitleContainingIgnoreCaseAndIsDeletedFalse(dishName)
-                .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.RECIPE_NOT_FOUND));
+                Recipe recipe = recipeRepository
+                        .findFirstByTitleWithIngredients(dishName)
+                        .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.RECIPE_NOT_FOUND));
 
-        return analyze(recipe);
+                analyzeStream(recipe, emitter);
+
+            } catch (Exception e) {
+                log.error("[Nutrition SSE] Image analyze error: {}", e.getMessage(), e);
+                nutritionSseUtils.sendError(emitter, e.getMessage());
+                emitter.complete();
+            }
+        }, nutritionAiExecutor);
+
+        return emitter;
     }
 
 
-    private NutritionAnalysisResponse analyze(Recipe recipe) {
-        List<RecipeIngredient> ingredients = new ArrayList<>(recipe.getIngredients());
+    private void analyzeStream(Recipe recipe, SseEmitter emitter) {
+        nutritionSseUtils.sendStatus(emitter, "Đang tính toán dinh dưỡng từng nguyên liệu...");
 
+        List<RecipeIngredient> ingredients = new ArrayList<>(recipe.getIngredients());
         if (ingredients.isEmpty()) {
             throw new IllegalStateException("Recipe has no ingredients: " + recipe.getId());
         }
 
-        // Chuẩn hóa tên nguyên liệu + mapping dinh dưỡng
         List<RecipeIngredientNutrition> rinList = resolveIngredientNutritions(recipe, ingredients);
 
-        // Tính tổng dinh dưỡng
+        // Tính nutrition tổng → gửi ngay, không chờ AI
         RecipeNutrition nutrition = calculateAndSaveTotalNutrition(recipe, rinList);
 
-        // AI phân tích + lưu kết quả
-        RecipeNutritionAnalysis analysis = aiAnalyzeAndSave(recipe, nutrition);
-
-        // Build response
         List<IngredientNutritionDetail> details = rinList.stream()
                 .map(nutritionMapper::toDetail)
                 .toList();
 
-        return nutritionMapper.toResponse(nutrition, analysis, details);
-    }
+        // Gửi partial response (chưa có AI analysis)
+        NutritionAnalysisResponse partialResponse = nutritionMapper.toPartialResponse(nutrition, details);
+        nutritionSseUtils.sendNutritionData(emitter, partialResponse);
 
-    private List<RecipeIngredientNutrition> resolveIngredientNutritions(Recipe recipe, List<RecipeIngredient> ingredients) {
-        recipeIngredientNutritionRepository.deleteByRecipeId(recipe.getId());
-
-        Map<Long, String> normalizedKeywords = batchNormalizeIngredientNames(ingredients);
-
-        List<RecipeIngredientNutrition> result = new ArrayList<>();
-
-        for (RecipeIngredient ri : ingredients) {
-            String keyword = normalizedKeywords.getOrDefault(ri.getIngredient().getId(), ri.getIngredient().getName());
-            log.info("[Nutrition] '{}' → keyword: '{}'", ri.getIngredient().getName(), keyword);
-
-            IngredientNutrition nutrition = getOrCreateIngredientNutrition(ri.getIngredient(), keyword);
-            if (nutrition == null) {
-                log.warn("[Nutrition] No nutrition data found for keyword: '{}'", keyword);
-                continue;
-            }
-
-            RecipeIngredientNutrition rin = buildRecipeIngredientNutrition(recipe, ri, nutrition);
-            result.add(recipeIngredientNutritionRepository.save(rin));
+        //Chờ AI analysis → gửi khi xong
+        RecipeNutritionAnalysis analysis;
+        try {
+            analysis = CompletableFuture
+                    .supplyAsync(() -> aiAnalyzeAndSave(recipe, nutrition), nutritionAiExecutor)
+                    .get(15, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            log.warn("[Nutrition SSE] AI analysis timed out, using fallback");
+            analysis = buildFallbackAnalysis(recipe, nutrition);
         }
 
-        return result;
+        // Gửi full response (có AI analysis)
+        NutritionAnalysisResponse fullResponse = nutritionMapper.toResponse(nutrition, analysis, details);
+        nutritionSseUtils.sendAnalysisData(emitter, fullResponse);
+
+        // Lưu cache và kết thúc
+        String cacheKey = CACHE_PREFIX + recipe.getId();
+        redisTemplate.opsForValue().set(cacheKey, fullResponse, CACHE_TTL);
+
+        nutritionSseUtils.sendComplete(emitter, "Phân tích dinh dưỡng hoàn tất!");
+        emitter.complete();
     }
 
-    private IngredientNutrition getOrCreateIngredientNutrition(Ingredient ingredient, String keyword) {
-        // Đã có mapping rồi => dùng luôn
-        Optional<IngredientNutrition> existing = ingredientNutritionRepository.findByIngredientId(ingredient.getId());
-        if (existing.isPresent()) return existing.get();
+    private List<RecipeIngredientNutrition> resolveIngredientNutritions(
+            Recipe recipe, List<RecipeIngredient> ingredients) {
 
-        // Tìm trong FoodNutritionDataset theo keyword
-        List<FoodNutritionDataset> candidates = foodDatasetRepository.findByFoodNameViContainingIgnoreCase(keyword);
-        if (candidates.isEmpty()) return null;
+        recipeIngredientNutritionRepository.deleteByRecipeId(recipe.getId());
 
-        // Lấy kết quả khớp nhất (đơn giản: phần tử đầu tiên)
-        FoodNutritionDataset source = candidates.get(0);
+        List<Long> ingredientIds = ingredients.stream()
+                .map(ri -> ri.getIngredient().getId())
+                .toList();
 
-        // Tạo IngredientNutrition mới từ dataset
-        IngredientNutrition newNutrition = IngredientNutrition.builder()
-                .ingredient(ingredient)
-                .calories(source.getEnergy())
-                .protein(source.getProtein())
-                .fat(source.getFat())
-                .carb(source.getCarb())
-                .fiber(source.getFiber())
-                .sugar(source.getSugar())
-                .calcium(source.getCalcium())
-                .sodium(source.getSodium())
-                .sourceFood(source)
-                .build();
+        CompletableFuture<Map<Long, String>> normalizeFuture =
+                CompletableFuture.supplyAsync(
+                        () -> batchNormalizeIngredientNames(ingredients),
+                        nutritionAiExecutor);
 
-        return ingredientNutritionRepository.save(newNutrition);
+        CompletableFuture<Map<Long, IngredientNutrition>> existingFuture =
+                CompletableFuture.supplyAsync(
+                        () -> ingredientNutritionRepository
+                                .findByIngredientIdIn(ingredientIds)
+                                .stream()
+                                .collect(Collectors.toMap(
+                                        n -> n.getIngredient().getId(),
+                                        Function.identity())),
+                        nutritionAiExecutor);
+
+        // Khai báo raw trước, gán sau try/catch
+        Map<Long, String> rawKeywords;
+        Map<Long, IngredientNutrition> rawNutritions;
+        try {
+            rawKeywords    = normalizeFuture.get(10, TimeUnit.SECONDS);
+            rawNutritions  = existingFuture.get(5, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            log.warn("[Nutrition] Parallel init failed, falling back: {}", e.getMessage());
+            rawKeywords    = fallbackToOriginalNames(ingredients);
+            rawNutritions  = ingredientNutritionRepository
+                    .findByIngredientIdIn(ingredientIds)
+                    .stream()
+                    .collect(Collectors.toMap(
+                            n -> n.getIngredient().getId(),
+                            Function.identity()));
+        }
+
+        // Gán vào final map — an toàn để dùng trong lambda
+        final Map<Long, String> normalizedKeywords = rawKeywords;
+        final Map<Long, IngredientNutrition> existingNutritions = new HashMap<>(rawNutritions);
+
+        // Xác định các ingredient chưa có nutrition trong DB
+        Map<Long, String> missingKeywords = new LinkedHashMap<>();
+        for (RecipeIngredient ri : ingredients) {
+            Long id = ri.getIngredient().getId();
+            if (!existingNutritions.containsKey(id)) {
+                missingKeywords.put(id,
+                        normalizedKeywords.getOrDefault(id, ri.getIngredient().getName()));
+            }
+        }
+
+        // Batch query dataset cho các keyword còn thiếu
+        if (!missingKeywords.isEmpty()) {
+            Map<String, FoodNutritionDataset> datasetByKeyword = new HashMap<>();
+            String keywordsJoined = String.join(",", missingKeywords.values());
+            foodDatasetRepository
+                    .findByFoodNameViContainingAnyKeyword(keywordsJoined)
+                    .forEach(d -> datasetByKeyword.putIfAbsent(d.getFoodNameVi().toLowerCase(), d));
+
+            List<IngredientNutrition> toSave = new ArrayList<>();
+            for (Map.Entry<Long, String> entry : missingKeywords.entrySet()) {
+                Long ingredientId = entry.getKey();
+                String keyword    = entry.getValue().toLowerCase();
+
+                FoodNutritionDataset source = datasetByKeyword.entrySet().stream()
+                        .filter(e -> e.getKey().contains(keyword))
+                        .map(Map.Entry::getValue)
+                        .findFirst()
+                        .orElse(null);
+
+                if (source == null) continue;
+
+                Ingredient ingredient = ingredients.stream()
+                        .filter(ri -> ri.getIngredient().getId().equals(ingredientId))
+                        .map(RecipeIngredient::getIngredient)
+                        .findFirst()
+                        .orElseThrow();
+
+                toSave.add(buildIngredientNutrition(ingredient, source));
+            }
+
+            if (!toSave.isEmpty()) {
+                ingredientNutritionRepository.saveAll(toSave)
+                        .forEach(n -> existingNutritions.put(n.getIngredient().getId(), n));
+            }
+        }
+
+        // Build RecipeIngredientNutrition list và batch save
+        List<RecipeIngredientNutrition> rinList = new ArrayList<>();
+        for (RecipeIngredient ri : ingredients) {
+            Long id = ri.getIngredient().getId();
+            IngredientNutrition nutrition = existingNutritions.get(id);
+            if (nutrition == null) {
+                log.warn("[Nutrition] No nutrition data found for ingredient id={}, keyword='{}'",
+                        id, normalizedKeywords.getOrDefault(id, ri.getIngredient().getName()));
+                continue;
+            }
+            rinList.add(buildRecipeIngredientNutrition(recipe, ri, nutrition));
+        }
+
+        return recipeIngredientNutritionRepository.saveAll(rinList);
     }
+
 
     private RecipeIngredientNutrition buildRecipeIngredientNutrition(
             Recipe recipe,
@@ -162,6 +301,22 @@ public class NutritionAnalysisService {
                 .sugar(calculator.round(calculator.safe(nutrition.getSugar())      * ratio))
                 .calcium(calculator.round(calculator.safe(nutrition.getCalcium())  * ratio))
                 .sodium(calculator.round(calculator.safe(nutrition.getSodium())    * ratio))
+                .build();
+    }
+
+    private IngredientNutrition buildIngredientNutrition(
+            Ingredient ingredient, FoodNutritionDataset source) {
+        return IngredientNutrition.builder()
+                .ingredient(ingredient)
+                .calories(source.getEnergy())
+                .protein(source.getProtein())
+                .fat(source.getFat())
+                .carb(source.getCarb())
+                .fiber(source.getFiber())
+                .sugar(source.getSugar())
+                .calcium(source.getCalcium())
+                .sodium(source.getSodium())
+                .sourceFood(source)
                 .build();
     }
 
@@ -235,7 +390,7 @@ public class NutritionAnalysisService {
     }
 
     private RecipeNutritionAnalysis aiAnalyzeAndSave(Recipe recipe, RecipeNutrition nutrition) {
-        String prompt = promptBuilder.buildPrompt   (recipe.getTitle(), nutrition);
+        String prompt = promptBuilder.buildPrompt(recipe.getTitle(), nutrition);
 
         String aiJson;
         try {
@@ -257,4 +412,20 @@ public class NutritionAnalysisService {
         return recipeNutritionAnalysisRepository.save(analysis);
     }
 
+    private RecipeNutritionAnalysis buildFallbackAnalysis(Recipe recipe, RecipeNutrition nutrition) {
+        RecipeNutritionAnalysis analysis = recipeNutritionAnalysisRepository
+                .findByRecipeId(recipe.getId())
+                .orElse(RecipeNutritionAnalysis.builder().recipe(recipe).build());
+        String level = nutrition.getHealthScore() >= 70 ? HealthLevel.GOOD.name()
+                : nutrition.getHealthScore() >= 40 ? HealthLevel.FAIR.name()
+                : HealthLevel.POOR.name();
+        analysis.setSummary("Phân tích tự động.");
+        analysis.setHealthLevel(HealthLevel.valueOf(level));
+        analysis.setRecommendation("Cân bằng khẩu phần ăn.");
+        return recipeNutritionAnalysisRepository.save(analysis);
+    }
+
+    public void evictCache(Long recipeId) {
+        redisTemplate.delete(CACHE_PREFIX + recipeId);
+    }
 }
