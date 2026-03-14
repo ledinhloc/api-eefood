@@ -41,7 +41,7 @@ spring:
 
 
   datasource:
-    url: ${env.recipe.datasource.url:jdbc:postgresql://localhost:5435/recipe_service?useUnicode=true&characterEncoding=UTF-8}
+    url: ${env.recipe.datasource.url:jdbc:postgresql://localhost:5435/recipe_service}
     username: ${env.recipe.datasource.username:postgres}
     password: ${env.recipe.datasource.password:postgres}
     hikari:
