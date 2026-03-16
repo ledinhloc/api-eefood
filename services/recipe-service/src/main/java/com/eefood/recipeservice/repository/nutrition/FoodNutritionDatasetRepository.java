@@ -13,13 +13,13 @@ import java.util.Optional;
 @Repository
 public interface FoodNutritionDatasetRepository extends JpaRepository<FoodNutritionDataset, Long> {
     @Query(value = """
-        SELECT DISTINCT * FROM food_nutrition_dataset f
-        WHERE EXISTS (
-            SELECT 1 FROM unnest(string_to_array(:keywords, ',')) k
-            WHERE LOWER(f.food_name_vi) LIKE CONCAT('%', TRIM(k), '%')
-               OR LOWER(f.food_name_vi) = TRIM(k)
-        )
-        """, nativeQuery = true)
+    SELECT DISTINCT * FROM food_nutrition_dataset f
+    WHERE EXISTS (
+        SELECT 1 FROM unnest(string_to_array(:keywords, '|')) k
+        WHERE LOWER(f.food_name_vi) LIKE CONCAT('%', LOWER(TRIM(k)), '%')
+           OR LOWER(TRIM(k)) LIKE CONCAT('%', LOWER(f.food_name_vi), '%')
+    )
+    """, nativeQuery = true)
     List<FoodNutritionDataset> findByFoodNameViContainingAnyKeyword(
             @Param("keywords") String keywords);
 }

@@ -47,10 +47,8 @@ public class NutritionAnalysisService {
     private final RedisTemplate<String, Object> redisTemplate;
     private final Executor nutritionAiExecutor;
     private static final String CACHE_PREFIX = "nutrition:recipe:";
-    private static final Duration CACHE_TTL = Duration.ofHours(24);
+    private static final Duration CACHE_TTL = Duration.ofMinutes(15);
     private final NutritionSseUtils nutritionSseUtils;
-    private final RecipeService recipeService;
-    private final RecipeMapper recipeMapper;
 
 
     // Phân tích dinh dưỡng từ recipeId có sẵn trong DB
@@ -115,15 +113,12 @@ public class NutritionAnalysisService {
                 log.info("[Nutrition SSE] Identified dish: {}", dishName);
                 log.info("Url: {}", imageUrl);
 
-                /**Recipe recipe = recipeRepository
+                Recipe recipe = recipeRepository
                         .findFirstByTitleAndDescriptionWithIngredients(dishName, dishName)
-                        .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.RECIPE_NOT_FOUND));**/
-
-                Recipe recipe = recipeMapper.to
+                        .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.RECIPE_NOT_FOUND));
 
                 String recipeCacheKey = CACHE_PREFIX + recipe.getId();
-                NutritionAnalysisResponse cached =
-                        (NutritionAnalysisResponse) redisTemplate.opsForValue().get(recipeCacheKey);
+                NutritionAnalysisResponse cached = (NutritionAnalysisResponse) redisTemplate.opsForValue().get(recipeCacheKey);
 
                 if (cached != null) {
                     log.info("[Nutrition SSE] Cache hit for recipe: {}", recipe.getId());
@@ -218,8 +213,8 @@ public class NutritionAnalysisService {
         Map<Long, String> rawKeywords;
         Map<Long, IngredientNutrition> rawNutritions;
         try {
-            rawKeywords    = normalizeFuture.get(10, TimeUnit.SECONDS);
-            rawNutritions  = existingFuture.get(5, TimeUnit.SECONDS);
+            rawKeywords    = normalizeFuture.get(15, TimeUnit.SECONDS);
+            rawNutritions  = existingFuture.get(8, TimeUnit.SECONDS);
         } catch (Exception e) {
             log.warn("[Nutrition] Parallel init failed, falling back: {}", e.getMessage());
             rawKeywords    = fallbackToOriginalNames(ingredients);
@@ -247,24 +242,37 @@ public class NutritionAnalysisService {
 
         // Batch query dataset cho các keyword còn thiếu
         if (!missingKeywords.isEmpty()) {
-            Map<String, FoodNutritionDataset> datasetByKeyword = new HashMap<>();
-            String keywordsJoined = String.join(",", missingKeywords.values());
-            foodDatasetRepository
-                    .findByFoodNameViContainingAnyKeyword(keywordsJoined)
-                    .forEach(d -> datasetByKeyword.putIfAbsent(d.getFoodNameVi().toLowerCase(), d));
+            String keywordsJoined = String.join("|", missingKeywords.values());
+
+            log.debug("[Nutrition] Querying dataset with keywords: {}", keywordsJoined);
+
+            // Map: foodNameVi lowercase → dataset
+            List<FoodNutritionDataset> datasetResults =
+                    foodDatasetRepository.findByFoodNameViContainingAnyKeyword(keywordsJoined);
+
+            log.debug("[Nutrition] Dataset returned {} rows", datasetResults.size());
 
             List<IngredientNutrition> toSave = new ArrayList<>();
             for (Map.Entry<Long, String> entry : missingKeywords.entrySet()) {
                 Long ingredientId = entry.getKey();
-                String keyword    = entry.getValue().toLowerCase();
+                String keyword = entry.getValue().toLowerCase().trim();
 
-                FoodNutritionDataset source = datasetByKeyword.entrySet().stream()
-                        .filter(e -> e.getKey().contains(keyword))
-                        .map(Map.Entry::getValue)
+                FoodNutritionDataset source = datasetResults.stream()
+                        .filter(d -> {
+                            String datasetName = d.getFoodNameVi().toLowerCase().trim();
+                            return datasetName.contains(keyword) || keyword.contains(datasetName);
+                        })
                         .findFirst()
                         .orElse(null);
 
-                if (source == null) continue;
+                if (source == null) {
+                    log.warn("[Nutrition] No dataset match for ingredient id={}, keyword='{}'",
+                            ingredientId, keyword);
+                    continue;
+                }
+
+                log.debug("[Nutrition] Matched ingredient id={}, keyword='{}' → dataset='{}'",
+                        ingredientId, keyword, source.getFoodNameVi());
 
                 Ingredient ingredient = ingredients.stream()
                         .filter(ri -> ri.getIngredient().getId().equals(ingredientId))
