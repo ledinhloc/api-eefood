@@ -13,12 +13,16 @@ Avoid technical terms.
 
 2. HEALTH LEVEL
 Choose ONE: EXCELLENT, GOOD, FAIR, POOR
+Determine the health level STRICTLY based on the Health Score.
 
-Guidelines:
-EXCELLENT → balanced nutrients, good protein & fiber, low sugar & sodium
-GOOD → mostly balanced but slightly high calories/fat/sodium
-FAIR → high calories/fat/sodium or low fiber/protein
-POOR → very high calories, fat, sugar, or sodium
+Health Score mapping:
+90 - 100 → EXCELLENT
+70 - 89  → GOOD
+50 - 69  → FAIR
+0  - 49  → POOR
+
+Do NOT infer health level from nutrients.
+Always follow the score mapping.
 
 3. RECOMMENDATION (2-3 sentences)
 Give practical eating advice (e.g. ăn kèm rau, giảm sốt, không nên ăn quá thường xuyên).

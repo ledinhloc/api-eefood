@@ -7,10 +7,11 @@ import com.eefood.recipeservice.enums.ErrorMessage;
 import com.eefood.recipeservice.enums.HealthLevel;
 import com.eefood.recipeservice.exception.ExceptionUtil;
 import com.eefood.recipeservice.mapper.NutritionMapper;
+import com.eefood.recipeservice.mapper.RecipeMapper;
 import com.eefood.recipeservice.model.*;
 import com.eefood.recipeservice.repository.RecipeRepository;
 import com.eefood.recipeservice.repository.nutrition.*;
-import com.eefood.recipeservice.util.ImageUtils;
+import com.eefood.recipeservice.service.RecipeService;
 import com.eefood.recipeservice.util.NutritionSseUtils;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -48,6 +49,8 @@ public class NutritionAnalysisService {
     private static final String CACHE_PREFIX = "nutrition:recipe:";
     private static final Duration CACHE_TTL = Duration.ofHours(24);
     private final NutritionSseUtils nutritionSseUtils;
+    private final RecipeService recipeService;
+    private final RecipeMapper recipeMapper;
 
 
     // Phân tích dinh dưỡng từ recipeId có sẵn trong DB
@@ -107,14 +110,28 @@ public class NutritionAnalysisService {
 
         CompletableFuture.runAsync(() -> {
             try {
-                nutritionSseUtils.sendStatus(emitter, "Đang nhận dạng món ăn từ ảnh...");
-                String base64Image = ImageUtils.downloadAndEncodeImage(imageUrl);
-                String dishName = aiService.identifyDishFromImage(base64Image);
+                // Gọi AI với URL trực tiếp, không cache, không base64
+                String dishName = aiService.identifyDishFromImage(imageUrl);
                 log.info("[Nutrition SSE] Identified dish: {}", dishName);
+                log.info("Url: {}", imageUrl);
 
-                Recipe recipe = recipeRepository
-                        .findFirstByTitleWithIngredients(dishName)
-                        .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.RECIPE_NOT_FOUND));
+                /**Recipe recipe = recipeRepository
+                        .findFirstByTitleAndDescriptionWithIngredients(dishName, dishName)
+                        .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.RECIPE_NOT_FOUND));**/
+
+                Recipe recipe = recipeMapper.to
+
+                String recipeCacheKey = CACHE_PREFIX + recipe.getId();
+                NutritionAnalysisResponse cached =
+                        (NutritionAnalysisResponse) redisTemplate.opsForValue().get(recipeCacheKey);
+
+                if (cached != null) {
+                    log.info("[Nutrition SSE] Cache hit for recipe: {}", recipe.getId());
+                    nutritionSseUtils.sendAnalysisData(emitter, cached);
+                    nutritionSseUtils.sendComplete(emitter, "Phân tích hoàn tất");
+                    emitter.complete();
+                    return;
+                }
 
                 analyzeStream(recipe, emitter);
 
@@ -344,40 +361,46 @@ public class NutritionAnalysisService {
     }
 
     private Map<Long, String> batchNormalizeIngredientNames(List<RecipeIngredient> ingredients) {
-        List<String> names = ingredients.stream()
-                .map(ri -> ri.getIngredient().getName())
-                .toList();
+        Map<Long, String> result = new LinkedHashMap<>();
+        List<RecipeIngredient> needsAI = new ArrayList<>();
 
-        try {
-            String namesJson = objectMapper.writeValueAsString(names);
-            String aiResponse = aiService.normalizeIngredientNames(namesJson);
-
-            // Parse kết quả AI trả về
-            String cleanJson = aiResponse.replaceAll("```json|```", "").trim();
-            List<String> normalizedNames = objectMapper.readValue(cleanJson, new TypeReference<List<String>>() {});
-
-            // Validate: AI phải trả về đúng số lượng
-            if (normalizedNames.size() != ingredients.size()) {
-                log.warn("[Nutrition] AI returned {} names but expected {}. Falling back to original names.",
-                        normalizedNames.size(), ingredients.size());
-                return fallbackToOriginalNames(ingredients);
+        for (RecipeIngredient ri : ingredients) {
+            String name = ri.getIngredient().getName().trim();
+            if (isAlreadyNormalized(name)) {
+                result.put(ri.getIngredient().getId(), name);
+            } else {
+                needsAI.add(ri);
             }
-
-            // Map ingredientId → normalizedKeyword
-            Map<Long, String> result = new LinkedHashMap<>();
-            for (int i = 0; i < ingredients.size(); i++) {
-                String normalized = normalizedNames.get(i);
-                result.put(
-                        ingredients.get(i).getIngredient().getId(),
-                        (normalized != null && !normalized.isBlank()) ? normalized.trim() : names.get(i)
-                );
-            }
-            return result;
-
-        } catch (Exception e) {
-            log.warn("[Nutrition] Batch normalize failed: {}. Falling back to original names.", e.getMessage());
-            return fallbackToOriginalNames(ingredients);
         }
+
+        if (!needsAI.isEmpty()) {
+            List<String> names = needsAI.stream()
+                    .map(ri -> ri.getIngredient().getName())
+                    .toList();
+            try {
+                String namesJson = objectMapper.writeValueAsString(names);
+                String aiResponse = aiService.normalizeIngredientNames(namesJson);
+                String cleanJson = aiResponse.replaceAll("```json|```", "").trim();
+                List<String> normalizedNames = objectMapper.readValue(cleanJson, new TypeReference<List<String>>() {});
+
+                if (normalizedNames.size() == needsAI.size()) {
+                    for (int i = 0; i < needsAI.size(); i++) {
+                        String normalized = normalizedNames.get(i);
+                        result.put(
+                                needsAI.get(i).getIngredient().getId(),
+                                (normalized != null && !normalized.isBlank()) ? normalized.trim() : names.get(i)
+                        );
+                    }
+                } else {
+                    needsAI.forEach(ri -> result.put(ri.getIngredient().getId(), ri.getIngredient().getName()));
+                }
+            } catch (Exception e) {
+                log.warn("[Nutrition] Normalize failed: {}. Fallback to originals.", e.getMessage());
+                needsAI.forEach(ri -> result.put(ri.getIngredient().getId(), ri.getIngredient().getName()));
+            }
+        }
+
+        return result;
     }
 
     private Map<Long, String> fallbackToOriginalNames(List<RecipeIngredient> ingredients) {
@@ -427,5 +450,12 @@ public class NutritionAnalysisService {
 
     public void evictCache(Long recipeId) {
         redisTemplate.delete(CACHE_PREFIX + recipeId);
+    }
+
+    private boolean isAlreadyNormalized(String name) {
+        long wordCount = Arrays.stream(name.split("\\s+")).count();
+        boolean hasParentheses = name.contains("(") || name.contains(")");
+        boolean hasComma = name.contains(",");
+        return wordCount <= 3 && !hasParentheses && !hasComma;
     }
 }

@@ -21,10 +21,12 @@ public interface AIService {
     String normalizeIngredientNames(@UserMessage String ingredientNamesJson);
 
     @SystemMessage("""
-        You are a food recognition expert. Given an image, identify the most suitable dish name.
-        Respond with only ONE dish name in Vietnamese. No explanation.
-        """)
-    String identifyDishFromImage(@UserMessage String base64Image);
+    Bạn là chuyên gia nhận diện món ăn Việt Nam.
+    Phân tích hình ảnh và trả về chính xác tên món ăn hoặc nguyên liệu chính trong ảnh, bằng tiếng Việt.
+    Chỉ trả về một cụm từ ngắn, không giải thích.
+    Nếu không chắc chắn, trả về unknown.
+    """)
+    String identifyDishFromImage(@UserMessage String imageUrl);
 
     @SystemMessage(fromResource = "prompts/nutrition_analyze.txt")
     String analyzeNutrition(@UserMessage String nutritionSummary);

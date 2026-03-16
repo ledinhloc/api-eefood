@@ -13,8 +13,8 @@ import java.util.Optional;
 public interface RecipeRepository extends JpaRepository<Recipe, Long>, JpaSpecificationExecutor<Recipe> {
   Optional<Recipe> findByIdAndIsDeletedFalse(Long id);
 
-  @Query("SELECT r FROM Recipe r LEFT JOIN FETCH r.ingredients ri LEFT JOIN FETCH ri.ingredient WHERE LOWER(r.title) LIKE LOWER(CONCAT('%', :title, '%')) AND r.isDeleted = false ORDER BY r.id ASC LIMIT 1")
-  Optional<Recipe> findFirstByTitleWithIngredients(@Param("title") String title);
+  @Query("SELECT r FROM Recipe r LEFT JOIN FETCH r.ingredients ri LEFT JOIN FETCH ri.ingredient WHERE (LOWER(r.title) LIKE LOWER(CONCAT('%', :title, '%')) OR LOWER(r.description) LIKE LOWER(CONCAT('%', :description, '%'))) AND r.isDeleted = false ORDER BY r.id ASC LIMIT 1")
+  Optional<Recipe> findFirstByTitleAndDescriptionWithIngredients(@Param("title") String title, @Param("description") String description);
 
   @Query("SELECT r FROM Recipe r LEFT JOIN FETCH r.ingredients ri LEFT JOIN FETCH ri.ingredient WHERE r.id = :id AND r.isDeleted = false")
   Optional<Recipe> findByIdWithIngredients(@Param("id") Long id);
