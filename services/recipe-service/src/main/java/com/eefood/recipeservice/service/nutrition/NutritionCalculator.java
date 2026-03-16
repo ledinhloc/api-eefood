@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.function.Function;
+
 @Component
 public class NutritionCalculator {
     public double toGrams(Double quantity, String unit) {
@@ -38,13 +39,31 @@ public class NutritionCalculator {
 
     public double calcHealthScore(double calories, double fat, double sodium,
                                   double protein, double fiber, double sugar) {
-        double score = 100;
-        if (calories > 600) score -= Math.min(25, (calories - 600) / 20);
-        if (fat      > 25)  score -= Math.min(20, (fat - 25) / 1.5);
-        if (sodium   > 800) score -= Math.min(20, (sodium - 800) / 40);
-        if (sugar    > 15)  score -= Math.min(15, (sugar - 15) / 1.5);
-        if (protein  >= 20) score += 8;
-        if (fiber    >= 5)  score += 7;
+
+        double penalty = 0;
+
+        if (calories > 600)
+            penalty += Math.min(25, (calories - 600) / 20);
+
+        if (fat > 25)
+            penalty += Math.min(20, (fat - 25) / 1.5);
+
+        if (sodium > 800)
+            penalty += Math.min(20, (sodium - 800) / 40);
+
+        if (sugar > 15)
+            penalty += Math.min(15, (sugar - 15) / 1.5);
+
+        double bonus = 0;
+
+        if (protein >= 20)
+            bonus += 8;
+
+        if (fiber >= 5)
+            bonus += 7;
+
+        double score = 100 - penalty + bonus;
+
         return Math.max(0, Math.min(100, score));
     }
 
