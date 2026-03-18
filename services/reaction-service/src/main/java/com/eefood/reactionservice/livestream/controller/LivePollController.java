@@ -3,12 +3,12 @@ package com.eefood.reactionservice.livestream.controller;
 import com.eefood.reactionservice.dto.response.ResponseData;
 import com.eefood.reactionservice.livestream.dto.request.CreateLivePollRequest;
 import com.eefood.reactionservice.livestream.dto.response.LivePollResponse;
+import com.eefood.reactionservice.livestream.dto.response.PollOptionVotersResponse;
 import com.eefood.reactionservice.livestream.dto.response.PollResultResponse;
 import com.eefood.reactionservice.livestream.enums.PollStatus;
 import com.eefood.reactionservice.livestream.service.LivePollService;
 import com.eefood.reactionservice.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
-import org.apache.kafka.common.requests.VoteRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -68,5 +68,18 @@ public class LivePollController {
   @GetMapping("/{pollId}/result")
   public ResponseData<PollResultResponse> result(@PathVariable Long pollId) {
     return new ResponseData<>(HttpStatus.OK.value(), "Success", livePollService.buildResult(pollId));
+  }
+
+  @GetMapping("/{pollId}/options/{optionId}/voters")
+  public ResponseData<PollOptionVotersResponse> getOptionVoters(
+    @PathVariable Long liveStreamId,
+    @PathVariable Long pollId,
+    @PathVariable Long optionId
+  ) {
+    return new ResponseData<>(
+      HttpStatus.OK.value(),
+      "Success",
+      livePollService.getOptionVoters(liveStreamId, pollId, optionId)
+    );
   }
 }

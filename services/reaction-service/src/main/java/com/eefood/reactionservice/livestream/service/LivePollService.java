@@ -1,10 +1,13 @@
 package com.eefood.reactionservice.livestream.service;
 
 
+import com.eefood.reactionservice.dto.response.UserInfo;
 import com.eefood.reactionservice.enums.ErrorMessage;
 import com.eefood.reactionservice.exception.ExceptionUtil;
 import com.eefood.reactionservice.livestream.dto.request.CreateLivePollRequest;
 import com.eefood.reactionservice.livestream.dto.response.LivePollResponse;
+import com.eefood.reactionservice.livestream.dto.response.PollOptionVoterResponse;
+import com.eefood.reactionservice.livestream.dto.response.PollOptionVotersResponse;
 import com.eefood.reactionservice.livestream.dto.response.PollResultResponse;
 import com.eefood.reactionservice.livestream.enums.PollStatus;
 import com.eefood.reactionservice.livestream.mapper.LivePollMapper;
@@ -13,12 +16,13 @@ import com.eefood.reactionservice.livestream.repository.LivePollOptionRepository
 import com.eefood.reactionservice.livestream.repository.LivePollRepository;
 import com.eefood.reactionservice.livestream.repository.LivePollSettingRepository;
 import com.eefood.reactionservice.livestream.repository.LivePollVoteRepository;
+import com.eefood.reactionservice.repository.httpclient.IamClient;
 import lombok.RequiredArgsConstructor;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -36,6 +40,7 @@ public class LivePollService {
 
   private final LivePollMapper pollMapper;
   private final LivePollBroadcastService livePollBroadcastService;
+  private final IamClient iamClient;
 
   @Transactional(readOnly = true)
   public LivePollResponse getActivePoll(Long liveStreamId) {
@@ -292,6 +297,29 @@ public class LivePollService {
       .build();
   }
 
+  @Transactional(readOnly = true)
+  public PollOptionVotersResponse getOptionVoters(Long liveStreamId, Long pollId, Long optionId) {
+    pollRepo.findByIdAndLiveStreamId(pollId, liveStreamId)
+      .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.POLL_NOT_FOUND));
+
+    LivePollOption option = optionRepo.findByIdAndPollId(optionId, pollId)
+      .orElseThrow(() -> ExceptionUtil.badRequest(ErrorMessage.POLL_OPTION_INVALID));
+
+    List<LivePollVote> votes = voteRepo.findAllByPollIdAndOptionIdOrderByCreatedAtDesc(pollId, optionId);
+    var userInfoMap = fetchUserInfoMap(votes);
+
+    List<PollOptionVoterResponse> voters = votes.stream()
+      .map(vote -> toPollOptionVoterResponse(vote, userInfoMap.get(vote.getUserId())))
+      .toList();
+
+    return PollOptionVotersResponse.builder()
+      .optionId(option.getId())
+      .optionText(option.getText())
+      .voteCount(option.getCount())
+      .voters(voters)
+      .build();
+  }
+
   private LivePollSetting settingDefault() {
     return LivePollSetting.builder()
       .allowChangeVote(false)
@@ -310,5 +338,42 @@ public class LivePollService {
     } else {
       s.setMaxChoices(1);
     }
+  }
+
+  private java.util.Map<Long, UserInfo> fetchUserInfoMap(List<LivePollVote> votes) {
+    List<Long> userIds = votes.stream()
+      .map(LivePollVote::getUserId)
+      .distinct()
+      .toList();
+
+    if (userIds.isEmpty()) {
+      return Collections.emptyMap();
+    }
+
+    List<UserInfo> userInfos = iamClient.getUserInfoBatch(userIds).getData();
+    if (userInfos == null || userInfos.isEmpty()) {
+      return Collections.emptyMap();
+    }
+
+    return userInfos.stream()
+      .collect(Collectors.toMap(UserInfo::getId, user -> user));
+  }
+
+  private PollOptionVoterResponse toPollOptionVoterResponse(LivePollVote vote, UserInfo userInfo) {
+    if (userInfo == null) {
+      return PollOptionVoterResponse.builder()
+        .userId(vote.getUserId())
+        .username("Unknown")
+        .avatarUrl(null)
+        .votedAt(vote.getCreatedAt())
+        .build();
+    }
+
+    return PollOptionVoterResponse.builder()
+      .userId(userInfo.getId())
+      .username(userInfo.getUsername())
+      .avatarUrl(userInfo.getAvatarUrl())
+      .votedAt(vote.getCreatedAt())
+      .build();
   }
 }
