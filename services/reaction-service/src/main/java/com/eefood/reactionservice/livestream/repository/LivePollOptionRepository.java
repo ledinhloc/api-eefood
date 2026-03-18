@@ -12,6 +12,7 @@ import java.util.Optional;
 public interface LivePollOptionRepository extends JpaRepository<LivePollOption, Long> {
   List<LivePollOption> findByPollIdOrderByIdAsc(Long livePollId);
   Optional<LivePollOption> findByIdAndPollId(Long id, Long pollId);
+  boolean existsByPollIdAndTextIgnoreCase(Long pollId, String text);
 
   @Modifying(flushAutomatically = true, clearAutomatically = true)
   @Query("update LivePollOption o set o.count = o.count + :delta where o.id = :optionId")
