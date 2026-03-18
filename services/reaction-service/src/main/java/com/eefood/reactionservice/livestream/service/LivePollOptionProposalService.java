@@ -1,5 +1,6 @@
 package com.eefood.reactionservice.livestream.service;
 
+import com.eefood.reactionservice.dto.response.UserInfo;
 import com.eefood.reactionservice.enums.ErrorMessage;
 import com.eefood.reactionservice.exception.ExceptionUtil;
 import com.eefood.reactionservice.livestream.dto.response.LivePollOptionProposalResponse;
@@ -16,11 +17,15 @@ import com.eefood.reactionservice.livestream.repository.LivePollOptionProposalRe
 import com.eefood.reactionservice.livestream.repository.LivePollOptionRepository;
 import com.eefood.reactionservice.livestream.repository.LivePollRepository;
 import com.eefood.reactionservice.livestream.repository.LivePollSettingRepository;
+import com.eefood.reactionservice.repository.httpclient.IamClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -34,6 +39,7 @@ public class LivePollOptionProposalService {
   private final LivePollOptionProposalMapper proposalMapper;
   private final LiveStreamService liveStreamService;
   private final LivePollBroadcastService livePollBroadcastService;
+  private final IamClient iamClient;
 
   @Transactional
   public LivePollOptionProposalResponse createProposal(
@@ -80,7 +86,7 @@ public class LivePollOptionProposalService {
         .build()
     );
 
-    return proposalMapper.toResponse(saved);
+    return proposalMapper.toResponse(saved, fetchUserInfo(userId));
   }
 
   @Transactional(readOnly = true)
@@ -101,7 +107,10 @@ public class LivePollOptionProposalService {
       ? proposalRepo.findByPollIdOrderByCreatedAtDesc(pollId)
       : proposalRepo.findByPollIdAndStatusOrderByCreatedAtDesc(pollId, status);
 
-    return proposalMapper.toResponses(proposals);
+    Map<Long, UserInfo> userInfoMap = fetchUserInfoMap(proposals);
+    return proposals.stream()
+      .map(proposal -> proposalMapper.toResponse(proposal, userInfoMap.get(proposal.getProposedBy())))
+      .toList();
   }
 
   @Transactional
@@ -157,6 +166,33 @@ public class LivePollOptionProposalService {
 
     proposal.setStatus(status);
     proposalRepo.save(proposal);
-    return proposalMapper.toResponse(proposal);
+    return proposalMapper.toResponse(proposal, fetchUserInfo(proposal.getProposedBy()));
+  }
+
+  private UserInfo fetchUserInfo(Long userId) {
+    var response = iamClient.getUserInfo(userId);
+    if (response == null) {
+      return null;
+    }
+    return response.getData();
+  }
+
+  private Map<Long, UserInfo> fetchUserInfoMap(List<LivePollOptionProposal> proposals) {
+    List<Long> userIds = proposals.stream()
+      .map(LivePollOptionProposal::getProposedBy)
+      .distinct()
+      .toList();
+
+    if (userIds.isEmpty()) {
+      return Collections.emptyMap();
+    }
+
+    List<UserInfo> userInfos = iamClient.getUserInfoBatch(userIds).getData();
+    if (userInfos == null || userInfos.isEmpty()) {
+      return Collections.emptyMap();
+    }
+
+    return userInfos.stream()
+      .collect(Collectors.toMap(UserInfo::getId, user -> user));
   }
 }
