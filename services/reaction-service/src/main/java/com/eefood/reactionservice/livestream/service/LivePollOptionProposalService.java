@@ -86,7 +86,9 @@ public class LivePollOptionProposalService {
         .build()
     );
 
-    return proposalMapper.toResponse(saved, fetchUserInfo(userId));
+    LivePollOptionProposalResponse response = proposalMapper.toResponse(saved, fetchUserInfo(userId));
+    livePollBroadcastService.broadcastPollProposal(liveStreamId, response);
+    return response;
   }
 
   @Transactional(readOnly = true)
