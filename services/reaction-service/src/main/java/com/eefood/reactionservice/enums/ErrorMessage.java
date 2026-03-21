@@ -99,6 +99,10 @@ public enum ErrorMessage {
   POLL_MAX_CHOICES_EXCEEDED("Maximum number of choices exceeded"),
   POLL_SINGLE_CHOICE_ONLY("This poll only allows one choice"),
   INVALID_POLL_STATUS_TRANSITION("Invalid poll status transition"),
+  POLL_OPTION_PROPOSAL_NOT_ALLOWED("Poll option proposal is not allowed"),
+  POLL_OPTION_PROPOSAL_DUPLICATED("Poll option proposal already exists"),
+  POLL_OPTION_PROPOSAL_NOT_FOUND("Poll option proposal not found"),
+  INVALID_POLL_OPTION_PROPOSAL_STATUS_TRANSITION("Invalid poll option proposal status transition"),
 
   // chatbot
   AI_FREE_QUOTA_EXCEEDED("Xin lỗi. Bạn đã hết lượt miễn phí !!!"),
