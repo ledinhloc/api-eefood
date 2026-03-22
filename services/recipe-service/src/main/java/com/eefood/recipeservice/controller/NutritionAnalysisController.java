@@ -25,9 +25,9 @@ public class NutritionAnalysisController {
     }
 
     // Phân tích dinh dưỡng từ ảnh (base64)
-    @PostMapping( value = "/image/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public SseEmitter analyzeStreamByImage(@RequestBody ImageAnalysisRequest request)
+    @PostMapping( value = "/image/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE, consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public SseEmitter analyzeStreamByImage(@RequestParam MultipartFile image)
     {
-        return nutritionAnalysisService.analyzeStreamByImage(request.getImageUrl());
+        return nutritionAnalysisService.analyzeStreamByImage(image);
     }
 }
