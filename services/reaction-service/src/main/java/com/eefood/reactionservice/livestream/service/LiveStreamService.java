@@ -1,6 +1,7 @@
 package com.eefood.reactionservice.livestream.service;
 
 import com.eefood.reactionservice.config.LiveKitConfig;
+import com.eefood.reactionservice.dto.response.UserInfo;
 import com.eefood.reactionservice.livestream.dto.response.LiveStreamResponse;
 import com.eefood.reactionservice.enums.ErrorMessage;
 import com.eefood.reactionservice.enums.LiveStreamStatus;
@@ -10,6 +11,7 @@ import com.eefood.reactionservice.livestream.model.LiveStream;
 import com.eefood.reactionservice.livestream.mapper.LiveStreamMapper;
 import com.eefood.reactionservice.livestream.repository.LiveStreamBlockRepository;
 import com.eefood.reactionservice.livestream.repository.LiveStreamRepository;
+import com.eefood.reactionservice.repository.httpclient.IamClient;
 import io.livekit.server.AccessToken;
 import io.livekit.server.RoomServiceClient;
 import io.livekit.server.RoomJoin;
@@ -33,6 +35,7 @@ public class LiveStreamService {
   private final LiveKitConfig liveKitConfig;
   private final SimpMessagingTemplate messagingTemplate;
   private final LiveStreamBlockRepository liveStreamBlockRepository;
+  private final IamClient iamClient;
 
   @Transactional(readOnly = true)
   public LiveStreamResponse checkUserStream(Long currentUserId,Long userId) {
@@ -203,6 +206,12 @@ public class LiveStreamService {
     String viewerToken = generateViewerToken(liveStream.getRoomName(),userId);
     LiveStreamResponse res = liveStreamMapper.toResponse(liveStream);
     res.setLivekitToken(viewerToken);
+    UserInfo user = iamClient.getUserInfo(res.getUserId()).getData();
+    if(user != null) {
+      res.setUsername(user.getUsername());
+      res.setEmail(user.getEmail());
+      res.setAvatarUrl(user.getAvatarUrl());
+    }
     return res;
   }
 

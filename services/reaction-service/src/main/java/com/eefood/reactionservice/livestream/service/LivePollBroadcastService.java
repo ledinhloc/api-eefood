@@ -1,5 +1,4 @@
-package com.eefood.reactionservice.livestream.service;
-
+package com.eefood.reactionservice.livestream.service;import com.eefood.reactionservice.livestream.dto.response.LivePollOptionProposalResponse;
 import com.eefood.reactionservice.livestream.dto.response.LivePollResponse;
 import com.eefood.reactionservice.livestream.dto.response.PollResultResponse;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +34,18 @@ public class LivePollBroadcastService {
       log.info("Broadcasted poll result for livestream {}", liveStreamId);
     } catch (Exception e) {
       log.error("Error broadcasting poll result for livestream {}", liveStreamId, e);
+    }
+  }
+
+  public void broadcastPollProposal(Long liveStreamId, LivePollOptionProposalResponse response) {
+    try {
+      messagingTemplate.convertAndSend(
+        "/topic/live-poll-proposal/" + liveStreamId,
+        response
+      );
+      log.info("Broadcasted poll proposal for livestream {}", liveStreamId);
+    } catch (Exception e) {
+      log.error("Error broadcasting poll proposal for livestream {}", liveStreamId, e);
     }
   }
 }

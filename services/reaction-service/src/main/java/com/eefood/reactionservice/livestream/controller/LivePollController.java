@@ -3,12 +3,15 @@ package com.eefood.reactionservice.livestream.controller;
 import com.eefood.reactionservice.dto.response.ResponseData;
 import com.eefood.reactionservice.livestream.dto.request.CreateLivePollRequest;
 import com.eefood.reactionservice.livestream.dto.response.LivePollResponse;
+import com.eefood.reactionservice.livestream.dto.response.LivePollOptionProposalResponse;
+import com.eefood.reactionservice.livestream.dto.response.PollOptionVotersResponse;
 import com.eefood.reactionservice.livestream.dto.response.PollResultResponse;
+import com.eefood.reactionservice.livestream.enums.PollOptionProposalStatus;
 import com.eefood.reactionservice.livestream.enums.PollStatus;
+import com.eefood.reactionservice.livestream.service.LivePollOptionProposalService;
 import com.eefood.reactionservice.livestream.service.LivePollService;
 import com.eefood.reactionservice.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
-import org.apache.kafka.common.requests.VoteRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,6 +22,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class LivePollController {
   private final LivePollService livePollService;
+  private final LivePollOptionProposalService livePollOptionProposalService;
   private final SecurityUtil securityUtil;
 
   @GetMapping("/active")
@@ -68,5 +72,67 @@ public class LivePollController {
   @GetMapping("/{pollId}/result")
   public ResponseData<PollResultResponse> result(@PathVariable Long pollId) {
     return new ResponseData<>(HttpStatus.OK.value(), "Success", livePollService.buildResult(pollId));
+  }
+
+  @PostMapping("/{pollId}/option-proposals")
+  public ResponseData<LivePollOptionProposalResponse> createOptionProposal(
+    @PathVariable Long liveStreamId,
+    @PathVariable Long pollId,
+    @RequestParam String req
+  ) {
+    Long userId = securityUtil.getCurrentUserId();
+    return new ResponseData<>(
+      HttpStatus.OK.value(),
+      "Success",
+      livePollOptionProposalService.createProposal(liveStreamId, pollId, userId, req)
+    );
+  }
+
+  @GetMapping("/{pollId}/option-proposals")
+  public ResponseData<List<LivePollOptionProposalResponse>> getOptionProposals(
+    @PathVariable Long liveStreamId,
+    @PathVariable Long pollId,
+    @RequestParam(required = false) PollOptionProposalStatus status
+  ) {
+    Long userId = securityUtil.getCurrentUserId();
+    return new ResponseData<>(
+      HttpStatus.OK.value(),
+      "Success",
+      livePollOptionProposalService.getProposals(liveStreamId, pollId, userId, status)
+    );
+  }
+
+  @PatchMapping("/{pollId}/option-proposals/{proposalId}/status")
+  public ResponseData<LivePollOptionProposalResponse> updateOptionProposalStatus(
+    @PathVariable Long liveStreamId,
+    @PathVariable Long pollId,
+    @PathVariable Long proposalId,
+    @RequestParam PollOptionProposalStatus status
+  ) {
+    Long userId = securityUtil.getCurrentUserId();
+    return new ResponseData<>(
+      HttpStatus.OK.value(),
+      "Success",
+      livePollOptionProposalService.updateProposalStatus(
+        liveStreamId,
+        pollId,
+        proposalId,
+        userId,
+        status
+      )
+    );
+  }
+
+  @GetMapping("/{pollId}/options/{optionId}/voters")
+  public ResponseData<PollOptionVotersResponse> getOptionVoters(
+    @PathVariable Long liveStreamId,
+    @PathVariable Long pollId,
+    @PathVariable Long optionId
+  ) {
+    return new ResponseData<>(
+      HttpStatus.OK.value(),
+      "Success",
+      livePollService.getOptionVoters(liveStreamId, pollId, optionId)
+    );
   }
 }
