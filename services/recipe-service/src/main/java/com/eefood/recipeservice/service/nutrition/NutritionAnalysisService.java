@@ -37,20 +37,16 @@ import java.util.stream.Collectors;
 @Slf4j
 public class NutritionAnalysisService {
     private final RecipeRepository recipeRepository;
-    private final IngredientNutritionRepository ingredientNutritionRepository;
-    private final FoodNutritionDatasetRepository foodDatasetRepository;
-    private final RecipeIngredientNutritionRepository recipeIngredientNutritionRepository;
     private final RecipeNutritionRepository recipeNutritionRepository;
     private final RecipeNutritionAnalysisRepository recipeNutritionAnalysisRepository;
     private final AIService aiService;
     private final NutritionMapper nutritionMapper;
-    private final ObjectMapper objectMapper;
     private final NutritionCalculator calculator;
     private final NutritionPromptBuilder promptBuilder;
     private final RedisTemplate<String, Object> redisTemplate;
     private final Executor nutritionAiExecutor;
     private static final String CACHE_PREFIX = "nutrition:recipe:";
-    private static final Duration CACHE_TTL = Duration.ofMinutes(15);
+    private static final Duration CACHE_TTL = Duration.ofHours(24);
     private final NutritionSseUtils nutritionSseUtils;
     private final ReactionClient reactionClient;
     private final RecipeIngredientNutritionResolver recipeIngredientNutritionResolver;
