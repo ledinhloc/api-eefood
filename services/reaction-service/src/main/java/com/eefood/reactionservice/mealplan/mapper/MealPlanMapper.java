@@ -1,4 +1,4 @@
-package com.eefood.reactionservice.mapper;
+package com.eefood.reactionservice.mealplan.mapper;
 
 import com.eefood.reactionservice.mealplan.dto.response.MealPlanItemIngredientResponse;
 import com.eefood.reactionservice.mealplan.dto.response.MealPlanItemResponse;
