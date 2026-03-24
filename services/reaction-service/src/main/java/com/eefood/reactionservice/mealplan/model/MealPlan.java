@@ -37,7 +37,7 @@ public class MealPlan {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    @Column(length = 255)
+    @Column
     private String goal;
 
     private LocalDate startDate;

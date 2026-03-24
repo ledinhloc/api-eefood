@@ -41,21 +41,21 @@ public class MealPlanItem {
     private LocalDate planDate;
 
     @Enumerated(EnumType.STRING)
-    @Column(length = 20)
+    @Column
     private MealSlot mealSlot;
 
     @Column(name = "item_order")
     private Integer itemOrder;
 
     @Enumerated(EnumType.STRING)
-    @Column(length = 20)
+    @Column
     private MealPlanItemSource itemSource;
 
     private Long recipeId;
 
     private Long postId;
 
-    @Column(length = 255)
+    @Column
     private String customMealName;
 
     private Integer plannedServings;
@@ -66,11 +66,13 @@ public class MealPlanItem {
     @Column(length = 20)
     private MealPlanItemStatus status;
 
-    @Column(length = 255)
+    @Column
     private String recipeTitleSnapshot;
 
     @Column(length = 500)
     private String imageUrlSnapshot;
+
+    private Integer recipeServingsSnapshot;
 
     @Column(precision = 10, scale = 2)
     private BigDecimal caloriesPerServingSnapshot;
@@ -85,7 +87,16 @@ public class MealPlanItem {
     private BigDecimal fatPerServingSnapshot;
 
     @Column(precision = 10, scale = 2)
+    private BigDecimal fiberPerServingSnapshot;
+
+    @Column(precision = 10, scale = 2)
     private BigDecimal sugarPerServingSnapshot;
+
+    @Column(precision = 10, scale = 2)
+    private BigDecimal calciumPerServingSnapshot;
+
+    @Column(precision = 10, scale = 2)
+    private BigDecimal sodiumPerServingSnapshot;
 
     @Column(length = 500)
     private String note;
