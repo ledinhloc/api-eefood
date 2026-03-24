@@ -1,10 +1,7 @@
 package com.eefood.reactionservice.mealplan.model;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -52,7 +49,7 @@ public class MealPlan {
 
     @OneToMany(mappedBy = "mealPlan", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("planDate ASC, mealSlot ASC")
-    @SuperBuilder.Default
+    @Builder.Default
     private List<MealPlanItem> items = new ArrayList<>();
 
     @CreatedDate

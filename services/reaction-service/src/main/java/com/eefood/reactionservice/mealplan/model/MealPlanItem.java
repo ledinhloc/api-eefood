@@ -4,10 +4,7 @@ import com.eefood.reactionservice.mealplan.enums.MealPlanItemStatus;
 import com.eefood.reactionservice.mealplan.enums.MealPlanItemSource;
 import com.eefood.reactionservice.mealplan.enums.MealSlot;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -103,7 +100,7 @@ public class MealPlanItem {
 
     @OneToMany(mappedBy = "mealPlanItem", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("id ASC")
-    @SuperBuilder.Default
+    @Builder.Default
     private List<MealPlanItemIngredient> ingredients = new ArrayList<>();
 
     @CreatedDate
