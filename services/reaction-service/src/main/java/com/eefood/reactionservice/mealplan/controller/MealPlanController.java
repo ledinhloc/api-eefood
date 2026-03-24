@@ -1,8 +1,8 @@
 package com.eefood.reactionservice.mealplan.controller;
 
-import com.eefood.reactionservice.dto.request.MealPlanUpsertRequest;
-import com.eefood.reactionservice.dto.response.MealPlanResponse;
 import com.eefood.reactionservice.dto.response.ResponseData;
+import com.eefood.reactionservice.mealplan.dto.request.MealPlanUpsertRequest;
+import com.eefood.reactionservice.mealplan.dto.response.MealPlanResponse;
 import com.eefood.reactionservice.mealplan.service.MealPlanService;
 import com.eefood.reactionservice.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;

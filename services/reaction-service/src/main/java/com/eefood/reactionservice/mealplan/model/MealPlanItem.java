@@ -13,8 +13,6 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Table(name = "meal_plan_item")
@@ -30,9 +28,8 @@ public class MealPlanItem {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "meal_plan_id", nullable = false)
-    private MealPlan mealPlan;
+    @Column(name = "meal_plan_id", nullable = false)
+    private Long mealPlanId;
 
     @Column(name = "plan_date")
     private LocalDate planDate;
@@ -97,11 +94,6 @@ public class MealPlanItem {
 
     @Column(length = 500)
     private String note;
-
-    @OneToMany(mappedBy = "mealPlanItem", cascade = CascadeType.ALL, orphanRemoval = true)
-    @OrderBy("id ASC")
-    @Builder.Default
-    private List<MealPlanItemIngredient> ingredients = new ArrayList<>();
 
     @CreatedDate
     @Column(nullable = false, updatable = false)

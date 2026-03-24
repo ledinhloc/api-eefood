@@ -1,10 +1,12 @@
 package com.eefood.reactionservice.mealplan.service;
 
-import com.eefood.reactionservice.dto.request.MealPlanUpsertRequest;
-import com.eefood.reactionservice.dto.response.MealPlanResponse;
 import com.eefood.reactionservice.enums.ErrorMessage;
 import com.eefood.reactionservice.exception.ExceptionUtil;
 import com.eefood.reactionservice.mapper.MealPlanMapper;
+import com.eefood.reactionservice.mealplan.dto.request.MealPlanUpsertRequest;
+import com.eefood.reactionservice.mealplan.dto.response.MealPlanItemIngredientResponse;
+import com.eefood.reactionservice.mealplan.dto.response.MealPlanItemResponse;
+import com.eefood.reactionservice.mealplan.dto.response.MealPlanResponse;
 import com.eefood.reactionservice.mealplan.model.MealPlan;
 import com.eefood.reactionservice.mealplan.model.MealPlanItem;
 import com.eefood.reactionservice.mealplan.model.MealPlanItemIngredient;
@@ -16,7 +18,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.temporal.ChronoUnit;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -47,7 +48,7 @@ public class MealPlanService {
 
         MealPlan savedMealPlan = mealPlanRepository.save(mealPlan);
 
-        return mealPlanMapper.toResponse(loadMealPlanDetails(savedMealPlan));
+        return buildMealPlanResponse(savedMealPlan);
     }
 
     @Transactional
@@ -57,12 +58,13 @@ public class MealPlanService {
         }
 
         return mealPlanRepository.findByUserId(userId)
-                .map(this::loadMealPlanDetails)
-                .map(mealPlanMapper::toResponse)
+                .map(this::buildMealPlanResponse)
                 .orElse(null);
     }
 
-    private MealPlan loadMealPlanDetails(MealPlan mealPlan) {
+    private MealPlanResponse buildMealPlanResponse(MealPlan mealPlan) {
+        MealPlanResponse response = mealPlanMapper.toResponse(mealPlan);
+
         List<MealPlanItem> items = mealPlanItemRepository
                 .findAllByMealPlanIdOrderByPlanDateAscMealSlotAscItemOrderAsc(mealPlan.getId());
 
@@ -70,17 +72,23 @@ public class MealPlanService {
                 .map(MealPlanItem::getId)
                 .toList();
 
-        Map<Long, List<MealPlanItemIngredient>> ingredientsByItemId = itemIds.isEmpty()
-                ? Collections.emptyMap()
-                : mealPlanItemIngredientRepository.findAllByMealPlanItemIdIn(itemIds).stream()
-                .collect(Collectors.groupingBy(ingredient -> ingredient.getMealPlanItem().getId()));
+        Map<Long, List<MealPlanItemIngredientResponse>> ingredientsByItemId =
+                mealPlanItemIngredientRepository.findAllByMealPlanItemIdIn(itemIds).stream()
+                .collect(Collectors.groupingBy(
+                        MealPlanItemIngredient::getMealPlanItemId,
+                        Collectors.mapping(mealPlanMapper::toResponse, Collectors.toList())
+                ));
 
-        items.forEach(item -> item.setIngredients(
-                ingredientsByItemId.getOrDefault(item.getId(), List.of())
-        ));
+        List<MealPlanItemResponse> itemResponses = items.stream()
+                .map(item -> {
+                    MealPlanItemResponse itemResponse = mealPlanMapper.toResponse(item);
+                    itemResponse.setIngredients(ingredientsByItemId.getOrDefault(item.getId(), List.of()));
+                    return itemResponse;
+                })
+                .toList();
 
-        mealPlan.setItems(items);
-        return mealPlan;
+        response.setItems(itemResponses);
+        return response;
     }
 
     private void validateUpsertRequest(Long userId, MealPlanUpsertRequest request) {

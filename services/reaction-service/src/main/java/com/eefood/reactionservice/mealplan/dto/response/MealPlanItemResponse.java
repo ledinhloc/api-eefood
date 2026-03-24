@@ -1,4 +1,4 @@
-package com.eefood.reactionservice.dto.response;
+package com.eefood.reactionservice.mealplan.dto.response;
 
 import com.eefood.reactionservice.mealplan.enums.MealPlanItemSource;
 import com.eefood.reactionservice.mealplan.enums.MealPlanItemStatus;

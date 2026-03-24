@@ -20,9 +20,8 @@ public class MealPlanItemIngredient {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "meal_plan_item_id", nullable = false)
-    private MealPlanItem mealPlanItem;
+    @Column(name = "meal_plan_item_id", nullable = false)
+    private Long mealPlanItemId;
 
     @Column(nullable = false, length = 255)
     private String name;

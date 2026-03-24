@@ -9,8 +9,6 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Table(
@@ -46,11 +44,6 @@ public class MealPlan {
 
     @Column(length = 500)
     private String userHealthNote;
-
-    @OneToMany(mappedBy = "mealPlan", cascade = CascadeType.ALL, orphanRemoval = true)
-    @OrderBy("planDate ASC, mealSlot ASC")
-    @Builder.Default
-    private List<MealPlanItem> items = new ArrayList<>();
 
     @CreatedDate
     @Column(nullable = false, updatable = false)

@@ -1,4 +1,4 @@
-package com.eefood.reactionservice.dto.response;
+package com.eefood.reactionservice.mealplan.dto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
