@@ -9,4 +9,6 @@ import java.util.List;
 @Repository
 public interface MealPlanItemRepository extends JpaRepository<MealPlanItem, Long> {
     List<MealPlanItem> findAllByMealPlanIdOrderByPlanDateAscMealSlotAscItemOrderAsc(Long mealPlanId);
+
+    void deleteAllByMealPlanId(Long mealPlanId);
 }

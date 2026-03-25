@@ -27,6 +27,12 @@ public interface RecipeClient {
   @GetMapping("/api/v1/categories/all")
   ResponseData<List<CategoryResponse>> getListOfCategories();
 
+  @PostMapping("/api/v1/nutrition/recipe/{recipeId}/stream")
+  String analyzeRecipeNutritionStream(
+          @PathVariable("recipeId") Long recipeId,
+          @RequestParam(defaultValue = "false") boolean forceRefresh
+  );
+
   @PostMapping("/api/v1/shopping/chatbot/add")
   ResponseData<ShoppingItemDto> addRecipe(
           @RequestParam Long recipeId,

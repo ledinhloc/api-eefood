@@ -1,8 +1,10 @@
 package com.eefood.reactionservice.mealplan.controller;
 
 import com.eefood.reactionservice.dto.response.ResponseData;
+import com.eefood.reactionservice.mealplan.dto.request.MealPlanGenerateRequest;
 import com.eefood.reactionservice.mealplan.dto.request.MealPlanUpsertRequest;
 import com.eefood.reactionservice.mealplan.dto.response.MealPlanResponse;
+import com.eefood.reactionservice.mealplan.service.MealPlanGenerateService;
 import com.eefood.reactionservice.mealplan.service.MealPlanService;
 import com.eefood.reactionservice.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 public class MealPlanController {
 
     private final MealPlanService mealPlanService;
+    private final MealPlanGenerateService mealPlanGenerateService;
     private final SecurityUtil securityUtil;
 
     @GetMapping
@@ -34,6 +37,16 @@ public class MealPlanController {
                 HttpStatus.OK.value(),
                 "Update Meal Plan Success",
                 mealPlanService.upsertCurrentMealPlan(userId, request)
+        );
+    }
+
+    @PostMapping("/generate")
+    public ResponseData<MealPlanResponse> generateMealPlan(@RequestBody MealPlanGenerateRequest request) {
+        Long userId = securityUtil.getCurrentUserId();
+        return new ResponseData<>(
+                HttpStatus.OK.value(),
+                "Generate Meal Plan Success",
+                mealPlanGenerateService.generateInitialMealPlan(userId, request)
         );
     }
 }
