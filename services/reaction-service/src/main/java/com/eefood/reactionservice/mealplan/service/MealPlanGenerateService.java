@@ -28,13 +28,14 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
 @Service
@@ -54,6 +55,7 @@ public class MealPlanGenerateService {
     private final RecipeClient recipeClient;
     private final MealPlanService mealPlanService;
     private final MealPlanAiPlannerService mealPlanAiPlannerService;
+    private final Executor applicationTaskExecutor;
 
     @Transactional
     public MealPlanResponse generateInitialMealPlan(Long userId, MealPlanGenerateRequest request) {
@@ -112,10 +114,19 @@ public class MealPlanGenerateService {
                 ));
 
         List<String> allergies = normalizeList(user != null ? user.getAllergies() : List.of());
-
-        return uniquePostsByRecipeId.values().stream()
+        List<Post> candidatePosts = uniquePostsByRecipeId.values().stream()
                 .limit(CANDIDATE_LIMIT)
-                .map(this::toCandidateRecipe)
+                .toList();
+
+        // Gọi nutrition song song để giảm tổng thời gian chờ.
+        List<CompletableFuture<MealPlanAiCandidate>> futures = candidatePosts.stream()
+                .map(post -> CompletableFuture.supplyAsync(() -> toCandidateRecipe(post), applicationTaskExecutor))
+                .toList();
+
+        CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
+
+        return futures.stream()
+                .map(CompletableFuture::join)
                 .filter(Objects::nonNull)
                 .filter(candidate -> !violatesAllergies(candidate, allergies))
                 .toList();
