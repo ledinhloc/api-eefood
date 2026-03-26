@@ -18,7 +18,7 @@ public class NutritionAnalysisResponse {
     private String recipeTitle;
     private Double totalCalories;
     private Double totalProtein;
-    private Double totalFat;
+    private Double totalFat;    
     private Double totalCarb;
     private Double totalFiber;
     private Double totalSugar;

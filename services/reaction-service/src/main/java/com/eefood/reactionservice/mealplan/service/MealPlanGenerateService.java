@@ -4,6 +4,8 @@ import com.eefood.reactionservice.dto.response.UserResponse;
 import com.eefood.reactionservice.enums.ErrorMessage;
 import com.eefood.reactionservice.enums.PostStatus;
 import com.eefood.reactionservice.exception.ExceptionUtil;
+import com.eefood.reactionservice.mealplan.dto.ai.GeneratedMealItem;
+import com.eefood.reactionservice.mealplan.dto.ai.MealPlanAiCandidate;
 import com.eefood.reactionservice.mealplan.dto.request.MealPlanGenerateRequest;
 import com.eefood.reactionservice.mealplan.dto.response.MealPlanResponse;
 import com.eefood.reactionservice.mealplan.dto.response.NutritionAnalysisResponse;
@@ -20,12 +22,7 @@ import com.eefood.reactionservice.repository.httpclient.RecipeClient;
 import com.eefood.reactionservice.repository.post.PostRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import dev.langchain4j.data.message.UserMessage;
-import dev.langchain4j.model.chat.request.ChatRequest;
-import dev.langchain4j.model.chat.response.ChatResponse;
-import dev.langchain4j.model.googleai.GoogleAiGeminiChatModel;
 import jakarta.transaction.Transactional;
-import lombok.Builder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
@@ -35,13 +32,11 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -60,7 +55,7 @@ public class MealPlanGenerateService {
     private final IamClient iamClient;
     private final RecipeClient recipeClient;
     private final MealPlanService mealPlanService;
-    private final GoogleAiGeminiChatModel geminiChatModel;
+    private final MealPlanAiPlannerService mealPlanAiPlannerService;
     private final ObjectMapper objectMapper;
 
     @Transactional
@@ -69,13 +64,21 @@ public class MealPlanGenerateService {
         validateGenerateRequest(userId, request);
 
         UserResponse user = iamClient.getUserById(userId).getData();
-        List<CandidateRecipe> candidates = loadCandidateRecipes(user);
+        List<MealPlanAiCandidate> candidates = loadCandidateRecipes(user);
 
         if (candidates.isEmpty()) {
             throw ExceptionUtil.notFound(ErrorMessage.RECIPE_NOT_FOUND);
         }
 
-        List<GeneratedMealItem> generatedItems = generatePlanWithAiOrFallback(user, request, candidates);
+        List<GeneratedMealItem> generatedItems = mealPlanAiPlannerService.generatePlan(
+                user,
+                request,
+                candidates,
+                resolveDays(request)
+        );
+        if (generatedItems.isEmpty()) {
+            generatedItems = fallbackGenerate(request, candidates);
+        }
 
         MealPlan mealPlan = mealPlanRepository.findByUserId(userId)
                 .orElseGet(() -> MealPlan.builder().userId(userId).build());
@@ -98,7 +101,7 @@ public class MealPlanGenerateService {
         return mealPlanService.getCurrentMealPlan(userId);
     }
 
-    private List<CandidateRecipe> loadCandidateRecipes(UserResponse user) {
+    private List<MealPlanAiCandidate> loadCandidateRecipes(UserResponse user) {
         // Tạo tập candidate từ các post đã duyệt, rồi loại món vi phạm dị ứng.
         List<Post> posts = postRepository.findByStatusAndIsDeletedFalse(PostStatus.APPROVED, PageRequest.of(0, 30));
 
@@ -121,7 +124,7 @@ public class MealPlanGenerateService {
                 .toList();
     }
 
-    private CandidateRecipe toCandidateRecipe(Post post) {
+    private MealPlanAiCandidate toCandidateRecipe(Post post) {
         // Chuyển post đã duyệt thành candidate recipe kèm snapshot dinh dưỡng.
         try {
             NutritionAnalysisResponse nutrition = fetchRecipeNutrition(post.getRecipeId());
@@ -129,7 +132,7 @@ public class MealPlanGenerateService {
                 return null;
             }
 
-            return CandidateRecipe.builder()
+            return MealPlanAiCandidate.builder()
                     .recipeId(post.getRecipeId())
                     .postId(post.getId())
                     .title(post.getTitle())
@@ -179,141 +182,7 @@ public class MealPlanGenerateService {
         return null;
     }
 
-    private List<GeneratedMealItem> generatePlanWithAiOrFallback(
-            UserResponse user,
-            MealPlanGenerateRequest request,
-            List<CandidateRecipe> candidates
-    ) {
-        // Nhờ AI sắp plan. Nếu AI lỗi hoặc parse lỗi thì dùng fallback round-robin.
-        try {
-            String prompt = buildGeneratePrompt(user, request, candidates);
-            ChatRequest chatRequest = ChatRequest.builder()
-                    .messages(UserMessage.from(prompt))
-                    .build();
-
-            ChatResponse chatResponse = geminiChatModel.chat(chatRequest);
-            String raw = chatResponse.aiMessage().text();
-
-            List<GeneratedMealItem> items = parseGeneratedItems(raw, request.getStartDate(), candidates);
-            return items.isEmpty() ? fallbackGenerate(request, candidates) : items;
-        } catch (Exception e) {
-            log.warn("Meal plan AI generation failed, using fallback: {}", e.getMessage());
-            return fallbackGenerate(request, candidates);
-        }
-    }
-
-    private String buildGeneratePrompt(UserResponse user, MealPlanGenerateRequest request, List<CandidateRecipe> candidates) {
-        // Gom dữ liệu user và candidate recipe thành prompt ngắn gọn, có cấu trúc.
-        String candidateJson;
-        try {
-            candidateJson = objectMapper.writeValueAsString(
-                    candidates.stream().map(candidate -> Map.of(
-                            "recipeId", candidate.getRecipeId(),
-                            "postId", candidate.getPostId(),
-                            "title", candidate.getTitle(),
-                            "difficulty", candidate.getDifficulty(),
-                            "prepTime", candidate.getPrepTime(),
-                            "cookTime", candidate.getCookTime(),
-                            "ingredients", candidate.getIngredientKeywords(),
-                            "nutrition", Map.of(
-                                    "calories", defaultDouble(candidate.getNutrition().getTotalCalories()),
-                                    "protein", defaultDouble(candidate.getNutrition().getTotalProtein()),
-                                    "carbs", defaultDouble(candidate.getNutrition().getTotalCarb()),
-                                    "fat", defaultDouble(candidate.getNutrition().getTotalFat()),
-                                    "fiber", defaultDouble(candidate.getNutrition().getTotalFiber()),
-                                    "sugar", defaultDouble(candidate.getNutrition().getTotalSugar())
-                            )
-                    )).toList()
-            );
-        } catch (Exception e) {
-            candidateJson = "[]";
-        }
-
-        return """
-                You are generating an initial meal plan in JSON only.
-                Rules:
-                - Return valid JSON only, no markdown, no explanation.
-                - Use only recipeId values from candidate_recipes.
-                - Generate breakfast, lunch, dinner for each day.
-                - Use 1 item per slot for this initial plan.
-                - Respect allergies strictly.
-                - Prefer low sugar options when goal mentions diabetes or low sugar.
-                Output schema:
-                {
-                  "items": [
-                    {
-                      "planDate": "yyyy-MM-dd",
-                      "mealSlot": "BREAKFAST|LUNCH|DINNER",
-                      "itemOrder": 1,
-                      "recipeId": 123,
-                      "servings": 1,
-                      "note": "short note"
-                    }
-                  ]
-                }
-                user_profile: %s
-                goal: %s
-                start_date: %s
-                days: %d
-                candidate_recipes: %s
-                """.formatted(
-                buildUserProfileSummary(user),
-                request.getGoal(),
-                request.getStartDate(),
-                resolveDays(request),
-                candidateJson
-        );
-    }
-
-    private List<GeneratedMealItem> parseGeneratedItems(String raw, LocalDate startDate, List<CandidateRecipe> candidates) throws Exception {
-        // Chỉ nhận các item JSON hợp lệ và phải trỏ tới candidate recipe đã biết.
-        String normalized = stripMarkdownCodeFence(raw);
-        JsonNode root = objectMapper.readTree(normalized);
-        JsonNode itemsNode = root.path("items");
-        if (!itemsNode.isArray()) {
-            return List.of();
-        }
-
-        Set<Long> candidateIds = candidates.stream()
-                .map(CandidateRecipe::getRecipeId)
-                .collect(Collectors.toSet());
-
-        List<GeneratedMealItem> result = new ArrayList<>();
-        for (JsonNode itemNode : itemsNode) {
-            Long recipeId = itemNode.path("recipeId").isNumber() ? itemNode.path("recipeId").asLong() : null;
-            String mealSlotRaw = itemNode.path("mealSlot").asText(null);
-            String planDateRaw = itemNode.path("planDate").asText(null);
-            if (recipeId == null || mealSlotRaw == null || planDateRaw == null || !candidateIds.contains(recipeId)) {
-                continue;
-            }
-
-            CandidateRecipe candidate = candidates.stream()
-                    .filter(c -> Objects.equals(c.getRecipeId(), recipeId))
-                    .findFirst()
-                    .orElse(null);
-            if (candidate == null) {
-                continue;
-            }
-
-            result.add(GeneratedMealItem.builder()
-                    .planDate(LocalDate.parse(planDateRaw))
-                    .mealSlot(MealSlot.valueOf(mealSlotRaw.toUpperCase(Locale.ROOT)))
-                    .itemOrder(itemNode.path("itemOrder").asInt(1))
-                    .servings(itemNode.path("servings").asInt(1))
-                    .note(itemNode.path("note").asText(null))
-                    .candidate(candidate)
-                    .build());
-        }
-
-        return result.stream()
-                .filter(item -> !item.getPlanDate().isBefore(startDate))
-                .sorted(Comparator.comparing(GeneratedMealItem::getPlanDate)
-                        .thenComparing(GeneratedMealItem::getMealSlot)
-                        .thenComparing(GeneratedMealItem::getItemOrder))
-                .toList();
-    }
-
-    private List<GeneratedMealItem> fallbackGenerate(MealPlanGenerateRequest request, List<CandidateRecipe> candidates) {
+    private List<GeneratedMealItem> fallbackGenerate(MealPlanGenerateRequest request, List<MealPlanAiCandidate> candidates) {
         // Fallback cố định: xoay vòng candidate theo ngày và theo bữa.
         List<GeneratedMealItem> generated = new ArrayList<>();
         int index = 0;
@@ -322,7 +191,7 @@ public class MealPlanGenerateService {
         for (int day = 0; day < days; day++) {
             LocalDate planDate = request.getStartDate().plusDays(day);
             for (MealSlot mealSlot : DEFAULT_SLOTS) {
-                CandidateRecipe candidate = candidates.get(index % candidates.size());
+                MealPlanAiCandidate candidate = candidates.get(index % candidates.size());
                 generated.add(GeneratedMealItem.builder()
                         .planDate(planDate)
                         .mealSlot(mealSlot)
@@ -339,7 +208,7 @@ public class MealPlanGenerateService {
 
     private MealPlanItem toMealPlanItem(Long mealPlanId, GeneratedMealItem generatedItem) {
         // Lưu kết quả AI thành MealPlanItem với snapshot dinh dưỡng từ recipe.
-        CandidateRecipe candidate = generatedItem.getCandidate();
+        MealPlanAiCandidate candidate = generatedItem.getCandidate();
         NutritionAnalysisResponse nutrition = candidate.getNutrition();
 
         return MealPlanItem.builder()
@@ -369,7 +238,7 @@ public class MealPlanGenerateService {
                 .build();
     }
 
-    private boolean violatesAllergies(CandidateRecipe candidate, List<String> allergies) {
+    private boolean violatesAllergies(MealPlanAiCandidate candidate, List<String> allergies) {
         // Rule cứng: loại candidate nếu tên nguyên liệu trùng keyword dị ứng.
         if (allergies.isEmpty() || candidate.getNutrition() == null || candidate.getNutrition().getIngredientDetails() == null) {
             return false;
@@ -381,31 +250,6 @@ public class MealPlanGenerateService {
 
         return allergies.stream().anyMatch(allergy ->
                 ingredientNames.stream().anyMatch(name -> name.contains(allergy) || allergy.contains(name))
-        );
-    }
-
-    private String buildUserProfileSummary(UserResponse user) {
-        // Tóm tắt user profile thành các field cần thiết để AI lên kế hoạch.
-        if (user == null) {
-            return "{}";
-        }
-
-        int age = user.getDob() != null ? (int) ChronoUnit.YEARS.between(user.getDob(), LocalDate.now()) : -1;
-
-        return """
-                {
-                  "gender": "%s",
-                  "age": %d,
-                  "allergies": %s,
-                  "eatingPreferences": %s,
-                  "dietaryPreferences": %s
-                }
-                """.formatted(
-                user.getGender(),
-                age,
-                normalizeList(user.getAllergies()),
-                normalizeList(user.getEatingPreferences()),
-                normalizeList(user.getDietaryPreferences())
         );
     }
 
@@ -452,51 +296,7 @@ public class MealPlanGenerateService {
         }
     }
 
-    private String stripMarkdownCodeFence(String raw) {
-        // Gemini có thể bọc JSON trong markdown fence nên cần bỏ trước khi parse.
-        if (raw == null) {
-            return "";
-        }
-        String text = raw.trim();
-        if (text.startsWith("```")) {
-            text = text.replaceFirst("^```json", "").replaceFirst("^```", "");
-            text = text.replaceFirst("```$", "").trim();
-        }
-        return text;
-    }
-
     private BigDecimal toBigDecimal(Double value) {
         return value == null ? null : BigDecimal.valueOf(value);
-    }
-
-    private double defaultDouble(Double value) {
-        return value == null ? 0d : value;
-    }
-
-    @lombok.Getter
-    @Builder
-    private static class CandidateRecipe {
-        private Long recipeId;
-        private Long postId;
-        private String title;
-        private String description;
-        private String imageUrl;
-        private String region;
-        private Integer prepTime;
-        private Integer cookTime;
-        private String difficulty;
-        private List<String> ingredientKeywords;
-        private NutritionAnalysisResponse nutrition;
-    }
-
-    @lombok.Getter
-    @Builder
-    private static class GeneratedMealItem {
-        private LocalDate planDate;
-        private MealSlot mealSlot;
-        private Integer itemOrder;
-        private Integer servings;
-        private String note;
-        private CandidateRecipe candidate;
     }
 }
