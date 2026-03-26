@@ -20,8 +20,6 @@ import com.eefood.reactionservice.model.Post;
 import com.eefood.reactionservice.repository.httpclient.IamClient;
 import com.eefood.reactionservice.repository.httpclient.RecipeClient;
 import com.eefood.reactionservice.repository.post.PostRepository;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -56,7 +54,6 @@ public class MealPlanGenerateService {
     private final RecipeClient recipeClient;
     private final MealPlanService mealPlanService;
     private final MealPlanAiPlannerService mealPlanAiPlannerService;
-    private final ObjectMapper objectMapper;
 
     @Transactional
     public MealPlanResponse generateInitialMealPlan(Long userId, MealPlanGenerateRequest request) {
@@ -127,7 +124,7 @@ public class MealPlanGenerateService {
     private MealPlanAiCandidate toCandidateRecipe(Post post) {
         // Chuyển post đã duyệt thành candidate recipe kèm snapshot dinh dưỡng.
         try {
-            NutritionAnalysisResponse nutrition = fetchRecipeNutrition(post.getRecipeId());
+            NutritionAnalysisResponse nutrition = recipeClient.getNutritionByRecipeId(post.getRecipeId(), false).getData();
             if (nutrition == null) {
                 return null;
             }
@@ -152,35 +149,6 @@ public class MealPlanGenerateService {
         }
     }
 
-    private NutritionAnalysisResponse fetchRecipeNutrition(Long recipeId) {
-        // Đọc SSE từ recipe-service và lấy payload nutrition/analysis đầu tiên.
-        String ssePayload = recipeClient.analyzeRecipeNutritionStream(recipeId, false);
-        if (ssePayload == null || ssePayload.isBlank()) {
-            return null;
-        }
-
-        String currentEvent = null;
-        for (String rawLine : ssePayload.split("\\R")) {
-            String line = rawLine.trim();
-            if (line.startsWith("event:")) {
-                currentEvent = line.substring("event:".length()).trim();
-                continue;
-            }
-            if (line.startsWith("data:") && ("nutrition".equals(currentEvent) || "analysis".equals(currentEvent))) {
-                String json = line.substring("data:".length()).trim();
-                try {
-                    JsonNode node = objectMapper.readTree(json);
-                    JsonNode dataNode = node.path("data");
-                    if (!dataNode.isMissingNode() && !dataNode.isNull()) {
-                        return objectMapper.treeToValue(dataNode, NutritionAnalysisResponse.class);
-                    }
-                } catch (Exception e) {
-                    log.warn("Failed to parse nutrition SSE for recipeId={}: {}", recipeId, e.getMessage());
-                }
-            }
-        }
-        return null;
-    }
 
     private List<GeneratedMealItem> fallbackGenerate(MealPlanGenerateRequest request, List<MealPlanAiCandidate> candidates) {
         // Fallback cố định: xoay vòng candidate theo ngày và theo bữa.

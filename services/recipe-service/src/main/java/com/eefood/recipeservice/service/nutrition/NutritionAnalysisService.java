@@ -7,15 +7,16 @@ import com.eefood.recipeservice.enums.ErrorMessage;
 import com.eefood.recipeservice.enums.HealthLevel;
 import com.eefood.recipeservice.exception.ExceptionUtil;
 import com.eefood.recipeservice.mapper.NutritionMapper;
-import com.eefood.recipeservice.mapper.RecipeMapper;
-import com.eefood.recipeservice.model.*;
+import com.eefood.recipeservice.model.Recipe;
+import com.eefood.recipeservice.model.RecipeIngredient;
+import com.eefood.recipeservice.model.RecipeIngredientNutrition;
+import com.eefood.recipeservice.model.RecipeNutrition;
+import com.eefood.recipeservice.model.RecipeNutritionAnalysis;
 import com.eefood.recipeservice.repository.RecipeRepository;
 import com.eefood.recipeservice.repository.httpclient.ReactionClient;
-import com.eefood.recipeservice.repository.nutrition.*;
-import com.eefood.recipeservice.service.RecipeService;
+import com.eefood.recipeservice.repository.nutrition.RecipeNutritionAnalysisRepository;
+import com.eefood.recipeservice.repository.nutrition.RecipeNutritionRepository;
 import com.eefood.recipeservice.util.NutritionSseUtils;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,12 +26,11 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.time.Duration;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -51,6 +51,40 @@ public class NutritionAnalysisService {
     private final ReactionClient reactionClient;
     private final RecipeIngredientNutritionResolver recipeIngredientNutritionResolver;
 
+    // Tra ve du lieu dinh duong dang JSON de service khac goi truc tiep.
+    @Transactional
+    public NutritionAnalysisResponse getNutritionByRecipeId(Long recipeId, boolean forceRefresh) {
+        String cacheKey = CACHE_PREFIX + recipeId;
+
+        if (!forceRefresh) {
+            NutritionAnalysisResponse cached =
+                    (NutritionAnalysisResponse) redisTemplate.opsForValue().get(cacheKey);
+            if (cached != null) {
+                log.info("[Nutrition] Cache hit for recipeId={}", recipeId);
+                return cached;
+            }
+        }
+
+        Recipe recipe = recipeRepository.findByIdWithIngredients(recipeId)
+                .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.RECIPE_NOT_FOUND));
+
+        if (recipe.getIngredients() == null || recipe.getIngredients().isEmpty()) {
+            throw ExceptionUtil.badRequest(ErrorMessage.RECIPE_HAS_NO_INGREDIENTS);
+        }
+
+        List<RecipeIngredient> ingredients = new ArrayList<>(recipe.getIngredients());
+        List<RecipeIngredientNutrition> rinList =
+                recipeIngredientNutritionResolver.resolveIngredientNutritions(recipe, ingredients);
+
+        RecipeNutrition nutrition = calculateAndSaveTotalNutrition(recipe, rinList);
+        List<IngredientNutritionDetail> details = rinList.stream()
+                .map(nutritionMapper::toDetail)
+                .toList();
+
+        NutritionAnalysisResponse response = nutritionMapper.toPartialResponse(nutrition, details);
+        redisTemplate.opsForValue().set(cacheKey, response, CACHE_TTL);
+        return response;
+    }
 
     // Phân tích dinh dưỡng từ recipeId có sẵn trong DB
     public SseEmitter analyzeStreamByRecipeId(Long recipeId, boolean forceRefresh) {
