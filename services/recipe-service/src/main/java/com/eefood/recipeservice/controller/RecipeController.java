@@ -111,6 +111,11 @@ public class RecipeController {
     return new ResponseData<>(HttpStatus.OK.value(), "Success", recipeService.getRecipeById(id));
   }
 
+  @GetMapping("/public/{id}")
+  public ResponseData<RecipeResponse> getRecipeById(@PathVariable Long id) {
+    return new ResponseData<>(HttpStatus.OK.value(), "Success", recipeService.getRecipeById(id));
+  }
+
   @PostMapping
   public ResponseData<RecipeResponse> createRecipe(@RequestBody RecipeRequest request) {
     Long authorId = securityUtil.getCurrentUserId();
