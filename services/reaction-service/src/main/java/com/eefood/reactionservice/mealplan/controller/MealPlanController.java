@@ -6,6 +6,7 @@ import com.eefood.reactionservice.mealplan.dto.request.MealPlanItemUpsertRequest
 import com.eefood.reactionservice.mealplan.dto.request.MealPlanUpsertRequest;
 import com.eefood.reactionservice.mealplan.dto.response.MealPlanResponse;
 import com.eefood.reactionservice.mealplan.service.MealPlanGenerateService;
+import com.eefood.reactionservice.mealplan.service.MealPlanItemService;
 import com.eefood.reactionservice.mealplan.service.MealPlanService;
 import com.eefood.reactionservice.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 public class MealPlanController {
 
     private final MealPlanService mealPlanService;
+    private final MealPlanItemService mealPlanItemService;
     private final MealPlanGenerateService mealPlanGenerateService;
     private final SecurityUtil securityUtil;
 
@@ -63,13 +65,12 @@ public class MealPlanController {
 
     @PutMapping("/items")
     public ResponseData<MealPlanResponse> upsertMealPlanItem(@RequestBody MealPlanItemUpsertRequest request) {
-        //id = null thì thêm; id != null thì cập nhật
-        // Upsert 1 item trong plan hiện tại: thêm mới hoặc cập nhật từng phần theo id.
+        // id = null thì thêm mới; id != null thì cập nhật item hiện có.
         Long userId = securityUtil.getCurrentUserId();
         return new ResponseData<>(
                 HttpStatus.OK.value(),
                 "Update Meal Plan Item Success",
-                mealPlanService.upsertMealPlanItem(userId, request)
+                mealPlanItemService.upsertMealPlanItem(userId, request)
         );
     }
 }
