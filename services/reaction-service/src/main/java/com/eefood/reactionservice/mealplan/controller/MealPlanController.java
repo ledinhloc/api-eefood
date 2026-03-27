@@ -4,6 +4,7 @@ import com.eefood.reactionservice.dto.response.ResponseData;
 import com.eefood.reactionservice.mealplan.dto.request.MealPlanGenerateRequest;
 import com.eefood.reactionservice.mealplan.dto.request.MealPlanItemUpsertRequest;
 import com.eefood.reactionservice.mealplan.dto.request.MealPlanUpsertRequest;
+import com.eefood.reactionservice.mealplan.dto.response.MealPlanDailySummaryResponse;
 import com.eefood.reactionservice.mealplan.dto.response.MealPlanResponse;
 import com.eefood.reactionservice.mealplan.service.MealPlanGenerateService;
 import com.eefood.reactionservice.mealplan.service.MealPlanItemService;
@@ -30,6 +31,16 @@ public class MealPlanController {
                 HttpStatus.OK.value(),
                 "Get Meal Plan Success",
                 mealPlanService.getCurrentMealPlan(userId)
+        );
+    }
+
+    @GetMapping("/daily-summary")
+    public ResponseData<java.util.List<MealPlanDailySummaryResponse>> getDailySummary() {
+        Long userId = securityUtil.getCurrentUserId();
+        return new ResponseData<>(
+                HttpStatus.OK.value(),
+                "Get Daily Summary Success",
+                mealPlanService.getDailySummaries(userId)
         );
     }
 
