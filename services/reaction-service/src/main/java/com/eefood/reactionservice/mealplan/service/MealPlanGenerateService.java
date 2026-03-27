@@ -14,6 +14,7 @@ import com.eefood.reactionservice.mealplan.enums.MealPlanItemStatus;
 import com.eefood.reactionservice.mealplan.enums.MealSlot;
 import com.eefood.reactionservice.mealplan.model.MealPlan;
 import com.eefood.reactionservice.mealplan.model.MealPlanItem;
+import com.eefood.reactionservice.mealplan.repo.MealPlanItemIngredientRepository;
 import com.eefood.reactionservice.mealplan.repo.MealPlanItemRepository;
 import com.eefood.reactionservice.mealplan.repo.MealPlanRepository;
 import com.eefood.reactionservice.model.Post;
@@ -48,6 +49,7 @@ public class MealPlanGenerateService {
 
     private final MealPlanRepository mealPlanRepository;
     private final MealPlanItemRepository mealPlanItemRepository;
+    private final MealPlanItemIngredientRepository mealPlanItemIngredientRepository;
     private final PostRepository postRepository;
     private final IamClient iamClient;
     private final RecipeClient recipeClient;
@@ -88,6 +90,7 @@ public class MealPlanGenerateService {
 
         MealPlan savedMealPlan = mealPlanRepository.save(mealPlan);
 
+        deleteIngredientsByMealPlanId(savedMealPlan.getId());
         mealPlanItemRepository.deleteAllByMealPlanId(savedMealPlan.getId());
         saveGeneratedItems(savedMealPlan.getId(), generatedItems);
 
@@ -142,6 +145,7 @@ public class MealPlanGenerateService {
         mealPlan.setUserHealthNote(buildUserHealthNote(user));
         MealPlan savedMealPlan = mealPlanRepository.save(mealPlan);
 
+        deleteIngredientsByMealPlanIdAndDateRange(savedMealPlan.getId(), nextStartDate, nextEndDate);
         mealPlanItemRepository.deleteAllByMealPlanIdAndPlanDateBetween(savedMealPlan.getId(), nextStartDate, nextEndDate);
         saveGeneratedItems(savedMealPlan.getId(), generatedItems);
 
@@ -270,6 +274,28 @@ public class MealPlanGenerateService {
                         .map(item -> toMealPlanItem(mealPlanId, item))
                         .toList()
         );
+    }
+
+    private void deleteIngredientsByMealPlanId(Long mealPlanId) {
+        // Dọn child rows trước khi xóa item để tránh orphan data hoặc lỗi FK.
+        List<Long> itemIds = mealPlanItemRepository.findAllByMealPlanIdOrderByPlanDateAscMealSlotAscItemOrderAsc(mealPlanId).stream()
+                .map(MealPlanItem::getId)
+                .toList();
+        if (!itemIds.isEmpty()) {
+            mealPlanItemIngredientRepository.deleteAllByMealPlanItemIdIn(itemIds);
+        }
+    }
+
+    private void deleteIngredientsByMealPlanIdAndDateRange(Long mealPlanId, LocalDate startDate, LocalDate endDate) {
+        // Chỉ dọn ingredients của đoạn ngày sắp bị replace trong flow continue.
+        List<Long> itemIds = mealPlanItemRepository.findAllByMealPlanIdOrderByPlanDateAscMealSlotAscItemOrderAsc(mealPlanId).stream()
+                .filter(item -> item.getPlanDate() != null)
+                .filter(item -> !item.getPlanDate().isBefore(startDate) && !item.getPlanDate().isAfter(endDate))
+                .map(MealPlanItem::getId)
+                .toList();
+        if (!itemIds.isEmpty()) {
+            mealPlanItemIngredientRepository.deleteAllByMealPlanItemIdIn(itemIds);
+        }
     }
 
     private boolean violatesAllergies(MealPlanAiCandidate candidate, List<String> allergies) {

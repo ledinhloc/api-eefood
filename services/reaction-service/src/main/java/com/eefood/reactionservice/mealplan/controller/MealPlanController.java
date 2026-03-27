@@ -84,4 +84,15 @@ public class MealPlanController {
                 mealPlanItemService.upsertMealPlanItem(userId, request)
         );
     }
+
+    @DeleteMapping("/items/{id}")
+    public ResponseData<MealPlanResponse> deleteMealPlanItem(@PathVariable Long id) {
+        // Xóa hẳn một item khỏi meal plan hiện tại của user.
+        Long userId = securityUtil.getCurrentUserId();
+        return new ResponseData<>(
+                HttpStatus.OK.value(),
+                "Delete Meal Plan Item Success",
+                mealPlanItemService.deleteMealPlanItem(userId, id)
+        );
+    }
 }

@@ -12,4 +12,6 @@ public interface MealPlanItemIngredientRepository extends JpaRepository<MealPlan
     List<MealPlanItemIngredient> findAllByMealPlanItemIdIn(Collection<Long> mealPlanItemIds);
 
     void deleteAllByMealPlanItemId(Long mealPlanItemId);
+
+    void deleteAllByMealPlanItemIdIn(Collection<Long> mealPlanItemIds);
 }

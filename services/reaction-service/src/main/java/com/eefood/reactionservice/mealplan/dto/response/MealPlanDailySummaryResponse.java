@@ -16,12 +16,12 @@ import java.time.LocalDate;
 @Builder
 public class MealPlanDailySummaryResponse {
     private LocalDate planDate;
-    private BigDecimal calories;
+    private BigDecimal calories;//kcal
     private BigDecimal protein;
-    private BigDecimal carbs;
-    private BigDecimal fat;
-    private BigDecimal fiber;
-    private BigDecimal sugar;
-    private BigDecimal sodium;
-    private BigDecimal calcium;
+    private BigDecimal carbs;//tinh bột
+    private BigDecimal fat;//chat beo
+    private BigDecimal fiber;//chất xơ
+    private BigDecimal sugar;//đường
+    private BigDecimal sodium;//natri
+    private BigDecimal calcium;//calcium
 }

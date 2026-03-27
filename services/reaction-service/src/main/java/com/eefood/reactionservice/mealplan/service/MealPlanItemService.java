@@ -64,6 +64,25 @@ public class MealPlanItemService {
         return mealPlanService.getCurrentMealPlan(userId);
     }
 
+    @Transactional
+    public MealPlanResponse deleteMealPlanItem(Long userId, Long itemId) {
+        // Xóa hẳn item khỏi meal plan hiện tại của user và dọn luôn custom ingredients liên quan.
+        if (userId == null || itemId == null) {
+            throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
+        }
+
+        MealPlan mealPlan = mealPlanRepository.findByUserId(userId)
+                .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.MEAL_PLAN_NOT_FOUND));
+
+        MealPlanItem item = mealPlanItemRepository.findByIdAndMealPlanId(itemId, mealPlan.getId())
+                .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.MEAL_PLAN_ITEM_NOT_FOUND));
+
+        mealPlanItemIngredientRepository.deleteAllByMealPlanItemId(item.getId());
+        mealPlanItemRepository.delete(item);
+
+        return mealPlanService.getCurrentMealPlan(userId);
+    }
+
     private void applyItemRequest(MealPlanItem item, MealPlanItemUpsertRequest request) {
         // Áp dụng partial update cho các field chung trước khi rẽ nhánh RECIPE hoặc CUSTOM.
         if (request.getPlanDate() != null) {
@@ -181,6 +200,17 @@ public class MealPlanItemService {
     private void validateItemUpsertRequest(Long userId, MealPlanItemUpsertRequest request, MealPlanItem existingItem) {
         // Create mới bắt buộc đủ field chính, còn update thì cho phép partial update.
         if (userId == null || request == null) {
+            throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
+        }
+
+        // Chặn dữ liệu số không hợp lệ ngay ở API write để tránh làm sai summary về sau.
+        if (request.getItemOrder() != null && request.getItemOrder() <= 0) {
+            throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
+        }
+        if (request.getPlannedServings() != null && request.getPlannedServings() <= 0) {
+            throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
+        }
+        if (request.getActualServings() != null && request.getActualServings() <= 0) {
             throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
         }
 
