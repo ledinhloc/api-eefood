@@ -60,6 +60,10 @@ public enum ErrorMessage {
   //Recipe service
   RECIPE_NOT_FOUND("Recipe not found or already deleted"),
 
+  // meal plan
+  MEAL_PLAN_NOT_FOUND("Meal plan not found"),
+  MEAL_PLAN_ITEM_NOT_FOUND("Meal plan item not found"),
+
   //ingre
   INGREDIENT_SHOPPING_NOT_FOUND("Ingredient not found"),
   SHOPPING_ITEM_NOT_FOUND("Shopping Item not found"),

@@ -10,4 +10,6 @@ import java.util.List;
 @Repository
 public interface MealPlanItemIngredientRepository extends JpaRepository<MealPlanItemIngredient, Long> {
     List<MealPlanItemIngredient> findAllByMealPlanItemIdIn(Collection<Long> mealPlanItemIds);
+
+    void deleteAllByMealPlanItemId(Long mealPlanItemId);
 }

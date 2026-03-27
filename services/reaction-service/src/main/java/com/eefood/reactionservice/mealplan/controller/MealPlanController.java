@@ -2,6 +2,7 @@ package com.eefood.reactionservice.mealplan.controller;
 
 import com.eefood.reactionservice.dto.response.ResponseData;
 import com.eefood.reactionservice.mealplan.dto.request.MealPlanGenerateRequest;
+import com.eefood.reactionservice.mealplan.dto.request.MealPlanItemUpsertRequest;
 import com.eefood.reactionservice.mealplan.dto.request.MealPlanUpsertRequest;
 import com.eefood.reactionservice.mealplan.dto.response.MealPlanResponse;
 import com.eefood.reactionservice.mealplan.service.MealPlanGenerateService;
@@ -47,6 +48,28 @@ public class MealPlanController {
                 HttpStatus.OK.value(),
                 "Generate Meal Plan Success",
                 mealPlanGenerateService.generateInitialMealPlan(userId, request)
+        );
+    }
+
+    @PostMapping("/continue")
+    public ResponseData<MealPlanResponse> continueMealPlan(@RequestParam(required = false) Integer days) {
+        Long userId = securityUtil.getCurrentUserId();
+        return new ResponseData<>(
+                HttpStatus.OK.value(),
+                "Continue Meal Plan Success",
+                mealPlanGenerateService.continueMealPlan(userId, days)
+        );
+    }
+
+    @PutMapping("/items")
+    public ResponseData<MealPlanResponse> upsertMealPlanItem(@RequestBody MealPlanItemUpsertRequest request) {
+        //id = null thì thêm; id != null thì cập nhật
+        // Upsert 1 item trong plan hiện tại: thêm mới hoặc cập nhật từng phần theo id.
+        Long userId = securityUtil.getCurrentUserId();
+        return new ResponseData<>(
+                HttpStatus.OK.value(),
+                "Update Meal Plan Item Success",
+                mealPlanService.upsertMealPlanItem(userId, request)
         );
     }
 }
