@@ -13,6 +13,7 @@ import com.eefood.reactionservice.mealplan.service.MealPlanService;
 import com.eefood.reactionservice.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -45,6 +46,16 @@ public class MealPlanController {
                 HttpStatus.OK.value(),
                 "Get Daily Summary Success",
                 mealPlanService.getDailySummaries(userId)
+        );
+    }
+
+    @GetMapping("/daily-summary/by-date")
+    public ResponseData<MealPlanDailySummaryResponse> getDailySummaryByDate(@RequestParam LocalDate date) {
+        Long userId = securityUtil.getCurrentUserId();
+        return new ResponseData<>(
+                HttpStatus.OK.value(),
+                "Get Daily Summary By Date Success",
+                mealPlanService.getDailySummary(userId, date)
         );
     }
 
@@ -86,6 +97,26 @@ public class MealPlanController {
                 HttpStatus.OK.value(),
                 "Update Meal Plan Item Success",
                 mealPlanItemService.upsertMealPlanItem(userId, request)
+        );
+    }
+
+    @GetMapping("/items")
+    public ResponseData<List<MealPlanItemResponse>> getMealPlanItemsByDate(@RequestParam LocalDate date) {
+        Long userId = securityUtil.getCurrentUserId();
+        return new ResponseData<>(
+                HttpStatus.OK.value(),
+                "Get Meal Plan Items By Date Success",
+                mealPlanService.getItemsByDate(userId, date)
+        );
+    }
+
+    @GetMapping("/items/{id}")
+    public ResponseData<MealPlanItemResponse> getMealPlanItemDetail(@PathVariable Long id) {
+        Long userId = securityUtil.getCurrentUserId();
+        return new ResponseData<>(
+                HttpStatus.OK.value(),
+                "Get Meal Plan Item Detail Success",
+                mealPlanItemService.getMealPlanItemDetail(userId, id)
         );
     }
 

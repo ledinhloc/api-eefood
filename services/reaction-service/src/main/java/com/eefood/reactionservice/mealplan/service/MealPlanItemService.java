@@ -87,6 +87,21 @@ public class MealPlanItemService {
         return mealPlanService.getCurrentMealPlan(userId);
     }
 
+    @Transactional
+    public MealPlanItemResponse getMealPlanItemDetail(Long userId, Long itemId) {
+        if (userId == null || itemId == null) {
+            throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
+        }
+
+        MealPlan mealPlan = mealPlanRepository.findByUserId(userId)
+                .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.MEAL_PLAN_NOT_FOUND));
+
+        MealPlanItem item = mealPlanItemRepository.findByIdAndMealPlanId(itemId, mealPlan.getId())
+                .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.MEAL_PLAN_ITEM_NOT_FOUND));
+
+        return buildItemResponse(item);
+    }
+
     private MealPlanItemResponse buildItemResponse(MealPlanItem item) {
         // Chỉ nạp lại ingredients của riêng item vừa upsert để tránh over-fetch cả meal plan.
         MealPlanItemResponse response = mealPlanMapper.toResponse(item);

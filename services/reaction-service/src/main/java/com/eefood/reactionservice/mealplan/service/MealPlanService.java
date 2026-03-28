@@ -4,14 +4,11 @@ import com.eefood.reactionservice.enums.ErrorMessage;
 import com.eefood.reactionservice.exception.ExceptionUtil;
 import com.eefood.reactionservice.mealplan.dto.request.MealPlanUpsertRequest;
 import com.eefood.reactionservice.mealplan.dto.response.MealPlanDailySummaryResponse;
-import com.eefood.reactionservice.mealplan.dto.response.MealPlanItemIngredientResponse;
 import com.eefood.reactionservice.mealplan.dto.response.MealPlanItemResponse;
 import com.eefood.reactionservice.mealplan.dto.response.MealPlanResponse;
 import com.eefood.reactionservice.mealplan.mapper.MealPlanMapper;
 import com.eefood.reactionservice.mealplan.model.MealPlan;
 import com.eefood.reactionservice.mealplan.model.MealPlanItem;
-import com.eefood.reactionservice.mealplan.model.MealPlanItemIngredient;
-import com.eefood.reactionservice.mealplan.repo.MealPlanItemIngredientRepository;
 import com.eefood.reactionservice.mealplan.repo.MealPlanItemRepository;
 import com.eefood.reactionservice.mealplan.repo.MealPlanRepository;
 import jakarta.transaction.Transactional;
@@ -19,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -31,7 +29,6 @@ public class MealPlanService {
 
     private final MealPlanRepository mealPlanRepository;
     private final MealPlanItemRepository mealPlanItemRepository;
-    private final MealPlanItemIngredientRepository mealPlanItemIngredientRepository;
     private final MealPlanMapper mealPlanMapper;
 
     @Transactional
@@ -71,7 +68,7 @@ public class MealPlanService {
         return mealPlanRepository.findByUserId(userId)
                 .map(mealPlan -> {
                     // Gom tất cả item theo ngày và cộng dồn dinh dưỡng theo servings của từng item.
-                    Map<java.time.LocalDate, List<MealPlanItem>> itemsByDate = mealPlanItemRepository
+                    Map<LocalDate, List<MealPlanItem>> itemsByDate = mealPlanItemRepository
                             .findAllByMealPlanIdOrderByPlanDateAscMealSlotAscItemOrderAsc(mealPlan.getId()).stream()
                             .filter(item -> item.getPlanDate() != null)
                             .collect(Collectors.groupingBy(
@@ -93,33 +90,42 @@ public class MealPlanService {
                 .orElse(List.of());
     }
 
+    @Transactional
+    public MealPlanDailySummaryResponse getDailySummary(Long userId, LocalDate planDate) {
+        if (userId == null || planDate == null) {
+            throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
+        }
+
+        MealPlan mealPlan = mealPlanRepository.findByUserId(userId)
+                .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.MEAL_PLAN_NOT_FOUND));
+
+        List<MealPlanItem> items = mealPlanItemRepository
+                .findAllByMealPlanIdAndPlanDateOrderByMealSlotAscItemOrderAsc(mealPlan.getId(), planDate);
+
+        return toDailySummary(planDate, items);
+    }
+
+    @Transactional
+    public List<MealPlanItemResponse> getItemsByDate(Long userId, LocalDate planDate) {
+        if (userId == null || planDate == null) {
+            throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
+        }
+
+        MealPlan mealPlan = mealPlanRepository.findByUserId(userId)
+                .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.MEAL_PLAN_NOT_FOUND));
+
+        return mealPlanItemRepository
+                .findAllByMealPlanIdAndPlanDateOrderByMealSlotAscItemOrderAsc(mealPlan.getId(), planDate)
+                .stream()
+                .map(mealPlanMapper::toResponse)
+                .toList();
+    }
+
     private MealPlanResponse buildMealPlanResponse(MealPlan mealPlan) {
         // Dựng response hoàn chỉnh của meal plan, bao gồm item và ingredients theo từng item.
         MealPlanResponse response = mealPlanMapper.toResponse(mealPlan);
 
-        List<MealPlanItem> items = mealPlanItemRepository
-                .findAllByMealPlanIdOrderByPlanDateAscMealSlotAscItemOrderAsc(mealPlan.getId());
-
-        List<Long> itemIds = items.stream()
-                .map(MealPlanItem::getId)
-                .toList();
-
-        Map<Long, List<MealPlanItemIngredientResponse>> ingredientsByItemId =
-                mealPlanItemIngredientRepository.findAllByMealPlanItemIdIn(itemIds).stream()
-                        .collect(Collectors.groupingBy(
-                                MealPlanItemIngredient::getMealPlanItemId,
-                                Collectors.mapping(mealPlanMapper::toResponse, Collectors.toList())
-                        ));
-
-        List<MealPlanItemResponse> itemResponses = items.stream()
-                .map(item -> {
-                    MealPlanItemResponse itemResponse = mealPlanMapper.toResponse(item);
-                    itemResponse.setIngredients(ingredientsByItemId.getOrDefault(item.getId(), List.of()));
-                    return itemResponse;
-                })
-                .toList();
-
-        response.setItems(itemResponses);
+        response.setItems(List.of());
         return response;
     }
 
@@ -138,7 +144,7 @@ public class MealPlanService {
 
     }
 
-    private MealPlanDailySummaryResponse toDailySummary(java.time.LocalDate planDate, List<MealPlanItem> items) {
+    private MealPlanDailySummaryResponse toDailySummary(LocalDate planDate, List<MealPlanItem> items) {
         // Ưu tiên actualServings nếu đã có, ngược lại dùng plannedServings để tính tổng theo ngày.
         BigDecimal calories = BigDecimal.ZERO;
         BigDecimal protein = BigDecimal.ZERO;
