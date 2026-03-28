@@ -19,7 +19,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -29,8 +28,6 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class MealPlanService {
-
-    private static final long MAX_PLAN_DAYS = 14L;
 
     private final MealPlanRepository mealPlanRepository;
     private final MealPlanItemRepository mealPlanItemRepository;
@@ -139,10 +136,6 @@ public class MealPlanService {
             throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
         }
 
-        long planDays = ChronoUnit.DAYS.between(request.getStartDate(), request.getEndDate()) + 1;
-        if (planDays > MAX_PLAN_DAYS) {
-            throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
-        }
     }
 
     private MealPlanDailySummaryResponse toDailySummary(java.time.LocalDate planDate, List<MealPlanItem> items) {

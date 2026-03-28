@@ -42,7 +42,7 @@ import java.util.concurrent.Executor;
 @Slf4j
 public class MealPlanGenerateService {
 
-    private static final int MAX_PLAN_DAYS = 14;
+    private static final int MAX_GENERATE_DAYS = 5;
     private static final int DEFAULT_DAYS = 3;
     private static final int CANDIDATE_LIMIT = 12;
     private static final List<MealSlot> DEFAULT_SLOTS = List.of(MealSlot.BREAKFAST, MealSlot.LUNCH, MealSlot.DINNER);
@@ -112,11 +112,6 @@ public class MealPlanGenerateService {
         int resolvedDays = resolveDays(days);
         LocalDate nextStartDate = mealPlan.getEndDate().plusDays(1);
         LocalDate nextEndDate = nextStartDate.plusDays(resolvedDays - 1L);
-        long totalPlanDays = ChronoUnit.DAYS.between(mealPlan.getStartDate(), nextEndDate) + 1;
-        if (totalPlanDays > MAX_PLAN_DAYS) {
-            throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
-        }
-
         UserResponse user = iamClient.getUserById(userId).getData();
         List<MealPlanAiCandidate> candidates = loadCandidateRecipes(user);
 
@@ -340,12 +335,12 @@ public class MealPlanGenerateService {
     private int resolveDays(MealPlanGenerateRequest request) {
         // Mặc định sinh plan ngắn và luôn chặn ở giới hạn business.
         int days = request.getDays() == null || request.getDays() <= 0 ? DEFAULT_DAYS : request.getDays();
-        return Math.min(days, MAX_PLAN_DAYS);
+        return Math.min(days, MAX_GENERATE_DAYS);
     }
 
     private int resolveDays(Integer days) {
         int resolvedDays = days == null || days <= 0 ? DEFAULT_DAYS : days;
-        return Math.min(resolvedDays, MAX_PLAN_DAYS);
+        return Math.min(resolvedDays, MAX_GENERATE_DAYS);
     }
 
     private void validateGenerateRequest(Long userId, MealPlanGenerateRequest request) {
@@ -354,7 +349,7 @@ public class MealPlanGenerateService {
             throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
         }
 
-        if (request.getDays() != null && (request.getDays() <= 0 || request.getDays() > MAX_PLAN_DAYS)) {
+        if (request.getDays() != null && (request.getDays() <= 0 || request.getDays() > MAX_GENERATE_DAYS)) {
             throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
         }
     }
@@ -364,7 +359,7 @@ public class MealPlanGenerateService {
             throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
         }
 
-        if (days != null && (days <= 0 || days > MAX_PLAN_DAYS)) {
+        if (days != null && (days <= 0 || days > MAX_GENERATE_DAYS)) {
             throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
         }
     }

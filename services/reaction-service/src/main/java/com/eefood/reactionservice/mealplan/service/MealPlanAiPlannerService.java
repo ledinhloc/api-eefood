@@ -86,15 +86,16 @@ public class MealPlanAiPlannerService {
         }
 
         return """
-                You are generating an initial meal plan in JSON only.
-                Rules:
-                - Return valid JSON only, no markdown, no explanation.
-                - Use only recipeId values from candidate_recipes.
-                - Generate breakfast, lunch, dinner for each day.
-                - Use 1 item per slot for this initial plan.
-                - Respect allergies strictly.
-                - Prefer low sugar options when goal mentions diabetes or low sugar.
-                Output schema:
+                Bạn là một chuyên gia dinh dưỡng, giúp tôi tạo một meal plan ban đầu và chỉ được trả về JSON hợp lệ.
+                Quy tắc:
+                - Chỉ trả về JSON hợp lệ, không được dùng markdown, không giải thích thêm.
+                - Chỉ được sử dụng recipeId có trong candidate_recipes.
+                - Tạo đúng 3 bữa mỗi ngày: BREAKFAST, LUNCH, DINNER.
+                - Tổng số item phải bằng days * 3.
+                - planDate phải bắt đầu từ start_date và kéo dài đúng số ngày được cung cấp.
+                - Phải chú ý dị ứng thực phẩm một cách nghiêm ngặt.
+                - Nếu goal nhắc đến tiểu đường hoặc ít đường thì ưu tiên món ít đường.
+                Cấu trúc JSON cần trả về:
                 {
                   "items": [
                     {
@@ -103,7 +104,7 @@ public class MealPlanAiPlannerService {
                       "itemOrder": 1,
                       "recipeId": 123,
                       "servings": 1,
-                      "note": "short note"
+                      "note": "ghi chú ngắn bằng tiếng Việt"
                     }
                   ]
                 }
