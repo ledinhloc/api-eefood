@@ -135,17 +135,16 @@ public class MealPlanItemService {
 
         String customMealName = request.getCustomMealName() != null ? request.getCustomMealName() : item.getCustomMealName();
         item.setCustomMealName(customMealName);
-        item.setRecipeTitleSnapshot(customMealName);
-        item.setImageUrlSnapshot(null);
-        item.setRecipeServingsSnapshot(null);
-        item.setCaloriesPerServingSnapshot(null);
-        item.setProteinPerServingSnapshot(null);
-        item.setCarbsPerServingSnapshot(null);
-        item.setFatPerServingSnapshot(null);
-        item.setFiberPerServingSnapshot(null);
-        item.setSugarPerServingSnapshot(null);
-        item.setCalciumPerServingSnapshot(null);
-        item.setSodiumPerServingSnapshot(null);
+        item.setRecipeTitle(customMealName);
+        item.setImageUrl(null);
+        item.setCalories(null);
+        item.setProtein(null);
+        item.setCarbs(null);
+        item.setFat(null);
+        item.setFiber(null);
+        item.setSugar(null);
+        item.setCalcium(null);
+        item.setSodium(null);
     }
 
     private void applyRecipeItem(MealPlanItem item, MealPlanItemUpsertRequest request) {
@@ -165,17 +164,16 @@ public class MealPlanItemService {
         item.setRecipeId(post.getRecipeId());
         item.setPostId(post.getId());
         item.setCustomMealName(null);
-        item.setRecipeTitleSnapshot(post.getTitle());
-        item.setImageUrlSnapshot(post.getImageUrl());
-        item.setRecipeServingsSnapshot(1);
-        item.setCaloriesPerServingSnapshot(toBigDecimal(nutrition.getTotalCalories()));
-        item.setProteinPerServingSnapshot(toBigDecimal(nutrition.getTotalProtein()));
-        item.setCarbsPerServingSnapshot(toBigDecimal(nutrition.getTotalCarb()));
-        item.setFatPerServingSnapshot(toBigDecimal(nutrition.getTotalFat()));
-        item.setFiberPerServingSnapshot(toBigDecimal(nutrition.getTotalFiber()));
-        item.setSugarPerServingSnapshot(toBigDecimal(nutrition.getTotalSugar()));
-        item.setCalciumPerServingSnapshot(toBigDecimal(nutrition.getTotalCalcium()));
-        item.setSodiumPerServingSnapshot(toBigDecimal(nutrition.getTotalSodium()));
+        item.setRecipeTitle(post.getTitle());
+        item.setImageUrl(post.getImageUrl());
+        item.setCalories(toBigDecimal(nutrition.getTotalCalories()));
+        item.setProtein(toBigDecimal(nutrition.getTotalProtein()));
+        item.setCarbs(toBigDecimal(nutrition.getTotalCarb()));
+        item.setFat(toBigDecimal(nutrition.getTotalFat()));
+        item.setFiber(toBigDecimal(nutrition.getTotalFiber()));
+        item.setSugar(toBigDecimal(nutrition.getTotalSugar()));
+        item.setCalcium(toBigDecimal(nutrition.getTotalCalcium()));
+        item.setSodium(toBigDecimal(nutrition.getTotalSodium()));
     }
 
     private Post resolveRecipePost(MealPlanItemUpsertRequest request) {

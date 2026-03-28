@@ -160,14 +160,14 @@ public class MealPlanService {
             int servings = resolveServings(item);
             BigDecimal multiplier = BigDecimal.valueOf(servings);
 
-            calories = calories.add(scale(item.getCaloriesPerServingSnapshot(), multiplier));
-            protein = protein.add(scale(item.getProteinPerServingSnapshot(), multiplier));
-            carbs = carbs.add(scale(item.getCarbsPerServingSnapshot(), multiplier));
-            fat = fat.add(scale(item.getFatPerServingSnapshot(), multiplier));
-            fiber = fiber.add(scale(item.getFiberPerServingSnapshot(), multiplier));
-            sugar = sugar.add(scale(item.getSugarPerServingSnapshot(), multiplier));
-            sodium = sodium.add(scale(item.getSodiumPerServingSnapshot(), multiplier));
-            calcium = calcium.add(scale(item.getCalciumPerServingSnapshot(), multiplier));
+            calories = calories.add(scale(item.getCalories(), multiplier));
+            protein = protein.add(scale(item.getProtein(), multiplier));
+            carbs = carbs.add(scale(item.getCarbs(), multiplier));
+            fat = fat.add(scale(item.getFat(), multiplier));
+            fiber = fiber.add(scale(item.getFiber(), multiplier));
+            sugar = sugar.add(scale(item.getSugar(), multiplier));
+            sodium = sodium.add(scale(item.getSodium(), multiplier));
+            calcium = calcium.add(scale(item.getCalcium(), multiplier));
         }
 
         return MealPlanDailySummaryResponse.builder()

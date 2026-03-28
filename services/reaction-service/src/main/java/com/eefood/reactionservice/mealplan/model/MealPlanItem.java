@@ -61,36 +61,34 @@ public class MealPlanItem {
     private MealPlanItemStatus status;
 
     @Column
-    private String recipeTitleSnapshot;
+    private String recipeTitle;
 
     @Column(length = 500)
-    private String imageUrlSnapshot;
-
-    private Integer recipeServingsSnapshot;
+    private String imageUrl;
 
     @Column(precision = 10, scale = 2)
-    private BigDecimal caloriesPerServingSnapshot;
+    private BigDecimal calories;
 
     @Column(precision = 10, scale = 2)
-    private BigDecimal proteinPerServingSnapshot;
+    private BigDecimal protein;
 
     @Column(precision = 10, scale = 2)
-    private BigDecimal carbsPerServingSnapshot;
+    private BigDecimal carbs;
 
     @Column(precision = 10, scale = 2)
-    private BigDecimal fatPerServingSnapshot;
+    private BigDecimal fat;
 
     @Column(precision = 10, scale = 2)
-    private BigDecimal fiberPerServingSnapshot;
+    private BigDecimal fiber;
 
     @Column(precision = 10, scale = 2)
-    private BigDecimal sugarPerServingSnapshot;
+    private BigDecimal sugar;
 
     @Column(precision = 10, scale = 2)
-    private BigDecimal calciumPerServingSnapshot;
+    private BigDecimal calcium;
 
     @Column(precision = 10, scale = 2)
-    private BigDecimal sodiumPerServingSnapshot;
+    private BigDecimal sodium;
 
     @Column(length = 500)
     private String note;
