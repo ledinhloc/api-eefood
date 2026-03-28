@@ -19,12 +19,16 @@ public interface PostRepository extends JpaRepository<Post, Long>, JpaSpecificat
 
   Post findByIdAndIsDeletedFalse(Long id);
 
+  Post findByIdAndStatusAndIsDeletedFalse(Long id, PostStatus status);
+
   Page<Post> findByIdInAndIsDeletedFalse(List<Long> ids, Pageable pageable);
   boolean existsByRecipeIdAndIsDeletedFalse(Long recipeId);
 
   List<Post> findAllByUserIdAndIsDeletedFalseOrderByCreatedAtDesc(Long userId);
 
   Post findByRecipeIdAndIsDeletedFalse(long id);
+
+  Post findByRecipeIdAndStatusAndIsDeletedFalse(long id, PostStatus status);
 
     @Query("""
       SELECT p.userId, COUNT(p.id)

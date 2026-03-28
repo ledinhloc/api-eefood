@@ -5,12 +5,16 @@ import com.eefood.reactionservice.mealplan.dto.request.MealPlanGenerateRequest;
 import com.eefood.reactionservice.mealplan.dto.request.MealPlanItemUpsertRequest;
 import com.eefood.reactionservice.mealplan.dto.request.MealPlanUpsertRequest;
 import com.eefood.reactionservice.mealplan.dto.response.MealPlanDailySummaryResponse;
+import com.eefood.reactionservice.mealplan.dto.response.MealPlanItemResponse;
 import com.eefood.reactionservice.mealplan.dto.response.MealPlanResponse;
 import com.eefood.reactionservice.mealplan.service.MealPlanGenerateService;
 import com.eefood.reactionservice.mealplan.service.MealPlanItemService;
 import com.eefood.reactionservice.mealplan.service.MealPlanService;
 import com.eefood.reactionservice.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
+
+import java.util.List;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -35,7 +39,7 @@ public class MealPlanController {
     }
 
     @GetMapping("/daily-summary")
-    public ResponseData<java.util.List<MealPlanDailySummaryResponse>> getDailySummary() {
+    public ResponseData<List<MealPlanDailySummaryResponse>> getDailySummary() {
         Long userId = securityUtil.getCurrentUserId();
         return new ResponseData<>(
                 HttpStatus.OK.value(),
@@ -75,7 +79,7 @@ public class MealPlanController {
     }
 
     @PutMapping("/items")
-    public ResponseData<MealPlanResponse> upsertMealPlanItem(@RequestBody MealPlanItemUpsertRequest request) {
+    public ResponseData<MealPlanItemResponse> upsertMealPlanItem(@RequestBody MealPlanItemUpsertRequest request) {
         // id = null thì thêm mới; id != null thì cập nhật item hiện có.
         Long userId = securityUtil.getCurrentUserId();
         return new ResponseData<>(

@@ -1,13 +1,16 @@
 package com.eefood.reactionservice.mealplan.service;
 
 import com.eefood.reactionservice.enums.ErrorMessage;
+import com.eefood.reactionservice.enums.PostStatus;
 import com.eefood.reactionservice.exception.ExceptionUtil;
 import com.eefood.reactionservice.mealplan.dto.request.MealPlanItemIngredientUpsertRequest;
 import com.eefood.reactionservice.mealplan.dto.request.MealPlanItemUpsertRequest;
+import com.eefood.reactionservice.mealplan.dto.response.MealPlanItemResponse;
 import com.eefood.reactionservice.mealplan.dto.response.MealPlanResponse;
 import com.eefood.reactionservice.mealplan.dto.response.NutritionAnalysisResponse;
 import com.eefood.reactionservice.mealplan.enums.MealPlanItemSource;
 import com.eefood.reactionservice.mealplan.enums.MealPlanItemStatus;
+import com.eefood.reactionservice.mealplan.mapper.MealPlanMapper;
 import com.eefood.reactionservice.mealplan.model.MealPlan;
 import com.eefood.reactionservice.mealplan.model.MealPlanItem;
 import com.eefood.reactionservice.mealplan.model.MealPlanItemIngredient;
@@ -36,11 +39,12 @@ public class MealPlanItemService {
     private final MealPlanItemIngredientRepository mealPlanItemIngredientRepository;
     private final PostRepository postRepository;
     private final RecipeClient recipeClient;
+    private final MealPlanMapper mealPlanMapper;
     private final MealPlanService mealPlanService;
 
     @Transactional
-    public MealPlanResponse upsertMealPlanItem(Long userId, MealPlanItemUpsertRequest request) {
-        // Upsert item trong meal plan hiện tại của user, rồi trả lại full plan mới nhất.
+    public MealPlanItemResponse upsertMealPlanItem(Long userId, MealPlanItemUpsertRequest request) {
+        // Upsert item trong meal plan hiện tại của user, rồi chỉ trả lại item vừa thay đổi.
         MealPlan mealPlan = mealPlanRepository.findByUserId(userId)
                 .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.MEAL_PLAN_NOT_FOUND));
 
@@ -61,7 +65,7 @@ public class MealPlanItemService {
             replaceIngredients(savedItem.getId(), request.getIngredients());
         }
 
-        return mealPlanService.getCurrentMealPlan(userId);
+        return buildItemResponse(savedItem);
     }
 
     @Transactional
@@ -81,6 +85,17 @@ public class MealPlanItemService {
         mealPlanItemRepository.delete(item);
 
         return mealPlanService.getCurrentMealPlan(userId);
+    }
+
+    private MealPlanItemResponse buildItemResponse(MealPlanItem item) {
+        // Chỉ nạp lại ingredients của riêng item vừa upsert để tránh over-fetch cả meal plan.
+        MealPlanItemResponse response = mealPlanMapper.toResponse(item);
+        response.setIngredients(
+                mealPlanItemIngredientRepository.findAllByMealPlanItemIdIn(List.of(item.getId())).stream()
+                        .map(mealPlanMapper::toResponse)
+                        .toList()
+        );
+        return response;
     }
 
     private void applyItemRequest(MealPlanItem item, MealPlanItemUpsertRequest request) {
@@ -164,11 +179,11 @@ public class MealPlanItemService {
     }
 
     private Post resolveRecipePost(MealPlanItemUpsertRequest request) {
-        // Cho phép client truyền postId hoặc recipeId, ưu tiên postId nếu có để xác định đúng post.
+        // Chỉ cho phép gắn post đã APPROVED để đồng nhất rule với flow generate meal plan.
         Post post = request.getPostId() != null
-                ? postRepository.findByIdAndIsDeletedFalse(request.getPostId())
+                ? postRepository.findByIdAndStatusAndIsDeletedFalse(request.getPostId(), PostStatus.APPROVED)
                 : request.getRecipeId() != null
-                ? postRepository.findByRecipeIdAndIsDeletedFalse(request.getRecipeId())
+                ? postRepository.findByRecipeIdAndStatusAndIsDeletedFalse(request.getRecipeId(), PostStatus.APPROVED)
                 : null;
         if (post == null || post.getRecipeId() == null) {
             throw ExceptionUtil.notFound(ErrorMessage.RECIPE_NOT_FOUND);
