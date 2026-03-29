@@ -28,6 +28,7 @@ public class SecurityConfig {
         request ->
             request.requestMatchers(PUBLIC_ENDPOINTS).permitAll()
               .requestMatchers(HttpMethod.GET, "/api/v1/recipes/detail/**").permitAll()
+              .requestMatchers(HttpMethod.GET, "/api/v1/recipes/public/**").permitAll()
               .requestMatchers(HttpMethod.POST, "/api/v1/shopping/chatbot/add").permitAll()
               .anyRequest().authenticated());
 
