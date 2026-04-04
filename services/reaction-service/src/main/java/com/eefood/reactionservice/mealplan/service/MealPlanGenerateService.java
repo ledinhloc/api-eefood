@@ -98,8 +98,14 @@ public class MealPlanGenerateService {
     }
 
     @Transactional
-    public MealPlanResponse continueMealPlan(Long userId, Integer days) {
-        validateContinueRequest(userId, days);
+    public MealPlanResponse continueMealPlan(Long userId, LocalDate startDate, Integer days) {
+        if (userId == null) {
+            throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
+        }
+
+        if (days != null && (days <= 0 || days > MAX_GENERATE_DAYS)) {
+            throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
+        }
 
         MealPlan mealPlan = mealPlanRepository.findByUserId(userId)
                 .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.MEAL_PLAN_NOT_FOUND));
@@ -108,9 +114,9 @@ public class MealPlanGenerateService {
                 || mealPlan.getGoal() == null || mealPlan.getGoal().isBlank()) {
             throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
         }
+        int resolvedDays = days == null ? DEFAULT_DAYS : days;
 
-        int resolvedDays = resolveDays(days);
-        LocalDate nextStartDate = mealPlan.getEndDate().plusDays(1);
+        LocalDate nextStartDate = startDate != null ? startDate : mealPlan.getEndDate().plusDays(1);
         LocalDate nextEndDate = nextStartDate.plusDays(resolvedDays - 1L);
         UserResponse user = iamClient.getUserById(userId).getData();
         List<MealPlanAiCandidate> candidates = loadCandidateRecipes(user);
@@ -354,15 +360,6 @@ public class MealPlanGenerateService {
         }
     }
 
-    private void validateContinueRequest(Long userId, Integer days) {
-        if (userId == null) {
-            throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
-        }
-
-        if (days != null && (days <= 0 || days > MAX_GENERATE_DAYS)) {
-            throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
-        }
-    }
 
     private BigDecimal toBigDecimal(Double value) {
         return value == null ? null : BigDecimal.valueOf(value);

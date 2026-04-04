@@ -4,11 +4,14 @@ import com.eefood.reactionservice.enums.ErrorMessage;
 import com.eefood.reactionservice.exception.ExceptionUtil;
 import com.eefood.reactionservice.mealplan.dto.request.MealPlanUpsertRequest;
 import com.eefood.reactionservice.mealplan.dto.response.MealPlanDailySummaryResponse;
+import com.eefood.reactionservice.mealplan.dto.response.MealPlanItemIngredientResponse;
 import com.eefood.reactionservice.mealplan.dto.response.MealPlanItemResponse;
 import com.eefood.reactionservice.mealplan.dto.response.MealPlanResponse;
 import com.eefood.reactionservice.mealplan.mapper.MealPlanMapper;
 import com.eefood.reactionservice.mealplan.model.MealPlan;
 import com.eefood.reactionservice.mealplan.model.MealPlanItem;
+import com.eefood.reactionservice.mealplan.model.MealPlanItemIngredient;
+import com.eefood.reactionservice.mealplan.repo.MealPlanItemIngredientRepository;
 import com.eefood.reactionservice.mealplan.repo.MealPlanItemRepository;
 import com.eefood.reactionservice.mealplan.repo.MealPlanRepository;
 import jakarta.transaction.Transactional;
@@ -29,6 +32,7 @@ public class MealPlanService {
 
     private final MealPlanRepository mealPlanRepository;
     private final MealPlanItemRepository mealPlanItemRepository;
+    private final MealPlanItemIngredientRepository mealPlanItemIngredientRepository;
     private final MealPlanMapper mealPlanMapper;
 
     @Transactional
@@ -114,11 +118,14 @@ public class MealPlanService {
         MealPlan mealPlan = mealPlanRepository.findByUserId(userId)
                 .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.MEAL_PLAN_NOT_FOUND));
 
-        return mealPlanItemRepository
+        List<MealPlanItemResponse> responses = mealPlanItemRepository
                 .findAllByMealPlanIdAndPlanDateOrderByMealSlotAscItemOrderAsc(mealPlan.getId(), planDate)
                 .stream()
                 .map(mealPlanMapper::toResponse)
                 .toList();
+
+        hydrateIngredients(responses);
+        return responses;
     }
 
     private MealPlanResponse buildMealPlanResponse(MealPlan mealPlan) {
@@ -189,5 +196,21 @@ public class MealPlanService {
 
     private BigDecimal scale(BigDecimal value, BigDecimal multiplier) {
         return value == null ? BigDecimal.ZERO : value.multiply(multiplier);
+    }
+
+    private void hydrateIngredients(List<MealPlanItemResponse> items) {
+        if (items == null || items.isEmpty()) {
+            return;
+        }
+
+        Map<Long, List<MealPlanItemIngredientResponse>> ingredientsByItemId = mealPlanItemIngredientRepository
+                .findAllByMealPlanItemIdIn(items.stream().map(MealPlanItemResponse::getId).toList())
+                .stream()
+                .collect(Collectors.groupingBy(
+                        MealPlanItemIngredient::getMealPlanItemId,
+                        Collectors.mapping(mealPlanMapper::toResponse, Collectors.toList())
+                ));
+
+        items.forEach(item -> item.setIngredients(ingredientsByItemId.getOrDefault(item.getId(), List.of())));
     }
 }

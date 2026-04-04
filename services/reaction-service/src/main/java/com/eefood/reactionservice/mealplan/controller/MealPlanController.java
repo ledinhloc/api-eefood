@@ -80,12 +80,15 @@ public class MealPlanController {
     }
 
     @PostMapping("/continue")
-    public ResponseData<MealPlanResponse> continueMealPlan(@RequestParam(required = false) Integer days) {
+    public ResponseData<MealPlanResponse> continueMealPlan(
+            @RequestParam(required = false) LocalDate startDate,
+            @RequestParam(required = false) Integer days
+    ) {
         Long userId = securityUtil.getCurrentUserId();
         return new ResponseData<>(
                 HttpStatus.OK.value(),
                 "Continue Meal Plan Success",
-                mealPlanGenerateService.continueMealPlan(userId, days)
+                mealPlanGenerateService.continueMealPlan(userId, startDate, days)
         );
     }
 
