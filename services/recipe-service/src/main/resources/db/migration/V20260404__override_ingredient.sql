@@ -24,15 +24,13 @@ CREATE TABLE user_ingredient_substitutions
     updated_by              VARCHAR(255)                            NOT NULL,
     is_deleted              BOOLEAN                                 NOT NULL DEFAULT FALSE,
     user_id                 BIGINT                                  NOT NULL,
-    recipe_id               BIGINT                                  NOT NULL,
     recipe_ingredient_id    BIGINT                                  NOT NULL, -- ingredient gốc trong recipe
     substitute_ingredient_id BIGINT                                 NOT NULL, -- ingredient thay thế
     CONSTRAINT pk_user_recipe_ingredient_substitutions PRIMARY KEY (id),
-    CONSTRAINT uq_user_recipe_ingredient UNIQUE (user_id, recipe_id, recipe_ingredient_id),
-    CONSTRAINT fk_substitutions_recipe FOREIGN KEY (recipe_id) REFERENCES recipes(id),
+    CONSTRAINT uq_user_recipe_ingredient UNIQUE (user_id, recipe_ingredient_id),
     CONSTRAINT fk_substitutions_recipe_ingredient FOREIGN KEY (recipe_ingredient_id) REFERENCES recipe_ingredients(id),
     CONSTRAINT fk_substitutions_substitute FOREIGN KEY (substitute_ingredient_id) REFERENCES ingredients(id)
 );
 
 CREATE INDEX idx_ingredient_substitutes_ingredient_id ON ingredient_substitutes(ingredient_id);
-CREATE INDEX idx_user_substitutions_user_recipe ON user_recipe_ingredient_substitutions(user_id, recipe_id);
+CREATE INDEX idx_user_substitutions_user_recipe ON user_ingredient_substitutions(user_id, recipe_ingredient_id);

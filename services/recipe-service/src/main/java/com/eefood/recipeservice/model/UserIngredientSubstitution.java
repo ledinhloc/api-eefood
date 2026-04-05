@@ -22,9 +22,6 @@ public class UserIngredientSubstitution extends BaseEntity {
     @Column(nullable = false)
     private Long userId;
 
-    @Column(nullable = false)
-    private Long recipeId;
-
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "recipe_ingredient_id", nullable = false)
     private RecipeIngredient recipeIngredient;
