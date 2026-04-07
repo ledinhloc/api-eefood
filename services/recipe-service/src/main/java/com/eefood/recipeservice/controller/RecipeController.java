@@ -9,6 +9,7 @@ import com.eefood.recipeservice.enums.ErrorMessage;
 import com.eefood.recipeservice.enums.SuccessMessage;
 import com.eefood.recipeservice.exception.ExceptionUtil;
 import com.eefood.recipeservice.model.Recipe;
+import com.eefood.recipeservice.service.AlternateIngredientService;
 import com.eefood.recipeservice.service.RecipeSearchService;
 import com.eefood.recipeservice.service.RecipeService;
 import com.eefood.recipeservice.util.SecurityUtil;
@@ -32,6 +33,13 @@ public class RecipeController {
 
   private final RecipeService recipeService;
   private final RecipeSearchService recipeSearchService;
+  private final AlternateIngredientService alternateIngredientService;
+
+  @GetMapping("/{id}/ingredient-substitutes")
+  public ResponseData<List<IngredientAlterResponse>> getIngredientSubstitutes(@PathVariable Long id) {
+    List<IngredientAlterResponse> responses = alternateIngredientService.getIngredientAndSub(id);
+    return new ResponseData<>(200, "Get success", responses);
+  }
 
   @PostMapping("/import")
   public ResponseData<List<RecipeResponse>> importRecipes(
