@@ -1,0 +1,55 @@
+package com.eefood.reactionservice.mealplan.model;
+
+import jakarta.persistence.*;
+import lombok.*;
+import lombok.experimental.SuperBuilder;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
+@Entity
+@Table(
+        name = "meal_plan",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "uk_meal_plan_user_id", columnNames = "user_id")
+        }
+)
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@EntityListeners(AuditingEntityListener.class)
+@SuperBuilder
+public class MealPlan {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
+
+    @Column
+    private String goal;
+
+    private LocalDate startDate;
+
+    private LocalDate endDate;
+
+    @Column(length = 500)
+    private String note;
+
+    @Column(length = 500)
+    private String userHealthNote;
+
+    @CreatedDate
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @LastModifiedDate
+    @Column(nullable = false)
+    private LocalDateTime updatedAt;
+}

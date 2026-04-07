@@ -4,6 +4,7 @@ import com.eefood.reactionservice.dto.response.CategoryResponse;
 import com.eefood.reactionservice.dto.response.RecipeSummaryResponse;
 import com.eefood.reactionservice.dto.response.ResponseData;
 import com.eefood.reactionservice.dto.response.ShoppingItemDto;
+import com.eefood.reactionservice.mealplan.dto.response.NutritionAnalysisResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -26,6 +27,18 @@ public interface RecipeClient {
 
   @GetMapping("/api/v1/categories/all")
   ResponseData<List<CategoryResponse>> getListOfCategories();
+
+  @GetMapping("/api/v1/nutrition/recipe/{recipeId}")
+  ResponseData<NutritionAnalysisResponse> getNutritionByRecipeId(
+          @PathVariable("recipeId") Long recipeId,
+          @RequestParam(defaultValue = "false") boolean forceRefresh
+  );
+
+  @PostMapping("/api/v1/nutrition/recipe/{recipeId}/stream")
+  String analyzeRecipeNutritionStream(
+          @PathVariable("recipeId") Long recipeId,
+          @RequestParam(defaultValue = "false") boolean forceRefresh
+  );
 
   @PostMapping("/api/v1/shopping/chatbot/add")
   ResponseData<ShoppingItemDto> addRecipe(

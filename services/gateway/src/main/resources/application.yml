@@ -123,10 +123,17 @@ spring:
               uri: lb://REACTION-SERVICE
               predicates:
                 - Path=/api/v1/chatbot/**
+            - id: meal-plan-reaction-service
+              uri: lb://REACTION-SERVICE
+              predicates:
+                - Path=/api/v1/meal-plan/**
+
             - id: recipe-service
               uri: lb://RECIPE-SERVICE
               predicates:
                 - Path=/api/v1/nutrition/**
+
+            
     bus:
       enabled: true
     stream:
