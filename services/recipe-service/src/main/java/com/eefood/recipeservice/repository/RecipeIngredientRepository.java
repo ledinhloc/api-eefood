@@ -6,9 +6,12 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 public interface RecipeIngredientRepository extends JpaRepository<RecipeIngredient, Long> {
     @Query("SELECT ri FROM RecipeIngredient ri WHERE ri.recipe.id = :recipeId AND ri.isDeleted = false")
     List<RecipeIngredient> findByRecipeIdAndNotDeleted(@Param("recipeId") Long recipeId);
+
+    Optional<RecipeIngredient> findByRecipeIdAndIngredientIdAndIsDeletedFalse(Long recipeId, Long ingredientId);
 }

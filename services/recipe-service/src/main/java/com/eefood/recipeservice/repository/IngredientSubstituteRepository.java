@@ -8,9 +8,12 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface IngredientSubstituteRepository extends JpaRepository<IngredientSubstitute, Long> {
     @Query("SELECT isub.substitute FROM IngredientSubstitute isub WHERE isub.ingredient.id = :ingredientId")
     List<Ingredient> findSubstitutesByIngredientId(@Param("ingredientId") Long ingredientId);
+
+    boolean existsByIngredientIdAndSubstituteId(Long ingredientId, Long substituteId);
 }

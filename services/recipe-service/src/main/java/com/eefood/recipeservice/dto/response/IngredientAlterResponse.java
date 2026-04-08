@@ -10,5 +10,6 @@ import java.util.List;
 @Builder
 public class IngredientAlterResponse {
     private IngredientResponse ingredient;
+    private IngredientResponse selectedSubstitute;
     private List<IngredientResponse> substitute;
 }
