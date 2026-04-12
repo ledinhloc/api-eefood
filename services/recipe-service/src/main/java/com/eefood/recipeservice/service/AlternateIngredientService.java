@@ -34,6 +34,50 @@ public class AlternateIngredientService {
     private final RecipeMapper recipeMapper;
     private final SecurityUtil securityUtil;
 
+    public IngredientAlterResponse getIngredientAlterResponse(Long recipeId, Long ingredientId) {
+        Long userId = securityUtil.getCurrentUserId();
+
+        RecipeIngredient ri = recipeIngredientRepository
+                .findByRecipeIdAndIngredientIdAndIsDeletedFalse(recipeId, ingredientId)
+                .orElse(null);
+        if (ri == null) {
+            throw ExceptionUtil.badRequest(ErrorMessage.RECIPE_NOT_FOUND);
+        }
+
+        Map<Long, UserIngredientSubstitution> userSubMap =
+                userIngreSubRepository
+                        .findByUserIdAndRecipeIngredient_Recipe_Id(userId, recipeId)
+                        .stream()
+                        .collect(Collectors.toMap(
+                                s -> s.getRecipeIngredient().getId(),
+                                s -> s
+                        ));
+        Ingredient ingredient = ri.getIngredient();
+        log.info("Ingredient id: {}", ingredient.getId());
+
+        List<Ingredient> substitutes =
+                ingredientSubstituteRepository.findSubstitutesByIngredientId(ingredient.getId());
+        log.info("List substitutes: {}", substitutes);
+        if (substitutes.isEmpty()) {
+            return null;
+        }
+
+        UserIngredientSubstitution userSub = userSubMap.get(ri.getId());
+        IngredientResponse selected = userSub != null
+                ? recipeMapper.toResponse(userSub.getSubstituteIngredient())
+                : null;
+
+        return IngredientAlterResponse.builder()
+                .ingredient(recipeMapper.toResponse(ingredient))
+                .selectedSubstitute(selected)
+                .substitute(
+                        substitutes.stream()
+                                .map(recipeMapper::toResponse)
+                                .toList()
+                )
+                .build();
+    }
+
     public List<IngredientAlterResponse> getIngredientAndSub(Long recipeId) {
 
         Long userId = securityUtil.getCurrentUserId();

@@ -35,6 +35,12 @@ public class RecipeController {
   private final RecipeSearchService recipeSearchService;
   private final AlternateIngredientService alternateIngredientService;
 
+  @GetMapping("/{recipeId}/ingredient-substitutes/{ingredientId}")
+  public ResponseData<IngredientAlterResponse> getIngredientAlter(@PathVariable Long recipeId, @PathVariable Long ingredientId) {
+    IngredientAlterResponse responses = alternateIngredientService.getIngredientAlterResponse(recipeId, ingredientId);
+    return new ResponseData<>(200, "Get success", responses);
+  }
+
   @PutMapping("/{recipeId}/ingredient-substitutes/{ingredientId}")
   public ResponseData<Void> selectAlterIngredient(
           @PathVariable Long recipeId,

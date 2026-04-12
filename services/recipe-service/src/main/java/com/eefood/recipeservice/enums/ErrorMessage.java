@@ -65,6 +65,7 @@ public enum ErrorMessage {
 
   //ingre
   INGREDIENT_SHOPPING_NOT_FOUND("Ingredient not found"),
+  INGREDIENT_NOT_FOUND("Ingredient not found"),
   SHOPPING_ITEM_NOT_FOUND("Shopping Item not found"),
   SHOPPING_ITEM_MORE("Expected 1 ShoppingItem but found more than one item"),
   RECIPE_HAS_NO_INGREDIENTS("Recipe has no ingredients"),
