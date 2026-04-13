@@ -55,6 +55,7 @@ public class RecipeService {
   private final SecurityUtil securityUtil;
   private final GoogleAiGeminiChatModel gemini;
   private final ObjectMapper objectMapper = new ObjectMapper();
+  private final AlternateIngredientService alternateIngredientService;
 
   private final ReactionClient reactionClient;
   private static final int MIN_USER_ID = 1;
@@ -449,6 +450,30 @@ NOW ANALYZE THE FOLLOWING HTML AND RETURN ONLY JSON:
           .toList()
       );
     }
+
+    List<RecipeIngredientResponse> riResponse = recipeResponse.getIngredients().stream().toList();
+
+    List<IngredientAlterResponse> ingreAltResponse = alternateIngredientService.getIngredientAndSub(id);
+
+    Map<Long, IngredientAlterResponse> alterMap = ingreAltResponse.stream()
+            .collect(Collectors.toMap(
+                    ia -> ia.getIngredient().getId(),
+                    ia -> ia
+            ));
+
+    List<RecipeIngredientResponse> updatedIngredients = riResponse.stream()
+            .map(ri -> {
+              IngredientResponse currentIngredient = ri.getIngredient();
+              IngredientAlterResponse alter = alterMap.get(currentIngredient.getId());
+
+              if(alter != null && alter.getSelectedSubstitute()!=null) {
+                ri.setIngredient(alter.getSelectedSubstitute());
+              }
+              return ri;
+            })
+            .toList();
+
+    recipeResponse.setIngredients(updatedIngredients);
 
     return recipeResponse;
   }
