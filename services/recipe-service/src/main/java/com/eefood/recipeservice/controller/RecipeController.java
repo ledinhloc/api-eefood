@@ -9,6 +9,7 @@ import com.eefood.recipeservice.enums.ErrorMessage;
 import com.eefood.recipeservice.enums.SuccessMessage;
 import com.eefood.recipeservice.exception.ExceptionUtil;
 import com.eefood.recipeservice.model.Recipe;
+import com.eefood.recipeservice.service.AlternateIngredientService;
 import com.eefood.recipeservice.service.RecipeSearchService;
 import com.eefood.recipeservice.service.RecipeService;
 import com.eefood.recipeservice.util.SecurityUtil;
@@ -32,6 +33,28 @@ public class RecipeController {
 
   private final RecipeService recipeService;
   private final RecipeSearchService recipeSearchService;
+  private final AlternateIngredientService alternateIngredientService;
+
+  @GetMapping("/{recipeId}/ingredient-substitutes/{ingredientId}")
+  public ResponseData<IngredientAlterResponse> getIngredientAlter(@PathVariable Long recipeId, @PathVariable Long ingredientId) {
+    IngredientAlterResponse responses = alternateIngredientService.getIngredientAlterResponse(recipeId, ingredientId);
+    return new ResponseData<>(200, "Get success", responses);
+  }
+
+  @PutMapping("/{recipeId}/ingredient-substitutes/{ingredientId}")
+  public ResponseData<Void> selectAlterIngredient(
+          @PathVariable Long recipeId,
+          @PathVariable Long ingredientId,
+          @RequestParam(required = false) Long substituteId) {
+    alternateIngredientService.selectAlterIngredient(recipeId, ingredientId, substituteId);
+    return new ResponseData<>(200, "Updated successfully", null);
+  }
+
+  @GetMapping("/{id}/ingredient-substitutes")
+  public ResponseData<List<IngredientAlterResponse>> getIngredientSubstitutes(@PathVariable Long id) {
+    List<IngredientAlterResponse> responses = alternateIngredientService.getIngredientAndSub(id);
+    return new ResponseData<>(200, "Get success", responses);
+  }
 
   @PostMapping("/import")
   public ResponseData<List<RecipeResponse>> importRecipes(

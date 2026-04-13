@@ -61,11 +61,15 @@ public enum ErrorMessage {
   RECIPE_NOT_FOUND("Recipe not found or already deleted"),
   SERVING_INVALID("serving invalid"),
 
+  SUBSTITUTE_NOT_FOUND("Subtitute ingredient not found or already deleted"),
+
   //ingre
   INGREDIENT_SHOPPING_NOT_FOUND("Ingredient not found"),
+  INGREDIENT_NOT_FOUND("Ingredient not found"),
   SHOPPING_ITEM_NOT_FOUND("Shopping Item not found"),
   SHOPPING_ITEM_MORE("Expected 1 ShoppingItem but found more than one item"),
   RECIPE_HAS_NO_INGREDIENTS("Recipe has no ingredients"),
+
   ;
 
 
