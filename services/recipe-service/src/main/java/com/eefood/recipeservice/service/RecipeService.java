@@ -467,7 +467,21 @@ NOW ANALYZE THE FOLLOWING HTML AND RETURN ONLY JSON:
               IngredientAlterResponse alter = alterMap.get(currentIngredient.getId());
 
               if(alter != null && alter.getSelectedSubstitute()!=null) {
-                ri.setIngredient(alter.getSelectedSubstitute());
+                IngredientResponse substitute = alter.getSelectedSubstitute();
+
+                IngredientResponse newIngredient = IngredientResponse.builder()
+                        .id(substitute.getId())
+                        .name(substitute.getName())
+                        .description(substitute.getDescription())
+                        .image(substitute.getImage())
+                        .originalId(currentIngredient.getId())
+                        .build();
+
+                ri.setIngredient(newIngredient);
+              }
+              else {
+                currentIngredient.setOriginalId(currentIngredient.getId());
+                ri.setIngredient(currentIngredient);
               }
               return ri;
             })

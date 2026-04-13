@@ -14,4 +14,5 @@ public class IngredientResponse {
   private String name;
   private String description;
   private String image;
+  private Long originalId;
 }
