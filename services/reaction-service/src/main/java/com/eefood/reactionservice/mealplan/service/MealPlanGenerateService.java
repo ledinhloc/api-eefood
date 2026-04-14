@@ -31,9 +31,12 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
@@ -44,6 +47,7 @@ public class MealPlanGenerateService {
 
     private static final int MAX_GENERATE_DAYS = 5;
     private static final int DEFAULT_DAYS = 3;
+    private static final int INITIAL_POST_LIMIT = 30;
     private static final int CANDIDATE_LIMIT = 12;
     private static final List<MealSlot> DEFAULT_SLOTS = List.of(MealSlot.BREAKFAST, MealSlot.LUNCH, MealSlot.DINNER);
 
@@ -63,7 +67,7 @@ public class MealPlanGenerateService {
         validateGenerateRequest(userId, request);
 
         UserResponse user = iamClient.getUserById(userId).getData();
-        List<MealPlanAiCandidate> candidates = loadCandidateRecipes(user);
+        List<MealPlanAiCandidate> candidates = loadCandidateRecipes(userId, user, request.getGoal());
 
         if (candidates.isEmpty()) {
             throw ExceptionUtil.notFound(ErrorMessage.RECIPE_NOT_FOUND);
@@ -119,7 +123,7 @@ public class MealPlanGenerateService {
         LocalDate nextStartDate = startDate != null ? startDate : mealPlan.getEndDate().plusDays(1);
         LocalDate nextEndDate = nextStartDate.plusDays(resolvedDays - 1L);
         UserResponse user = iamClient.getUserById(userId).getData();
-        List<MealPlanAiCandidate> candidates = loadCandidateRecipes(user);
+        List<MealPlanAiCandidate> candidates = loadCandidateRecipes(userId, user, mealPlan.getGoal());
 
         if (candidates.isEmpty()) {
             throw ExceptionUtil.notFound(ErrorMessage.RECIPE_NOT_FOUND);
@@ -153,21 +157,39 @@ public class MealPlanGenerateService {
         return mealPlanService.getCurrentMealPlan(userId);
     }
 
-    private List<MealPlanAiCandidate> loadCandidateRecipes(UserResponse user) {
+    private List<MealPlanAiCandidate> loadCandidateRecipes(Long userId, UserResponse user, String goal) {
         // Lấy các post đã duyệt, rồi loại món vi phạm dị ứng.
-        List<Post> posts = postRepository.findByStatusAndIsDeletedFalse(
+        List<Post> approvedPosts = postRepository.findByStatusAndIsDeletedFalse(
                 PostStatus.APPROVED,
-                PageRequest.of(0, 30)
+                PageRequest.of(0, 100)
         );
 
         List<String> allergies = normalizeList(user != null ? user.getAllergies() : List.of());
+        List<String> eatingPreferences = normalizeList(user != null ? user.getEatingPreferences() : List.of());
+        List<String> dietaryPreferences = normalizeList(user != null ? user.getDietaryPreferences() : List.of());
+        // Dùng city để cộng nhẹ cho món cùng vùng miền.
+        String userCity = user != null && user.getAddress() != null && user.getAddress().get("city") != null
+                ? normalize(user.getAddress().get("city").asText())
+                : "";
+        Set<Long> recentRecipeIds = loadRecentRecipeIds(userId);
 
-        List<Post> candidatePosts = posts.stream()
+        // Chọn pool ban đầu: lọc cứng theo recipeId/dị ứng, rồi sort theo score sơ bộ.
+        List<Post> candidatePosts = approvedPosts.stream()
                 .filter(post -> post.getRecipeId() != null)
-                .limit(CANDIDATE_LIMIT)
+                .filter(post -> !violatesAllergiesByKeywords(post, allergies))
+                // Score sơ bộ = goal score + preference score - repeat penalty.
+                .sorted(Comparator.comparingInt((Post post) -> scorePostForInitialSelection(
+                        post,
+                        goal,
+                        eatingPreferences,
+                        dietaryPreferences,
+                        userCity,
+                        recentRecipeIds
+                )).reversed())
+                .limit(INITIAL_POST_LIMIT)
                 .toList();
 
-        // Gọi nutrition song song để giảm tổng thời gian chờ.
+        // Chỉ gọi nutrition cho pool đã qua vòng lọc đầu để giảm thời gian chờ.
         List<CompletableFuture<MealPlanAiCandidate>> futures = candidatePosts.stream()
                 .map(post -> CompletableFuture.supplyAsync(
                         () -> toCandidateRecipe(post),
@@ -177,10 +199,11 @@ public class MealPlanGenerateService {
 
         CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
 
+        // Giữ lại tối đa CANDIDATE_LIMIT candidate cuối cùng sau khi gọi nutrition.
         return futures.stream()
                 .map(CompletableFuture::join)
                 .filter(Objects::nonNull)
-                .filter(candidate -> !violatesAllergies(candidate, allergies))
+                .limit(CANDIDATE_LIMIT)
                 .toList();
     }
 
@@ -298,6 +321,7 @@ public class MealPlanGenerateService {
     }
 
     private boolean violatesAllergies(MealPlanAiCandidate candidate, List<String> allergies) {
+        // Kiểm tra dị ứng bằng ingredientDetails sau khi đã lấy nutrition.
         // Rule cứng: loại candidate nếu tên nguyên liệu trùng keyword dị ứng.
         if (allergies.isEmpty() || candidate.getNutrition() == null || candidate.getNutrition().getIngredientDetails() == null) {
             return false;
@@ -307,9 +331,180 @@ public class MealPlanGenerateService {
                 .map(detail -> normalize(detail.getIngredientName()))
                 .toList();
 
+        return hasAllergyMatch(ingredientNames, allergies);
+    }
+
+    private boolean violatesAllergiesByKeywords(Post post, List<String> allergies) {
+        // Kiểm tra dị ứng sớm bằng recipeIngredientKeywords có sẵn trên post.
+        if (allergies.isEmpty() || post.getRecipeIngredientKeywords() == null || post.getRecipeIngredientKeywords().isEmpty()) {
+            return false;
+        }
+
+        List<String> ingredientKeywords = post.getRecipeIngredientKeywords().stream()
+                .map(this::normalize)
+                .filter(value -> !value.isBlank())
+                .toList();
+
+        return hasAllergyMatch(ingredientKeywords, allergies);
+    }
+
+    private boolean hasAllergyMatch(List<String> ingredientNames, List<String> allergies) {
+        // Match mềm theo contains để bắt các trường hợp keyword không trùng tuyệt đối.
         return allergies.stream().anyMatch(allergy ->
                 ingredientNames.stream().anyMatch(name -> name.contains(allergy) || allergy.contains(name))
         );
+    }
+
+    private int scorePostForInitialSelection(
+            Post post,
+            String goal,
+            List<String> eatingPreferences,
+            List<String> dietaryPreferences,
+            String userCity,
+            Set<Long> recentRecipeIds
+    ) {
+        // Score vòng đầu chỉ dùng dữ liệu nhẹ của Post, chưa dùng nutrition.
+        return scoreGoal(post, goal)
+                + scorePreferences(post, eatingPreferences, dietaryPreferences, userCity)
+                + (post.getRecipeId() != null && recentRecipeIds.contains(post.getRecipeId()) ? -30 : 0);
+    }
+
+    private int scoreGoal(Post post, String goal) {
+        String normalizedGoal = normalize(goal);
+        if (normalizedGoal.isBlank()) {
+            return 0;
+        }
+
+        // Gom title, description, category và ingredient keyword thành một chuỗi để so goal.
+        String searchableText = String.join(" ",
+                normalize(post.getTitle()),
+                normalize(post.getDescription()),
+                String.join(" ", normalizeList(post.getRecipeCategories() == null ? List.of() : new ArrayList<>(post.getRecipeCategories()))),
+                String.join(" ", normalizeList(post.getRecipeIngredientKeywords() == null ? List.of() : new ArrayList<>(post.getRecipeIngredientKeywords())))
+        );
+
+        List<String> positiveKeywords = List.of();
+        List<String> negativeKeywords = List.of();
+
+        if (List.of("giảm cân", "giam can", "eat clean", "healthy", "an kieng", "ăn kiêng")
+                .stream()
+                .anyMatch(keyword -> isTextMatch(normalizedGoal, keyword))) {
+            positiveKeywords = List.of("salad", "luộc", "luoc", "hấp", "hap", "rau", "healthy", "clean", "canh");
+            negativeKeywords = List.of("chiên", "chien", "rán", "ran", "bánh ngọt", "banh ngot", "ngọt", "dessert");
+        } else if (List.of("tăng cơ", "tang co", "protein", "muscle")
+                .stream()
+                .anyMatch(keyword -> isTextMatch(normalizedGoal, keyword))) {
+            positiveKeywords = List.of("gà", "ga", "bò", "bo", "trứng", "trung", "cá", "ca", "đậu", "dau", "protein");
+        } else if (List.of("ít đường", "it duong", "tiểu đường", "tieu duong", "low sugar")
+                .stream()
+                .anyMatch(keyword -> isTextMatch(normalizedGoal, keyword))) {
+            positiveKeywords = List.of("ít đường", "it duong", "không đường", "khong duong", "healthy");
+            negativeKeywords = List.of("chè", "che", "bánh", "banh", "kẹo", "keo", "ngọt", "dessert");
+        }
+
+        int positiveMatches = 0;
+        for (String keyword : positiveKeywords) {
+            if (isTextMatch(searchableText, keyword)) {
+                positiveMatches++;
+            }
+        }
+
+        int negativeMatches = 0;
+        for (String keyword : negativeKeywords) {
+            if (isTextMatch(searchableText, keyword)) {
+                negativeMatches++;
+            }
+        }
+
+        // Goal score: 2 keyword tích cực mới bù được 1 keyword tiêu cực.
+        int weightedScore = positiveMatches - (negativeMatches * 2);
+
+        if (weightedScore <= -2) {
+            return -20;
+        }
+        if (weightedScore == -1 || weightedScore == 0) {
+            return 0;
+        }
+        if (weightedScore == 1) {
+            return 10;
+        }
+        if (weightedScore == 2) {
+            return 20;
+        }
+        return 30;
+    }
+
+    private int scorePreferences(
+            Post post,
+            List<String> eatingPreferences,
+            List<String> dietaryPreferences,
+            String userCity
+    ) {
+        // Preference score ưu tiên ingredient keyword, category, rồi mới tới text tự do.
+        int score = 0;
+
+        List<String> ingredientKeywords = normalizeList(
+                post.getRecipeIngredientKeywords() == null ? List.of() : new ArrayList<>(post.getRecipeIngredientKeywords())
+        );
+        List<String> recipeCategories = normalizeList(
+                post.getRecipeCategories() == null ? List.of() : new ArrayList<>(post.getRecipeCategories())
+        );
+        String searchableText = normalize(post.getTitle()) + " " + normalize(post.getDescription());
+
+        // Mỗi match nguyên liệu/chế độ ăn được cộng 10 điểm.
+        score += matchCount(ingredientKeywords, eatingPreferences) * 10;
+        score += matchCount(recipeCategories, dietaryPreferences) * 10;
+
+        // Text title/description chỉ cần có ít nhất 1 match là cộng điểm.
+        if (eatingPreferences.stream().anyMatch(preference -> isTextMatch(searchableText, preference))) {
+            score += 8;
+        }
+        if (dietaryPreferences.stream().anyMatch(preference -> isTextMatch(searchableText, preference))) {
+            score += 8;
+        }
+
+        // Cùng vùng miền với user 
+        if (!userCity.isBlank() && isTextMatch(post.getRegion(), userCity)) {
+            score += 5;
+        }
+
+        // giới hạn 30đ
+        return Math.min(score, 30);
+    }
+
+    private int matchCount(List<String> sourceValues, List<String> preferences) {
+        // Mỗi preference khớp với tag/category của post được tính là một match.
+        int matches = 0;
+        for (String preference : preferences) {
+            if (sourceValues.stream().anyMatch(value -> isTextMatch(value, preference))) {
+                matches++;
+            }
+        }
+        return matches;
+    }
+
+    private boolean isTextMatch(String text, String keyword) {
+        // Match mềm theo contains để tận dụng dữ liệu text chưa chuẩn hóa tuyệt đối.
+        String normalizedText = normalize(text);
+        String normalizedKeyword = normalize(keyword);
+        return !normalizedText.isBlank()
+                && !normalizedKeyword.isBlank()
+                && (normalizedText.contains(normalizedKeyword) || normalizedKeyword.contains(normalizedText));
+    }
+
+    private Set<Long> loadRecentRecipeIds(Long userId) {
+        if (userId == null) {
+            return Set.of();
+        }
+
+        return mealPlanRepository.findByUserId(userId)
+                .map(MealPlan::getId)
+                .map(mealPlanItemRepository::findAllByMealPlanIdOrderByPlanDateAscMealSlotAscItemOrderAsc)
+                .orElse(List.of())
+                .stream()
+                .map(MealPlanItem::getRecipeId)
+                .filter(Objects::nonNull)
+                .collect(java.util.stream.Collectors.toCollection(HashSet::new));
     }
 
     private String buildUserHealthNote(UserResponse user) {
