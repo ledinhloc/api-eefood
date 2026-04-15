@@ -9,7 +9,7 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class IngredientAlterResponse {
-    private IngredientResponse ingredient;
-    private IngredientResponse selectedSubstitute;
-    private List<IngredientResponse> substitute;
+    private IngredientDetailResponse ingredient;
+    private IngredientDetailResponse selectedSubstitute;
+    private List<IngredientDetailResponse> substitute;
 }

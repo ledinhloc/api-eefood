@@ -463,26 +463,33 @@ NOW ANALYZE THE FOLLOWING HTML AND RETURN ONLY JSON:
 
     List<RecipeIngredientResponse> updatedIngredients = riResponse.stream()
             .map(ri -> {
-              IngredientResponse currentIngredient = ri.getIngredient();
-              IngredientAlterResponse alter = alterMap.get(currentIngredient.getId());
+              IngredientDetailResponse current = ri.getIngredient();
 
-              if(alter != null && alter.getSelectedSubstitute()!=null) {
-                IngredientResponse substitute = alter.getSelectedSubstitute();
+              IngredientAlterResponse alter = alterMap.get(current.getId());
 
-                IngredientResponse newIngredient = IngredientResponse.builder()
-                        .id(substitute.getId())
-                        .name(substitute.getName())
-                        .description(substitute.getDescription())
-                        .image(substitute.getImage())
-                        .originalId(currentIngredient.getId())
+              IngredientDetailResponse result;
+
+              if (alter != null && alter.getSelectedSubstitute() != null) {
+                IngredientResponse sub = alter.getSelectedSubstitute();
+
+                result = IngredientDetailResponse.builder()
+                        .id(sub.getId())
+                        .name(sub.getName())
+                        .description(sub.getDescription())
+                        .image(sub.getImage())
+                        .originalId(current.getId())
                         .build();
+              } else {
+                result = IngredientDetailResponse.builder()
+                        .id(current.getId())
+                        .name(current.getName())
+                        .description(current.getDescription())
+                        .image(current.getImage())
+                        .originalId(current.getId())
+                        .build();
+              }
 
-                ri.setIngredient(newIngredient);
-              }
-              else {
-                currentIngredient.setOriginalId(currentIngredient.getId());
-                ri.setIngredient(currentIngredient);
-              }
+              ri.setIngredient(result);
               return ri;
             })
             .toList();

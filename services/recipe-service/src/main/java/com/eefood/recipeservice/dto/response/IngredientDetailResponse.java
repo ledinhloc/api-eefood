@@ -10,10 +10,6 @@ import lombok.experimental.SuperBuilder;
 @NoArgsConstructor
 @AllArgsConstructor
 @SuperBuilder
-public class IngredientResponse {
-  private Long id;
-  private String name;
-  private String description;
-  private String image;
-  private Long originalId;
+public class IngredientDetailResponse extends IngredientResponse{
+    private Long originalId;
 }

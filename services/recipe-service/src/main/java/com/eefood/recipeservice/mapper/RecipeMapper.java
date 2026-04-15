@@ -49,8 +49,12 @@ public interface RecipeMapper {
   RecipeIngredient toEntity(RecipeIngredientRequest request);
 
   // Ingredient -> IngredientResponse
-  @Mapping(target = "originalId", source = "id")
   IngredientResponse toResponse(Ingredient ingredient);
+
+  @Mapping(target = "originalId", source = "id")
+  IngredientDetailResponse toDetailResponse(Ingredient ingredient);
+
+  Ingredient toEntity(IngredientDetailResponse response);
 
   //category
   CategoryResponse toResponse(Category category);
