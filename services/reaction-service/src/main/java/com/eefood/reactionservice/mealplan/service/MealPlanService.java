@@ -121,7 +121,7 @@ public class MealPlanService {
         List<MealPlanItemResponse> responses = mealPlanItemRepository
                 .findAllByMealPlanIdAndPlanDateOrderByMealSlotAscItemOrderAsc(mealPlan.getId(), planDate)
                 .stream()
-                .map(mealPlanMapper::toResponse)
+                .map(this::toScaledItemResponse)
                 .toList();
 
         hydrateIngredients(responses);
@@ -187,6 +187,22 @@ public class MealPlanService {
                 .sodium(sodium)
                 .calcium(calcium)
                 .build();
+    }
+
+    private MealPlanItemResponse toScaledItemResponse(MealPlanItem item) {
+        MealPlanItemResponse response = mealPlanMapper.toResponse(item);
+        BigDecimal multiplier = BigDecimal.valueOf(resolveServings(item));
+
+        response.setCalories(scale(item.getCalories(), multiplier));
+        response.setProtein(scale(item.getProtein(), multiplier));
+        response.setCarbs(scale(item.getCarbs(), multiplier));
+        response.setFat(scale(item.getFat(), multiplier));
+        response.setFiber(scale(item.getFiber(), multiplier));
+        response.setSugar(scale(item.getSugar(), multiplier));
+        response.setSodium(scale(item.getSodium(), multiplier));
+        response.setCalcium(scale(item.getCalcium(), multiplier));
+
+        return response;
     }
 
     private int resolveServings(MealPlanItem item) {

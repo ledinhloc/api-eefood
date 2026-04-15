@@ -113,15 +113,15 @@ public class MealPlanController {
         );
     }
 
-    @GetMapping("/items/{id}")
-    public ResponseData<MealPlanItemResponse> getMealPlanItemDetail(@PathVariable Long id) {
-        Long userId = securityUtil.getCurrentUserId();
-        return new ResponseData<>(
-                HttpStatus.OK.value(),
-                "Get Meal Plan Item Detail Success",
-                mealPlanItemService.getMealPlanItemDetail(userId, id)
-        );
-    }
+    // @GetMapping("/items/{id}")
+    // public ResponseData<MealPlanItemResponse> getMealPlanItemDetail(@PathVariable Long id) {
+    //     Long userId = securityUtil.getCurrentUserId();
+    //     return new ResponseData<>(
+    //             HttpStatus.OK.value(),
+    //             "Get Meal Plan Item Detail Success",
+    //             mealPlanItemService.getMealPlanItemDetail(userId, id)
+    //     );
+    // }
 
     @DeleteMapping("/items/{id}")
     public ResponseData<MealPlanResponse> deleteMealPlanItem(@PathVariable Long id) {
