@@ -1,5 +1,6 @@
 package com.eefood.iamservice.dto.request;
 
+import com.eefood.iamservice.enums.ActivityLevel;
 import com.eefood.iamservice.enums.Gender;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.time.LocalDate;
@@ -26,10 +27,12 @@ public class UserUpdateRequest {
   String email;
   LocalDate dob;
   Gender gender;
+  ActivityLevel activityLevel;
   JsonNode address;
   String avatarUrl;
   String backgroundUrl;
   List<String> allergies;
   List<String> eatingPreferences;
   List<String> dietaryPreferences;
+  List<String> healthConditions;
 }
