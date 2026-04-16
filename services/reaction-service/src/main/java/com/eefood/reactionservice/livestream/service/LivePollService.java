@@ -4,6 +4,7 @@ package com.eefood.reactionservice.livestream.service;
 import com.eefood.reactionservice.dto.response.UserInfo;
 import com.eefood.reactionservice.enums.ErrorMessage;
 import com.eefood.reactionservice.exception.ExceptionUtil;
+import com.eefood.reactionservice.livestream.dto.cache.PollVoteMetadata;
 import com.eefood.reactionservice.livestream.dto.request.CreateLivePollRequest;
 import com.eefood.reactionservice.livestream.dto.response.LivePollResponse;
 import com.eefood.reactionservice.livestream.dto.response.PollOptionVoterResponse;
@@ -37,6 +38,7 @@ public class LivePollService {
   private final LivePollOptionRepository optionRepo;
   private final LivePollSettingRepository settingRepo;
   private final LivePollVoteRepository voteRepo;
+  private final LivePollMetadataCacheService livePollMetadataCacheService;
 
   private final LivePollMapper pollMapper;
   private final LivePollBroadcastService livePollBroadcastService;
@@ -89,6 +91,7 @@ public class LivePollService {
     }
 
     pollRepo.save(poll);
+    livePollMetadataCacheService.evictPollVoteMetadata(pollId);
 
     LivePollSetting setting = settingRepo.findByPollId(pollId)
       .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.POLL_SETTING_NOT_FOUND));
@@ -172,26 +175,25 @@ public class LivePollService {
       .distinct()
       .toList();
 
-    LivePoll poll = pollRepo.findByIdAndLiveStreamId(pollId, liveStreamId)
-      .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.POLL_NOT_FOUND));
+    PollVoteMetadata pollMetadata = livePollMetadataCacheService.getPollVoteMetadata(pollId);
 
-    if (poll.getStatus() != PollStatus.OPEN) {
+    if (!Objects.equals(pollMetadata.getLiveStreamId(), liveStreamId)) {
+      throw ExceptionUtil.notFound(ErrorMessage.POLL_NOT_FOUND);
+    }
+
+    if (pollMetadata.getStatus() != PollStatus.OPEN) {
       throw ExceptionUtil.badRequest(ErrorMessage.POLL_NOT_OPEN);
     }
 
-    LivePollSetting setting = settingRepo.findByPollId(pollId)
-      .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.POLL_SETTING_NOT_FOUND));
-
-    List<LivePollOption> selectedOptions = optionRepo.findAllByPollIdAndIdIn(pollId, optionIds);
-
-    if (selectedOptions.size() != optionIds.size()) {
+    Set<Long> validOptionIds = pollMetadata.getOptionIds();
+    if (validOptionIds == null || !validOptionIds.containsAll(optionIds)) {
       throw ExceptionUtil.badRequest(ErrorMessage.POLL_OPTION_INVALID);
     }
 
     // =========================
     // SINGLE CHOICE
     // =========================
-    if (!Boolean.TRUE.equals(setting.getMultipleChoice())) {
+    if (!Boolean.TRUE.equals(pollMetadata.getMultipleChoice())) {
 
       if (optionIds.size() != 1) {
         throw ExceptionUtil.badRequest(ErrorMessage.POLL_SINGLE_CHOICE_ONLY);
@@ -218,7 +220,7 @@ public class LivePollService {
         return result;
       }
 
-      if (!Boolean.TRUE.equals(setting.getAllowChangeVote())) {
+      if (!Boolean.TRUE.equals(pollMetadata.getAllowChangeVote())) {
         throw ExceptionUtil.conflict(ErrorMessage.POLL_ALREADY_VOTED);
       }
 
@@ -241,7 +243,7 @@ public class LivePollService {
     // MULTIPLE CHOICE
     // =========================
 
-    int maxChoices = setting.getMaxChoices() != null ? setting.getMaxChoices() : 1;
+    int maxChoices = pollMetadata.getMaxChoices() != null ? pollMetadata.getMaxChoices() : 1;
 
     if (optionIds.size() > maxChoices) {
       throw ExceptionUtil.conflict(ErrorMessage.POLL_MAX_CHOICES_EXCEEDED);
@@ -254,7 +256,7 @@ public class LivePollService {
 
     Set<Long> newOptionIds = new HashSet<>(optionIds);
 
-    if (!oldOptionIds.isEmpty() && !Boolean.TRUE.equals(setting.getAllowChangeVote())) {
+    if (!oldOptionIds.isEmpty() && !Boolean.TRUE.equals(pollMetadata.getAllowChangeVote())) {
       throw ExceptionUtil.conflict(ErrorMessage.POLL_ALREADY_VOTED);
     }
 
@@ -264,11 +266,13 @@ public class LivePollService {
     Set<Long> toRemove = new HashSet<>(oldOptionIds);
     toRemove.removeAll(newOptionIds);
 
+    //cần xóa option và giảm count
     for (Long optionId : toRemove) {
       voteRepo.deleteByPollIdAndUserIdAndOptionId(pollId, userId, optionId);
       optionRepo.addCount(optionId, -1);
     }
 
+    //cần thêm option và tăng count
     for (Long optionId : toAdd) {
       voteRepo.save(LivePollVote.builder()
         .pollId(pollId)

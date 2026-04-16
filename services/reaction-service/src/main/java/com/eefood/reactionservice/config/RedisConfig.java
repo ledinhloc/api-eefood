@@ -6,7 +6,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.data.redis.serializer.StringRedisSerializer;
@@ -31,13 +30,18 @@ public class RedisConfig {
 
   @Bean
   public RedisCacheManager cacheManager(RedisConnectionFactory factory) {
+    RedisCacheConfiguration defaultConfig = cacheConfiguration();
     Map<String, RedisCacheConfiguration> configs = Map.of(
             "rag-embeddings",
-            RedisCacheConfiguration.defaultCacheConfig()
-                    .entryTtl(Duration.ofHours(6))
+            defaultConfig
+                    .entryTtl(Duration.ofHours(6)),
+            "poll-vote-metadata",
+            defaultConfig
+                    .entryTtl(Duration.ofMinutes(10))
     );
 
     return RedisCacheManager.builder(factory)
+            .cacheDefaults(defaultConfig)
             .withInitialCacheConfigurations(configs)
             .build();
   }

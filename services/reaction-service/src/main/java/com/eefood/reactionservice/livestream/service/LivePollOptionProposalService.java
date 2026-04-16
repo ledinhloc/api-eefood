@@ -39,6 +39,7 @@ public class LivePollOptionProposalService {
   private final LivePollOptionProposalMapper proposalMapper;
   private final LiveStreamService liveStreamService;
   private final LivePollBroadcastService livePollBroadcastService;
+  private final LivePollMetadataCacheService livePollMetadataCacheService;
   private final IamClient iamClient;
 
   @Transactional
@@ -160,6 +161,7 @@ public class LivePollOptionProposalService {
         .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.POLL_SETTING_NOT_FOUND));
 
       List<LivePollOption> options = optionRepo.findByPollIdOrderByIdAsc(pollId);
+      livePollMetadataCacheService.evictPollVoteMetadata(pollId);
       livePollBroadcastService.broadcastPoll(
         liveStreamId,
         pollMapper.toFullResponse(poll, setting, options)
