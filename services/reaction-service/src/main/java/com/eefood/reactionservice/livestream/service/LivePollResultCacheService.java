@@ -23,6 +23,7 @@ public class LivePollResultCacheService {
   private final LivePollMapper pollMapper;
 
   public PollResultResponse getResult(Long pollId) {
+    // Đọc snapshot kết quả từ cache trước, thiếu thì dựng lại từ DB.
     Cache cache = getCache();
     PollResultResponse cached = cache.get(pollId, PollResultResponse.class);
     if (cached != null) {
@@ -35,6 +36,7 @@ public class LivePollResultCacheService {
   }
 
   public PollResultResponse applyVoteDelta(Long pollId, Map<Long, Long> optionDeltas) {
+    // Áp dụng phần thay đổi nhỏ vào snapshot hiện tại thay vì build lại toàn bộ result.
     Cache cache = getCache();
     PollResultResponse snapshot = cache.get(pollId, PollResultResponse.class);
     if (snapshot == null) {

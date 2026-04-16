@@ -71,6 +71,16 @@ public class LivePollController {
     return new ResponseData<>(HttpStatus.OK.value(), "Success", livePollService.vote(liveStreamId, pollId, userId, optionIds));
   }
 
+  @PostMapping("/{pollId}/testVote")
+  public ResponseData<PollResultResponse> testVote(
+                                  @PathVariable Long liveStreamId,
+                                 @PathVariable Long pollId,
+                                 @RequestParam List<Long> optionIds,
+                                 @RequestParam Long userId
+                                ) {
+    return new ResponseData<>(HttpStatus.OK.value(), "Success", livePollService.vote(liveStreamId, pollId, userId, optionIds));
+  }
+
   @GetMapping("/{pollId}/result")
   public ResponseData<PollResultResponse> result(@PathVariable Long pollId) {
     return new ResponseData<>(HttpStatus.OK.value(), "Success", livePollResultCacheService.getResult(pollId));
