@@ -9,6 +9,7 @@ import com.eefood.reactionservice.livestream.dto.response.PollResultResponse;
 import com.eefood.reactionservice.livestream.enums.PollOptionProposalStatus;
 import com.eefood.reactionservice.livestream.enums.PollStatus;
 import com.eefood.reactionservice.livestream.service.LivePollOptionProposalService;
+import com.eefood.reactionservice.livestream.service.LivePollResultCacheService;
 import com.eefood.reactionservice.livestream.service.LivePollService;
 import com.eefood.reactionservice.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class LivePollController {
   private final LivePollService livePollService;
+  private final LivePollResultCacheService livePollResultCacheService;
   private final LivePollOptionProposalService livePollOptionProposalService;
   private final SecurityUtil securityUtil;
 
@@ -71,7 +73,7 @@ public class LivePollController {
 
   @GetMapping("/{pollId}/result")
   public ResponseData<PollResultResponse> result(@PathVariable Long pollId) {
-    return new ResponseData<>(HttpStatus.OK.value(), "Success", livePollService.buildResult(pollId));
+    return new ResponseData<>(HttpStatus.OK.value(), "Success", livePollResultCacheService.getResult(pollId));
   }
 
   @PostMapping("/{pollId}/option-proposals")

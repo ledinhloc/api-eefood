@@ -40,6 +40,7 @@ public class LivePollOptionProposalService {
   private final LiveStreamService liveStreamService;
   private final LivePollBroadcastService livePollBroadcastService;
   private final LivePollMetadataCacheService livePollMetadataCacheService;
+  private final LivePollResultCacheService livePollResultCacheService;
   private final IamClient iamClient;
 
   @Transactional
@@ -162,6 +163,7 @@ public class LivePollOptionProposalService {
 
       List<LivePollOption> options = optionRepo.findByPollIdOrderByIdAsc(pollId);
       livePollMetadataCacheService.evictPollVoteMetadata(pollId);
+      livePollResultCacheService.evictResult(pollId);
       livePollBroadcastService.broadcastPoll(
         liveStreamId,
         pollMapper.toFullResponse(poll, setting, options)

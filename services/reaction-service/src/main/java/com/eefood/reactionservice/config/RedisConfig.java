@@ -37,6 +37,9 @@ public class RedisConfig {
                     .entryTtl(Duration.ofHours(6)),
             "poll-vote-metadata",
             defaultConfig
+                    .entryTtl(Duration.ofMinutes(10)),
+            "poll-results",
+            defaultConfig
                     .entryTtl(Duration.ofMinutes(10))
     );
 
