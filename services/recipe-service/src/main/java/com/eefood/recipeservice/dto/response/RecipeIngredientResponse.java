@@ -14,5 +14,5 @@ public class RecipeIngredientResponse {
   private Double quantity;
   private String unit;
 
-  private IngredientResponse ingredient; // chứa thông tin nguyên liệu
+  private IngredientDetailResponse ingredient; // chứa thông tin nguyên liệu
 }
