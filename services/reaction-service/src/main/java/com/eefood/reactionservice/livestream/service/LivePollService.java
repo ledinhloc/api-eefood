@@ -4,6 +4,8 @@ package com.eefood.reactionservice.livestream.service;
 import com.eefood.reactionservice.dto.response.UserInfo;
 import com.eefood.reactionservice.enums.ErrorMessage;
 import com.eefood.reactionservice.exception.ExceptionUtil;
+import com.eefood.reactionservice.livestream.dto.cache.PollVoteMetadata;
+import com.eefood.reactionservice.livestream.dto.event.LivePollVoteStreamEvent;
 import com.eefood.reactionservice.livestream.dto.request.CreateLivePollRequest;
 import com.eefood.reactionservice.livestream.dto.response.LivePollResponse;
 import com.eefood.reactionservice.livestream.dto.response.PollOptionVoterResponse;
@@ -23,10 +25,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -37,6 +42,10 @@ public class LivePollService {
   private final LivePollOptionRepository optionRepo;
   private final LivePollSettingRepository settingRepo;
   private final LivePollVoteRepository voteRepo;
+  private final LivePollMetadataCacheService livePollMetadataCacheService;
+  private final LivePollResultCacheService livePollResultCacheService;
+  private final LivePollVoteStateCacheService livePollVoteStateCacheService;
+  private final LivePollVoteStreamProducer livePollVoteStreamProducer;
 
   private final LivePollMapper pollMapper;
   private final LivePollBroadcastService livePollBroadcastService;
@@ -89,6 +98,8 @@ public class LivePollService {
     }
 
     pollRepo.save(poll);
+    livePollMetadataCacheService.evictPollVoteMetadata(pollId);
+    livePollResultCacheService.evictResult(pollId);
 
     LivePollSetting setting = settingRepo.findByPollId(pollId)
       .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.POLL_SETTING_NOT_FOUND));
@@ -97,7 +108,7 @@ public class LivePollService {
     LivePollResponse response = pollMapper.toFullResponse(poll, setting, options);
     livePollBroadcastService.broadcastPoll(liveStreamId, response);
 
-    PollResultResponse result = buildResult(pollId);
+    PollResultResponse result = livePollResultCacheService.getResult(pollId);
     livePollBroadcastService.broadcastPollResult(liveStreamId, result);
     return response;
   }
@@ -162,6 +173,7 @@ public class LivePollService {
 
   @Transactional
   public PollResultResponse vote(Long liveStreamId, Long pollId, Long userId, List<Long> optionIds) {
+    // /vote giờ xử lý theo hướng Redis-first: cập nhật state/result trước, DB flush sau qua Stream.
 
     if (optionIds == null || optionIds.isEmpty()) {
       throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
@@ -172,67 +184,63 @@ public class LivePollService {
       .distinct()
       .toList();
 
-    LivePoll poll = pollRepo.findByIdAndLiveStreamId(pollId, liveStreamId)
-      .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.POLL_NOT_FOUND));
+    PollVoteMetadata pollMetadata = livePollMetadataCacheService.getPollVoteMetadata(pollId);
 
-    if (poll.getStatus() != PollStatus.OPEN) {
+    if (!Objects.equals(pollMetadata.getLiveStreamId(), liveStreamId)) {
+      throw ExceptionUtil.notFound(ErrorMessage.POLL_NOT_FOUND);
+    }
+
+    if (pollMetadata.getStatus() != PollStatus.OPEN) {
       throw ExceptionUtil.badRequest(ErrorMessage.POLL_NOT_OPEN);
     }
 
-    LivePollSetting setting = settingRepo.findByPollId(pollId)
-      .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.POLL_SETTING_NOT_FOUND));
-
-    List<LivePollOption> selectedOptions = optionRepo.findAllByPollIdAndIdIn(pollId, optionIds);
-
-    if (selectedOptions.size() != optionIds.size()) {
+    Set<Long> validOptionIds = pollMetadata.getOptionIds();
+    if (validOptionIds == null || !validOptionIds.containsAll(optionIds)) {
       throw ExceptionUtil.badRequest(ErrorMessage.POLL_OPTION_INVALID);
     }
 
     // =========================
     // SINGLE CHOICE
     // =========================
-    if (!Boolean.TRUE.equals(setting.getMultipleChoice())) {
+    if (!Boolean.TRUE.equals(pollMetadata.getMultipleChoice())) {
 
       if (optionIds.size() != 1) {
         throw ExceptionUtil.badRequest(ErrorMessage.POLL_SINGLE_CHOICE_ONLY);
       }
 
       Long optionId = optionIds.get(0);
+      // Single choice chỉ cần giữ lại một option hiện tại trong Redis state.
+      Set<Long> existingOptionIds = livePollVoteStateCacheService.getOptionIds(pollId, userId);
+      Long existingOptionId = existingOptionIds.stream().findFirst().orElse(null);
 
-      List<LivePollVote> existingVotes = voteRepo.findAllByPollIdAndUserId(pollId, userId);
-      LivePollVote existing = existingVotes.isEmpty() ? null : existingVotes.get(0);
+      if (existingOptionId == null) {
+        livePollVoteStateCacheService.saveOptionIds(pollId, userId, Set.of(optionId));
 
-      if (existing == null) {
-
-        voteRepo.save(LivePollVote.builder()
-          .pollId(pollId)
-          .userId(userId)
-          .optionId(optionId)
-          .createdAt(LocalDateTime.now())
-          .build());
-
-        optionRepo.addCount(optionId, 1);
-
-        PollResultResponse result = buildResult(pollId);
+        PollResultResponse result = livePollResultCacheService.applyVoteDelta(
+          pollId,
+          Map.of(optionId, 1L)
+        );
+        publishVoteEvent(liveStreamId, pollId, userId, List.of(optionId), List.of());
         livePollBroadcastService.broadcastPollResult(liveStreamId, result);
         return result;
       }
 
-      if (!Boolean.TRUE.equals(setting.getAllowChangeVote())) {
+      if (!Boolean.TRUE.equals(pollMetadata.getAllowChangeVote())) {
         throw ExceptionUtil.conflict(ErrorMessage.POLL_ALREADY_VOTED);
       }
 
-      if (existing.getOptionId().equals(optionId)) {
-        return buildResult(pollId);
+      if (existingOptionId.equals(optionId)) {
+        return livePollResultCacheService.getResult(pollId);
       }
 
-      optionRepo.addCount(existing.getOptionId(), -1);
-      optionRepo.addCount(optionId, 1);
+      Long previousOptionId = existingOptionId;
+      livePollVoteStateCacheService.saveOptionIds(pollId, userId, Set.of(optionId));
 
-      existing.setOptionId(optionId);
-      voteRepo.save(existing);
-
-      PollResultResponse result = buildResult(pollId);
+      PollResultResponse result = livePollResultCacheService.applyVoteDelta(
+        pollId,
+        Map.of(previousOptionId, -1L, optionId, 1L)
+      );
+      publishVoteEvent(liveStreamId, pollId, userId, List.of(optionId), List.of(previousOptionId));
       livePollBroadcastService.broadcastPollResult(liveStreamId, result);
       return result;
     }
@@ -241,22 +249,20 @@ public class LivePollService {
     // MULTIPLE CHOICE
     // =========================
 
-    int maxChoices = setting.getMaxChoices() != null ? setting.getMaxChoices() : 1;
+    int maxChoices = pollMetadata.getMaxChoices() != null ? pollMetadata.getMaxChoices() : 1;
 
     if (optionIds.size() > maxChoices) {
       throw ExceptionUtil.conflict(ErrorMessage.POLL_MAX_CHOICES_EXCEEDED);
     }
 
-    List<LivePollVote> existingVotes = voteRepo.findAllByPollIdAndUserId(pollId, userId);
-    Set<Long> oldOptionIds = existingVotes.stream()
-      .map(LivePollVote::getOptionId)
-      .collect(Collectors.toSet());
+    boolean allowChangeVote = pollMetadata.getAllowChangeVote();
+    Set<Long> oldOptionIds = livePollVoteStateCacheService.getOptionIds(pollId, userId);
 
-    Set<Long> newOptionIds = new HashSet<>(optionIds);
-
-    if (!oldOptionIds.isEmpty() && !Boolean.TRUE.equals(setting.getAllowChangeVote())) {
+    if (!allowChangeVote && !oldOptionIds.isEmpty()) {
       throw ExceptionUtil.conflict(ErrorMessage.POLL_ALREADY_VOTED);
     }
+
+    Set<Long> newOptionIds = new HashSet<>(optionIds);
 
     Set<Long> toAdd = new HashSet<>(newOptionIds);
     toAdd.removeAll(oldOptionIds);
@@ -264,37 +270,36 @@ public class LivePollService {
     Set<Long> toRemove = new HashSet<>(oldOptionIds);
     toRemove.removeAll(newOptionIds);
 
+    if (toAdd.isEmpty() && toRemove.isEmpty()) {
+      return livePollResultCacheService.getResult(pollId);
+    }
+
+    // Gom delta theo option để cập nhật snapshot kết quả chỉ trong một lần.
+    Map<Long, Long> optionDeltas = new HashMap<>();
+
     for (Long optionId : toRemove) {
-      voteRepo.deleteByPollIdAndUserIdAndOptionId(pollId, userId, optionId);
-      optionRepo.addCount(optionId, -1);
+      optionDeltas.merge(optionId, -1L, Long::sum);
     }
 
     for (Long optionId : toAdd) {
-      voteRepo.save(LivePollVote.builder()
-        .pollId(pollId)
-        .userId(userId)
-        .optionId(optionId)
-        .createdAt(LocalDateTime.now())
-        .build());
-
-      optionRepo.addCount(optionId, 1);
+      optionDeltas.merge(optionId, 1L, Long::sum);
     }
 
-    PollResultResponse result = buildResult( pollId);
+    livePollVoteStateCacheService.saveOptionIds(pollId, userId, newOptionIds);
+
+    PollResultResponse result = livePollResultCacheService.applyVoteDelta(
+      pollId,
+      optionDeltas
+    );
+    publishVoteEvent(
+      liveStreamId,
+      pollId,
+      userId,
+      toAdd.stream().toList(),
+      toRemove.stream().toList()
+    );
     livePollBroadcastService.broadcastPollResult(liveStreamId, result);
     return result;
-  }
-
-  @Transactional(readOnly = true)
-  public PollResultResponse buildResult(Long pollId) {
-    List<LivePollOption> options = optionRepo.findByPollIdOrderByIdAsc(pollId);
-    long totalVotes = voteRepo.countByPollId(pollId);
-
-    return PollResultResponse.builder()
-      .pollId(pollId)
-      .totalVotes(totalVotes)
-      .options(pollMapper.toOptionResponses(options))
-      .build();
   }
 
   @Transactional(readOnly = true)
@@ -375,5 +380,51 @@ public class LivePollService {
       .avatarUrl(userInfo.getAvatarUrl())
       .votedAt(vote.getCreatedAt())
       .build();
+  }
+
+  private void publishVoteEvent(
+    Long liveStreamId,
+    Long pollId,
+    Long userId,
+    List<Long> toAdd,
+    List<Long> toRemove
+  ) {
+    // Đẩy event ra stream để consumer nền đồng bộ DB bất đồng bộ.
+    livePollVoteStreamProducer.publishVoteEvent(
+      LivePollVoteStreamEvent.builder()
+        .eventId(UUID.randomUUID().toString())
+        .liveStreamId(liveStreamId)
+        .pollId(pollId)
+        .userId(userId)
+        .toAdd(toAdd)
+        .toRemove(toRemove)
+        .occurredAt(LocalDateTime.now())
+        .build()
+    );
+  }
+
+  @Transactional
+  public void persistVoteEvent(Long pollId, Long userId, List<Long> toAdd, List<Long> toRemove) {
+    // Flush event từ Redis Stream xuống DB trong transaction thật sự.
+    for (Long optionId : toRemove) {
+      if (voteRepo.findByPollIdAndUserIdAndOptionId(pollId, userId, optionId).isPresent()) {
+        // Chỉ xóa khi vote còn tồn tại để replay event không làm lệch dữ liệu.
+        voteRepo.deleteByPollIdAndUserIdAndOptionId(pollId, userId, optionId);
+        optionRepo.addCount(optionId, -1);
+      }
+    }
+
+    for (Long optionId : toAdd) {
+      if (voteRepo.findByPollIdAndUserIdAndOptionId(pollId, userId, optionId).isEmpty()) {
+        // Chỉ thêm khi chưa có vote để replay event không tạo bản ghi trùng.
+        voteRepo.save(LivePollVote.builder()
+          .pollId(pollId)
+          .userId(userId)
+          .optionId(optionId)
+          .createdAt(LocalDateTime.now())
+          .build());
+        optionRepo.addCount(optionId, 1);
+      }
+    }
   }
 }

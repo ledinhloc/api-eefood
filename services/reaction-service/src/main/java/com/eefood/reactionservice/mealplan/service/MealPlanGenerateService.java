@@ -555,7 +555,6 @@ public class MealPlanGenerateService {
         }
     }
 
-
     private BigDecimal toBigDecimal(Double value) {
         return value == null ? null : BigDecimal.valueOf(value);
     }
