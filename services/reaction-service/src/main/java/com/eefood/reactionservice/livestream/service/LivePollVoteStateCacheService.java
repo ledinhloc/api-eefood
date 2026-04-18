@@ -26,7 +26,6 @@ public class LivePollVoteStateCacheService {
   }
 
   public void saveOptionIds(Long pollId, Long userId, Set<Long> optionIds) {
-    // Lưu ảnh chụp vote hiện tại để request sau không cần chờ DB đồng bộ.
     if (optionIds == null || optionIds.isEmpty()) {
       evict(pollId, userId);
       return;

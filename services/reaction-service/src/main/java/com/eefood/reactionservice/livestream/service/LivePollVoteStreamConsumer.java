@@ -20,7 +20,6 @@ import org.springframework.data.redis.connection.stream.StreamReadOptions;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
@@ -30,8 +29,7 @@ public class LivePollVoteStreamConsumer {
   private static final String CONSUMER = "reaction-service";
 
   private final StringRedisTemplate stringRedisTemplate;
-  private final LivePollVoteRepository voteRepo;
-  private final LivePollOptionRepository optionRepo;
+  private final LivePollService livePollService;
 
   @PostConstruct
   public void ensureGroup() {
@@ -70,7 +68,7 @@ public class LivePollVoteStreamConsumer {
     // Poll Redis Stream theo nhịp ngắn để flush vote xuống DB gần realtime.
     List<MapRecord<String, Object, Object>> records = stringRedisTemplate.opsForStream().read(
       Consumer.from(GROUP, CONSUMER),
-      StreamReadOptions.empty().count(20).block(Duration.ofSeconds(1)),
+      StreamReadOptions.empty().count(100).block(Duration.ofSeconds(1)),
       StreamOffset.create(LivePollVoteStreamProducer.VOTE_STREAM_KEY, ReadOffset.lastConsumed())
     );
 
@@ -85,40 +83,15 @@ public class LivePollVoteStreamConsumer {
           continue;
         }
 
-        applyEvent(record.getValue());
+        Long pollId = Long.valueOf(String.valueOf(record.getValue().get("pollId")));
+        Long userId = Long.valueOf(String.valueOf(record.getValue().get("userId")));
+        List<Long> toRemove = parseIds(record.getValue().get("toRemove"));
+        List<Long> toAdd = parseIds(record.getValue().get("toAdd"));
+
+        livePollService.persistVoteEvent(pollId, userId, toAdd, toRemove);
         stringRedisTemplate.opsForStream().acknowledge(GROUP, record);
       } catch (Exception ex) {
         log.error("Failed to persist vote event from stream id={}", record.getId(), ex);
-      }
-    }
-  }
-
-  @Transactional
-  protected void applyEvent(Map<Object, Object> body) {
-    // Áp dụng event theo kiểu idempotent cơ bản để tránh ghi trùng khi retry.
-    Long pollId = Long.valueOf(String.valueOf(body.get("pollId")));
-    Long userId = Long.valueOf(String.valueOf(body.get("userId")));
-    List<Long> toRemove = parseIds(body.get("toRemove"));
-    List<Long> toAdd = parseIds(body.get("toAdd"));
-
-    for (Long optionId : toRemove) {
-      if (voteRepo.findByPollIdAndUserIdAndOptionId(pollId, userId, optionId).isPresent()) {
-        // Chỉ xóa khi vote còn tồn tại để replay event không làm lệch dữ liệu.
-        voteRepo.deleteByPollIdAndUserIdAndOptionId(pollId, userId, optionId);
-        optionRepo.addCount(optionId, -1);
-      }
-    }
-
-    for (Long optionId : toAdd) {
-      if (voteRepo.findByPollIdAndUserIdAndOptionId(pollId, userId, optionId).isEmpty()) {
-        // Chỉ thêm khi chưa có vote để replay event không tạo bản ghi trùng.
-        voteRepo.save(LivePollVote.builder()
-          .pollId(pollId)
-          .userId(userId)
-          .optionId(optionId)
-          .createdAt(LocalDateTime.now())
-          .build());
-        optionRepo.addCount(optionId, 1);
       }
     }
   }

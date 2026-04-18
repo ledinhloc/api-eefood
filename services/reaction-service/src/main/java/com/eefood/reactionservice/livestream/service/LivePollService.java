@@ -402,4 +402,29 @@ public class LivePollService {
         .build()
     );
   }
+
+  @Transactional
+  public void persistVoteEvent(Long pollId, Long userId, List<Long> toAdd, List<Long> toRemove) {
+    // Flush event từ Redis Stream xuống DB trong transaction thật sự.
+    for (Long optionId : toRemove) {
+      if (voteRepo.findByPollIdAndUserIdAndOptionId(pollId, userId, optionId).isPresent()) {
+        // Chỉ xóa khi vote còn tồn tại để replay event không làm lệch dữ liệu.
+        voteRepo.deleteByPollIdAndUserIdAndOptionId(pollId, userId, optionId);
+        optionRepo.addCount(optionId, -1);
+      }
+    }
+
+    for (Long optionId : toAdd) {
+      if (voteRepo.findByPollIdAndUserIdAndOptionId(pollId, userId, optionId).isEmpty()) {
+        // Chỉ thêm khi chưa có vote để replay event không tạo bản ghi trùng.
+        voteRepo.save(LivePollVote.builder()
+          .pollId(pollId)
+          .userId(userId)
+          .optionId(optionId)
+          .createdAt(LocalDateTime.now())
+          .build());
+        optionRepo.addCount(optionId, 1);
+      }
+    }
+  }
 }
