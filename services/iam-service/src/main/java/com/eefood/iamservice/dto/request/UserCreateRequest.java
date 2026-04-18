@@ -23,12 +23,14 @@ public class UserCreateRequest {
   String role;
   LocalDate dob;
   String gender;
+  String activityLevel;
   JsonNode address; // luu json
   String provider;
   String avatarUrl;
   List<String> allergies;
   List<String> eatingPreferences;
   List<String> dietaryPreferences;
+  List<String> healthConditions;
   @NotBlank(message = "Password is required")
   @Size(min = 8, message = "Password must be at least 8 characters")
   String password;

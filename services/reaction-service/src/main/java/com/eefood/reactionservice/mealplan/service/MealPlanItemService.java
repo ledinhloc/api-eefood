@@ -105,6 +105,16 @@ public class MealPlanItemService {
     private MealPlanItemResponse buildItemResponse(MealPlanItem item) {
         // Chỉ nạp lại ingredients của riêng item vừa upsert để tránh over-fetch cả meal plan.
         MealPlanItemResponse response = mealPlanMapper.toResponse(item);
+        BigDecimal multiplier = BigDecimal.valueOf(resolveServings(item));
+
+        response.setCalories(scale(item.getCalories(), multiplier));
+        response.setProtein(scale(item.getProtein(), multiplier));
+        response.setCarbs(scale(item.getCarbs(), multiplier));
+        response.setFat(scale(item.getFat(), multiplier));
+        response.setFiber(scale(item.getFiber(), multiplier));
+        response.setSugar(scale(item.getSugar(), multiplier));
+        response.setCalcium(scale(item.getCalcium(), multiplier));
+        response.setSodium(scale(item.getSodium(), multiplier));
         response.setIngredients(
                 mealPlanItemIngredientRepository.findAllByMealPlanItemIdIn(List.of(item.getId())).stream()
                         .map(mealPlanMapper::toResponse)
@@ -280,7 +290,17 @@ public class MealPlanItemService {
         return value == null ? fallback : value;
     }
 
+    private int resolveServings(MealPlanItem item) {
+        Integer servings = item.getActualServings() != null ? item.getActualServings() : item.getPlannedServings();
+        return servings == null || servings <= 0 ? 1 : servings;
+    }
+
+    private BigDecimal scale(BigDecimal value, BigDecimal multiplier) {
+        return value == null ? BigDecimal.ZERO : value.multiply(multiplier);
+    }
+
     private BigDecimal toBigDecimal(Double value) {
         return value == null ? null : BigDecimal.valueOf(value);
     }
+
 }

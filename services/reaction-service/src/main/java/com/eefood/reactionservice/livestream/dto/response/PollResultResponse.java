@@ -11,6 +11,5 @@ import java.util.List;
 @Builder
 public class PollResultResponse {
   private Long pollId;
-  private Long totalVotes;
   private List<LivePollOptionResponse> options;
 }

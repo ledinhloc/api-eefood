@@ -1,5 +1,6 @@
 package com.eefood.iamservice.model;
 
+import com.eefood.iamservice.enums.ActivityLevel;
 import com.eefood.iamservice.enums.Gender;
 import com.eefood.iamservice.enums.Provider;
 import com.eefood.iamservice.enums.Role;
@@ -42,6 +43,10 @@ public class User extends BaseEntity {
   @Column(length = 10)
   private Gender gender;
 
+  @Enumerated(EnumType.STRING)
+  @Column(length = 20)
+  private ActivityLevel activityLevel;
+
   @Column(columnDefinition = "jsonb")
   @JdbcTypeCode(SqlTypes.JSON) // Hibernate 6 hỗ trợ
   private JsonNode address;
@@ -71,4 +76,9 @@ public class User extends BaseEntity {
   @CollectionTable(name = "user_dietary_preferences", joinColumns = @JoinColumn(name = "user_id"))
   @Column(name = "dietary")
   private List<String> dietaryPreferences;
+
+  @ElementCollection
+  @CollectionTable(name = "user_health_conditions", joinColumns = @JoinColumn(name = "user_id"))
+  @Column(name = "condition_name")
+  private List<String> healthConditions;
 }
