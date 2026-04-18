@@ -255,7 +255,7 @@ public class LivePollService {
       throw ExceptionUtil.conflict(ErrorMessage.POLL_MAX_CHOICES_EXCEEDED);
     }
 
-    boolean allowChangeVote = Boolean.TRUE.equals(pollMetadata.getAllowChangeVote());
+    boolean allowChangeVote = pollMetadata.getAllowChangeVote();
     Set<Long> oldOptionIds = livePollVoteStateCacheService.getOptionIds(pollId, userId);
 
     if (!allowChangeVote && !oldOptionIds.isEmpty()) {
