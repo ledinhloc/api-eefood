@@ -27,9 +27,6 @@ public class CookingSessionStep extends BaseEntity {
     @JoinColumn(name = "recipe_step_id", nullable = false)
     private RecipeStep recipeStep;
 
-    @Column(name = "step_number", nullable = false)
-    private Integer stepNumber;
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private CookingStepStatus status;
