@@ -4,6 +4,7 @@ import com.eefood.recipeservice.enums.CookingSessionStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -40,6 +41,7 @@ public class CookingSessions extends BaseEntity {
 
     @OneToMany(mappedBy = "cookingSession", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
+    @SQLRestriction("is_deleted = false")
     private Set<CookingSessionStep> steps = new HashSet<>();
 
     public void addStep(CookingSessionStep step) {

@@ -29,8 +29,6 @@ CREATE TABLE cooking_session_steps (
     cooking_session_id  BIGINT NOT NULL,
     recipe_step_id      BIGINT NOT NULL,
 
-    step_number         INTEGER NOT NULL,
-
     status              VARCHAR(20) NOT NULL, -- PENDING, IN_PROGRESS, DONE
 
     started_at          TIMESTAMP,
