@@ -2,8 +2,10 @@ package com.eefood.recipeservice.service;
 
 import com.eefood.recipeservice.dto.ShoppingIngredientDto;
 import com.eefood.recipeservice.dto.ShoppingItemDto;
+import com.eefood.recipeservice.dto.response.IngredientAlterResponse;
 import com.eefood.recipeservice.enums.ErrorMessage;
 import com.eefood.recipeservice.exception.ExceptionUtil;
+import com.eefood.recipeservice.mapper.RecipeMapper;
 import com.eefood.recipeservice.mapper.ShoppingListMapper;
 import com.eefood.recipeservice.model.Recipe;
 import com.eefood.recipeservice.model.RecipeIngredient;
@@ -27,6 +29,8 @@ public class ShoppingListService {
   private final RecipeRepository recipeRepo;
   private final ShoppingIngredientRepository ingredientRepo;
   private final ShoppingListMapper mapper;
+  private final AlternateIngredientService alternateIngredientService;
+  private final RecipeMapper recipeMapper;
 
   //them mon an vao shopping list
   @Transactional
@@ -61,18 +65,38 @@ public class ShoppingListService {
       .ingredients(new ArrayList<>())
       .build();
 
-    recipe.getIngredients().forEach(ri ->
-      item.getIngredients().add(
-        ShoppingIngredient.builder()
-          .shoppingItem(item)
-          .ingredient(ri.getIngredient())
-          .quantity(ri.getQuantity() * servings)
-          .unit(ri.getUnit())
-          .purchased(false)
-          .isDeleted(false)
-          .build()
-      )
-    );
+    List<RecipeIngredient> listIngredient = recipe.getIngredients().stream().toList();
+
+    for(var ri: listIngredient){
+      IngredientAlterResponse ingredientAlterResponse = alternateIngredientService
+              .getIngredientAlterResponse(recipe.getId(),ri.getIngredient().getId());
+
+      if(ingredientAlterResponse.getSelectedSubstitute()!=null) {
+        item.getIngredients().add(
+                ShoppingIngredient.builder()
+                        .shoppingItem(item)
+                        .ingredient(recipeMapper.toEntity(ingredientAlterResponse.getSelectedSubstitute()))
+                        .quantity(ri.getQuantity() * servings)
+                        .unit(ri.getUnit())
+                        .purchased(false)
+                        .isDeleted(false)
+                        .build()
+        );
+      }
+      else {
+        item.getIngredients().add(
+                ShoppingIngredient.builder()
+                        .shoppingItem(item)
+                        .ingredient(ri.getIngredient())
+                        .quantity(ri.getQuantity() * servings)
+                        .unit(ri.getUnit())
+                        .purchased(false)
+                        .isDeleted(false)
+                        .build()
+        );
+      }
+    }
+
     return itemRepo.save(item);
   }
 

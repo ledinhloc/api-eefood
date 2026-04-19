@@ -1,7 +1,7 @@
 package com.eefood.recipeservice.service;
 
 import com.eefood.recipeservice.dto.response.IngredientAlterResponse;
-import com.eefood.recipeservice.dto.response.IngredientResponse;
+import com.eefood.recipeservice.dto.response.IngredientDetailResponse;
 import com.eefood.recipeservice.enums.ErrorMessage;
 import com.eefood.recipeservice.exception.ExceptionUtil;
 import com.eefood.recipeservice.mapper.RecipeMapper;
@@ -63,16 +63,16 @@ public class AlternateIngredientService {
         }
 
         UserIngredientSubstitution userSub = userSubMap.get(ri.getId());
-        IngredientResponse selected = userSub != null
-                ? recipeMapper.toResponse(userSub.getSubstituteIngredient())
+        IngredientDetailResponse selected = userSub != null
+                ? recipeMapper.toDetailResponse(userSub.getSubstituteIngredient())
                 : null;
 
         return IngredientAlterResponse.builder()
-                .ingredient(recipeMapper.toResponse(ingredient))
+                .ingredient(recipeMapper.toDetailResponse(ingredient))
                 .selectedSubstitute(selected)
                 .substitute(
                         substitutes.stream()
-                                .map(recipeMapper::toResponse)
+                                .map(recipeMapper::toDetailResponse)
                                 .toList()
                 )
                 .build();
@@ -112,16 +112,16 @@ public class AlternateIngredientService {
                     }
 
                     UserIngredientSubstitution userSub = userSubMap.get(ri.getId());
-                    IngredientResponse selected = userSub != null
-                            ? recipeMapper.toResponse(userSub.getSubstituteIngredient())
+                    IngredientDetailResponse selected = userSub != null
+                            ? recipeMapper.toDetailResponse(userSub.getSubstituteIngredient())
                             : null;
 
                     return IngredientAlterResponse.builder()
-                            .ingredient(recipeMapper.toResponse(ingredient))
+                            .ingredient(recipeMapper.toDetailResponse(ingredient))
                             .selectedSubstitute(selected)
                             .substitute(
                                     substitutes.stream()
-                                            .map(recipeMapper::toResponse)
+                                            .map(recipeMapper::toDetailResponse)
                                             .toList()
                             )
                             .build();

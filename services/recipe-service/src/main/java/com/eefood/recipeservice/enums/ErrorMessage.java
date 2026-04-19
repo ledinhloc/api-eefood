@@ -69,7 +69,12 @@ public enum ErrorMessage {
   SHOPPING_ITEM_NOT_FOUND("Shopping Item not found"),
   SHOPPING_ITEM_MORE("Expected 1 ShoppingItem but found more than one item"),
   RECIPE_HAS_NO_INGREDIENTS("Recipe has no ingredients"),
+  RECIPE_HAS_NO_STEPS("Recipe has no steps"),
 
+  // cooking session
+  COOKING_SESSION_NOT_FOUND("Cooking session not found"),
+  COOKING_SESSION_FORBIDDEN("Cooking session forbidden"),
+  COOKING_SESSION_ALREADY_COMPLETED("Cooking session already completed"),
   ;
 
 
