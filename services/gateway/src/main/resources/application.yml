@@ -133,6 +133,11 @@ spring:
               predicates:
                 - Path=/api/v1/nutrition/**
 
+            - id: recipe-service
+              uri: lb://RECIPE-SERVICE
+              predicates:
+                - Path=/api/v1/cooking/**
+
             
     bus:
       enabled: true
