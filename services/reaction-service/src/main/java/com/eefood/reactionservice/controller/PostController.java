@@ -137,4 +137,13 @@ public class PostController {
     PostResponse post = postService.getPostById(id);
     return new ResponseData<>(HttpStatus.OK.value(), "Success", post);
   }
+
+  @GetMapping("/recipes/{recipeId}/similar")
+  public ResponseData<List<PostPublishResponse>> getSimilarRecipes(
+    @PathVariable Long recipeId,
+    @RequestParam(defaultValue = "10") Integer limit
+  ) {
+    List<PostPublishResponse> posts = postService.getSimilarRecipes(recipeId, limit);
+    return new ResponseData<>(HttpStatus.OK.value(), "Success", posts);
+  }
 }

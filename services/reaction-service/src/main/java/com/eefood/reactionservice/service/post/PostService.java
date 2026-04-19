@@ -26,16 +26,30 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class PostService {
+  private static final double STRONG_REDUCED_WEIGHT = 0.1d;
+  private static final double LIGHT_REDUCED_WEIGHT = 0.5d;
+  private static final Set<String> STRONG_REDUCED_INGREDIENTS = Set.of(
+    "muối", "đường", "tiêu", "nước", "dầu ăn", "bột ngọt", "hạt nêm", "gia vị"
+  );
+  private static final Set<String> LIGHT_REDUCED_INGREDIENTS = Set.of(
+    "tỏi", "ớt", "hành", "nước mắm", "xì dầu", "dầu hào"
+  );
+
   private final PostRepository postRepo;
   private final PostMapper postMapper;
   private final IamClient iamClient;
@@ -440,5 +454,84 @@ public class PostService {
     response.setAvatarUrl(userInfo.getAvatarUrl());
 
     return response;
+  }
+
+  @Transactional(readOnly = true)
+  public List<PostPublishResponse> getSimilarRecipes(Long recipeId, Integer limit) {
+    // tìm post gốc
+    Post targetPost = postRepo.findByRecipeIdAndStatusWithIngredients(recipeId, PostStatus.APPROVED)
+      .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.POST_NOT_FOUND));
+
+    Set<String> targetIngredients = normalizeIngredients(targetPost.getRecipeIngredientKeywords());
+    if (targetIngredients.isEmpty()) {
+      return List.of();
+    }
+
+    // Chỉ lấy các post đã duyệt khác để đề xuất.
+    List<Post> candidates = postRepo.findAllSimilarCandidates(recipeId, PostStatus.APPROVED);
+
+    // Gắn mỗi candidate với số nguyên liệu trùng nhau.
+    List<Map.Entry<Post, Double>> scoredCandidates = candidates.stream()
+      .map(candidate -> scoreSimilarCandidate(targetIngredients, candidate))
+      .toList();
+
+    // Chỉ giữ các món có ít nhất 1 nguyên liệu giống.
+    List<Map.Entry<Post, Double>> matchedCandidates = scoredCandidates.stream()
+      .filter(entry -> entry.getValue() > 0)
+      .toList();
+
+    // Ưu tiên món trùng nhiều nguyên liệu hơn, nếu bằng nhau thì lấy bài mới hơn.
+    List<Map.Entry<Post, Double>> sortedCandidates = matchedCandidates.stream()
+      .sorted(Map.Entry.<Post, Double>comparingByValue(Comparator.reverseOrder())
+        .thenComparing(entry -> entry.getKey().getCreatedAt(), Comparator.nullsLast(Comparator.reverseOrder())))
+      .toList();
+
+    // Giới hạn số lượng kết quả trả về.
+    List<Post> topPosts = sortedCandidates.stream()
+      .limit(limit)
+      .map(Map.Entry::getKey)
+      .toList();
+
+    log.info("Similar recipes result for recipeId={}: {}", recipeId,
+      sortedCandidates.stream()
+        .limit(limit)
+        .map(entry -> entry.getKey().getTitle() + " (score=" + entry.getValue() + ")")
+        .toList());
+
+    return topPosts.stream()
+      .map(postMapper::toPublishResponse)
+      .toList();
+  }
+
+  //đếm phần tử trùng
+  private Map.Entry<Post, Double> scoreSimilarCandidate(Set<String> targetIngredients, Post candidate) {
+    Set<String> candidateIngredients = normalizeIngredients(candidate.getRecipeIngredientKeywords());
+    Set<String> sharedIngredients = new HashSet<>(targetIngredients);
+    sharedIngredients.retainAll(candidateIngredients);
+    double weightedScore = sharedIngredients.stream()
+      .mapToDouble(this::getIngredientWeight)
+      .sum();
+    return Map.entry(candidate, weightedScore);
+  }
+
+  private double getIngredientWeight(String ingredient) {
+    if (STRONG_REDUCED_INGREDIENTS.contains(ingredient)) {
+      return STRONG_REDUCED_WEIGHT;
+    }
+    if (LIGHT_REDUCED_INGREDIENTS.contains(ingredient)) {
+      return LIGHT_REDUCED_WEIGHT;
+    }
+    return 1.0d;
+  }
+
+  private Set<String> normalizeIngredients(Set<String> ingredients) {
+    return Optional.ofNullable(ingredients)
+      .orElse(Set.of())
+      .stream()
+      .filter(Objects::nonNull)
+      .map(String::trim)
+      .filter(value -> !value.isBlank())
+      .map(String::toLowerCase)
+      .collect(Collectors.toSet());
   }
 }
