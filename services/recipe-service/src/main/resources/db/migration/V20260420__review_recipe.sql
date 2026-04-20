@@ -9,7 +9,6 @@ CREATE TABLE review_questions (
 
     content         VARCHAR(255)                            NOT NULL,
     weight          INTEGER                                 NOT NULL, -- độ quan trọng của câu hỏi
-    display_order   INTEGER, -- thứ tự hiển thị
 
     is_active       BOOLEAN DEFAULT TRUE
 );
@@ -28,8 +27,6 @@ CREATE TABLE review_options (
 
     star_value      INTEGER                                 NOT NULL, -- 1 -> 5 sao
 
-    display_order   INTEGER,
-
     CONSTRAINT fk_ro_question FOREIGN KEY (question_id) REFERENCES review_questions(id) ON DELETE CASCADE
 );
 
@@ -46,7 +43,7 @@ CREATE TABLE recipe_reviews (
     user_id         BIGINT                                  NOT NULL,
 
     rating          DOUBLE PRECISION                        NOT NULL, -- kết quả cuối (VD: 4.5)
-    total_weight    INTEGER, -- tổng weight đã dùng (optional debug)
+    total_weight    INTEGER, -- tổng weight đã dùng
 
     review_text     VARCHAR, -- optional text
 
@@ -79,3 +76,25 @@ CREATE TABLE review_answers (
 CREATE INDEX idx_review_recipe ON recipe_reviews(recipe_id);
 CREATE INDEX idx_review_user ON recipe_reviews(user_id);
 CREATE INDEX idx_answer_review ON review_answers(review_id);
+
+
+INSERT INTO review_questions (id, created_at, updated_at, created_by, updated_by, is_deleted, content, weight, is_active)
+VALUES
+    (1, NOW(), NOW(), 'system', 'system', FALSE, 'Món ăn có ngon không?', 3,  TRUE),
+    (2, NOW(), NOW(), 'system', 'system', FALSE, 'Công thức có dễ làm không?', 2,  TRUE),
+    (3, NOW(), NOW(), 'system', 'system', FALSE, 'Thành phẩm có giống mô tả không?', 2,  TRUE),
+    (4, NOW(), NOW(), 'system', 'system', FALSE, 'Bạn có muốn nấu lại món này không?', 1,  TRUE);
+
+INSERT INTO review_options (created_at, updated_at, created_by, updated_by, is_deleted, question_id, content, star_value)
+VALUES
+    (NOW(), NOW(), 'system', 'system', FALSE, 1, 'Rất ngon', 5),
+    (NOW(), NOW(), 'system', 'system', FALSE, 1, 'Bình thường', 3),
+    (NOW(), NOW(), 'system', 'system', FALSE, 1, 'Không ngon', 1), -- Q1
+    (NOW(), NOW(), 'system', 'system', FALSE, 2, 'Rất dễ làm', 5),
+    (NOW(), NOW(), 'system', 'system', FALSE, 2, 'Bình thường', 3),
+    (NOW(), NOW(), 'system', 'system', FALSE, 2, 'Khó làm', 1), -- Q2
+    (NOW(), NOW(), 'system', 'system', FALSE, 3, 'Rất giống mô tả', 5),
+    (NOW(), NOW(), 'system', 'system', FALSE, 3, 'Hơi khác một chút', 3),
+    (NOW(), NOW(), 'system', 'system', FALSE, 3, 'Không giống', 1), -- Q3
+    (NOW(), NOW(), 'system', 'system', FALSE, 4, 'Có, chắc chắn sẽ nấu lại', 5),
+    (NOW(), NOW(), 'system', 'system', FALSE, 4, 'Không, sẽ không nấu lại', 1); -- Q4

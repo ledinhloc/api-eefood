@@ -26,8 +26,6 @@ public class ReviewQuestion extends BaseEntity{
     @Column(nullable = false)
     private Integer weight;
 
-    private Integer displayOrder;
-
     @Builder.Default
     private Boolean isActive = true;
 

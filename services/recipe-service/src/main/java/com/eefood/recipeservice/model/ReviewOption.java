@@ -25,6 +25,4 @@ public class ReviewOption extends BaseEntity{
 
     @Column(nullable = false)
     private Integer starValue;
-
-    private Integer displayOrder;
 }
