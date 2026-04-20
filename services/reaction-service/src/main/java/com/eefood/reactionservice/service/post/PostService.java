@@ -63,6 +63,8 @@ public class PostService {
   private final PostApprovalProducer postApprovalProducer;
   private final ChromaEmbeddingService chromaEmbeddingService;
 
+  private record SimilarCandidateScore(Post post, double score, List<String> matchedIngredients) {}
+
   public List<PostPublishResponse> getPostsPublishByUser() {
     Long userId = securityUtil.getCurrentUserId();
     List<Post> posts = postRepo.findAllByUserIdAndIsDeletedFalseOrderByCreatedAtDesc(userId);
@@ -473,60 +475,58 @@ public class PostService {
 
     List<Post> candidates = postRepo.findAllSimilarCandidates(recipeId, PostStatus.APPROVED);
 
-    // Chỉ giữ lại các bài có chứa text nguyên liệu nằm trong danh sách lọc.
-    List<Post> filteredCandidates = candidates.stream()
-      .filter(candidate -> matchesFilterIngredients(filterIngredients, candidate))
-      .toList();
-
-    // Tính điểm tương đồng dựa trên nguyên liệu trùng với bài gốc.
-    List<Map.Entry<Post, Double>> scoredCandidates = filteredCandidates.stream()
-      .map(candidate -> scoreSimilarCandidate(targetIngredients, candidate))
-      .toList();
-
-    // Chỉ giữ các bài có điểm lớn hơn 0
-    List<Map.Entry<Post, Double>> matchedCandidates = scoredCandidates.stream()
-      .filter(entry -> entry.getValue() > 0)
-      .toList();
-
-    // Sắp xếp theo điểm giảm dần
-    List<Map.Entry<Post, Double>> sortedCandidates = matchedCandidates.stream()
-      .sorted(Map.Entry.<Post, Double>comparingByValue(Comparator.reverseOrder())
-        .thenComparing(entry -> entry.getKey().getId(), Comparator.nullsLast(Comparator.reverseOrder())))
-      .toList();
-
-    // Giới hạn số lượng kết quả 
-    List<Post> topPosts = sortedCandidates.stream()
+    List<SimilarCandidateScore> topCandidates = candidates.stream()
+      .map(candidate -> evaluateSimilarCandidate(targetIngredients, filterIngredients, candidate))
+      .filter(Objects::nonNull)
+      .sorted(Comparator.comparingDouble(SimilarCandidateScore::score)
+        .reversed()
+        .thenComparing(result -> result.post().getId(), Comparator.nullsLast(Comparator.reverseOrder())))
       .limit(limit)
-      .map(Map.Entry::getKey)
       .toList();
 
     log.info("Similar recipes result for recipeId={}: {}", recipeId,
-      sortedCandidates.stream()
-        .limit(limit)
-        .map(entry -> entry.getKey().getTitle() + " (score=" + entry.getValue() + ")")
+      topCandidates.stream()
+        .map(result -> result.post().getTitle() + " (score=" + result.score() + ")")
         .toList());
 
-    return topPosts.stream()
-      .map(post -> SimilarPostResponse.builder()
-        .postId(post.getId())
-        .recipeId(post.getRecipeId())
-        .title(post.getTitle())
-        .imageUrl(post.getImageUrl())
-        .matchedIngredients(getMatchedIngredients(targetIngredients, post))
+    return topCandidates.stream()
+      .map(result -> SimilarPostResponse.builder()
+        .postId(result.post().getId())
+        .recipeId(result.post().getRecipeId())
+        .title(result.post().getTitle())
+        .imageUrl(result.post().getImageUrl())
+        .matchedIngredients(result.matchedIngredients())
         .build())
       .toList();
   }
 
-  // Tính điểm tương đồng của một bài dựa trên tập nguyên liệu trùng nhau.
-  private Map.Entry<Post, Double> scoreSimilarCandidate(Set<String> targetIngredients, Post candidate) {
-    double weightedScore = getMatchedIngredients(targetIngredients, candidate).stream()
+  private SimilarCandidateScore evaluateSimilarCandidate(
+    Set<String> targetIngredients,
+    Set<String> filterIngredients,
+    Post candidate
+  ) {
+    Set<String> candidateIngredients = normalizeIngredients(candidate.getRecipeIngredientKeywords());
+    if (!matchesFilterIngredients(filterIngredients, candidateIngredients)) {
+      return null;
+    }
+
+    List<String> matchedIngredients = getMatchedIngredients(targetIngredients, candidateIngredients);
+    double weightedScore = matchedIngredients.stream()
       .mapToDouble(this::getIngredientWeight)
       .sum();
-    return Map.entry(candidate, weightedScore);
+    if (weightedScore <= 0) {
+      return null;
+    }
+
+    return new SimilarCandidateScore(candidate, weightedScore, matchedIngredients);
   }
 
   private List<String> getMatchedIngredients(Set<String> targetIngredients, Post candidate) {
     Set<String> candidateIngredients = normalizeIngredients(candidate.getRecipeIngredientKeywords());
+    return getMatchedIngredients(targetIngredients, candidateIngredients);
+  }
+
+  private List<String> getMatchedIngredients(Set<String> targetIngredients, Set<String> candidateIngredients) {
     return candidateIngredients.stream()
       .filter(candidateIngredient -> targetIngredients.stream()
         .anyMatch(targetIngredient -> isSoftIngredientMatch(targetIngredient, candidateIngredient)))
@@ -541,6 +541,14 @@ public class PostService {
     }
 
     Set<String> candidateIngredients = normalizeIngredients(candidate.getRecipeIngredientKeywords());
+    return matchesFilterIngredients(filterIngredients, candidateIngredients);
+  }
+
+  private boolean matchesFilterIngredients(Set<String> filterIngredients, Set<String> candidateIngredients) {
+    if (filterIngredients.isEmpty()) {
+      return true;
+    }
+
     return filterIngredients.stream()
       .anyMatch(filterIngredient -> candidateIngredients.stream()
         .anyMatch(candidateIngredient -> isSoftIngredientMatch(filterIngredient, candidateIngredient)));
