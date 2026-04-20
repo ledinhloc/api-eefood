@@ -3,6 +3,7 @@ import com.eefood.reactionservice.dto.request.PostCreateRequest;
 import com.eefood.reactionservice.dto.response.PostPublishResponse;
 import com.eefood.reactionservice.dto.response.PostResponse;
 import com.eefood.reactionservice.dto.response.ResponseData;
+import com.eefood.reactionservice.dto.response.SimilarPostResponse;
 import com.eefood.reactionservice.service.ai.GeminiService;
 import com.eefood.reactionservice.service.post.PostService;
 import com.eefood.reactionservice.util.SecurityUtil;
@@ -139,11 +140,12 @@ public class PostController {
   }
 
   @GetMapping("/recipes/{recipeId}/similar")
-  public ResponseData<List<PostPublishResponse>> getSimilarRecipes(
+  public ResponseData<List<SimilarPostResponse>> getSimilarRecipes(
     @PathVariable Long recipeId,
+    @RequestParam(required = false) List<String> ingredients,
     @RequestParam(defaultValue = "10") Integer limit
   ) {
-    List<PostPublishResponse> posts = postService.getSimilarRecipes(recipeId, limit);
+    List<SimilarPostResponse> posts = postService.getSimilarRecipes(recipeId, ingredients, limit);
     return new ResponseData<>(HttpStatus.OK.value(), "Success", posts);
   }
 }

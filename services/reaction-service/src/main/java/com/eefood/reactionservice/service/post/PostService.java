@@ -457,7 +457,8 @@ public class PostService {
   }
 
   @Transactional(readOnly = true)
-  public List<PostPublishResponse> getSimilarRecipes(Long recipeId, Integer limit) {
+  // Tìm các bài viết món ăn tương tự từ recipe gốc, có thể lọc thêm theo danh sách nguyên liệu đầu vào.
+  public List<SimilarPostResponse> getSimilarRecipes(Long recipeId, List<String> ingredients, Integer limit) {
     // tìm post gốc
     Post targetPost = postRepo.findByRecipeIdAndStatusWithIngredients(recipeId, PostStatus.APPROVED)
       .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.POST_NOT_FOUND));
@@ -467,26 +468,33 @@ public class PostService {
       return List.of();
     }
 
-    // Chỉ lấy các post đã duyệt khác để đề xuất.
+    // Chuẩn hóa danh sách nguyên liệu lọc do client truyền lên.
+    Set<String> filterIngredients = normalizeIngredients(ingredients);
+
     List<Post> candidates = postRepo.findAllSimilarCandidates(recipeId, PostStatus.APPROVED);
 
-    // Gắn mỗi candidate với số nguyên liệu trùng nhau.
-    List<Map.Entry<Post, Double>> scoredCandidates = candidates.stream()
+    // Chỉ giữ lại các bài có chứa text nguyên liệu nằm trong danh sách lọc.
+    List<Post> filteredCandidates = candidates.stream()
+      .filter(candidate -> matchesFilterIngredients(filterIngredients, candidate))
+      .toList();
+
+    // Tính điểm tương đồng dựa trên nguyên liệu trùng với bài gốc.
+    List<Map.Entry<Post, Double>> scoredCandidates = filteredCandidates.stream()
       .map(candidate -> scoreSimilarCandidate(targetIngredients, candidate))
       .toList();
 
-    // Chỉ giữ các món có ít nhất 1 nguyên liệu giống.
+    // Chỉ giữ các bài có điểm lớn hơn 0
     List<Map.Entry<Post, Double>> matchedCandidates = scoredCandidates.stream()
       .filter(entry -> entry.getValue() > 0)
       .toList();
 
-    // Ưu tiên món trùng nhiều nguyên liệu hơn, nếu bằng nhau thì lấy bài mới hơn.
+    // Sắp xếp theo điểm giảm dần
     List<Map.Entry<Post, Double>> sortedCandidates = matchedCandidates.stream()
       .sorted(Map.Entry.<Post, Double>comparingByValue(Comparator.reverseOrder())
-        .thenComparing(entry -> entry.getKey().getCreatedAt(), Comparator.nullsLast(Comparator.reverseOrder())))
+        .thenComparing(entry -> entry.getKey().getId(), Comparator.nullsLast(Comparator.reverseOrder())))
       .toList();
 
-    // Giới hạn số lượng kết quả trả về.
+    // Giới hạn số lượng kết quả 
     List<Post> topPosts = sortedCandidates.stream()
       .limit(limit)
       .map(Map.Entry::getKey)
@@ -499,29 +507,67 @@ public class PostService {
         .toList());
 
     return topPosts.stream()
-      .map(postMapper::toPublishResponse)
+      .map(post -> SimilarPostResponse.builder()
+        .postId(post.getId())
+        .recipeId(post.getRecipeId())
+        .title(post.getTitle())
+        .imageUrl(post.getImageUrl())
+        .matchedIngredients(getMatchedIngredients(targetIngredients, post))
+        .build())
       .toList();
   }
 
-  //đếm phần tử trùng
+  // Tính điểm tương đồng của một bài dựa trên tập nguyên liệu trùng nhau.
   private Map.Entry<Post, Double> scoreSimilarCandidate(Set<String> targetIngredients, Post candidate) {
-    Set<String> candidateIngredients = normalizeIngredients(candidate.getRecipeIngredientKeywords());
-    Set<String> sharedIngredients = new HashSet<>(targetIngredients);
-    sharedIngredients.retainAll(candidateIngredients);
-    double weightedScore = sharedIngredients.stream()
+    double weightedScore = getMatchedIngredients(targetIngredients, candidate).stream()
       .mapToDouble(this::getIngredientWeight)
       .sum();
     return Map.entry(candidate, weightedScore);
   }
 
+  private List<String> getMatchedIngredients(Set<String> targetIngredients, Post candidate) {
+    Set<String> candidateIngredients = normalizeIngredients(candidate.getRecipeIngredientKeywords());
+    return candidateIngredients.stream()
+      .filter(candidateIngredient -> targetIngredients.stream()
+        .anyMatch(targetIngredient -> isSoftIngredientMatch(targetIngredient, candidateIngredient)))
+      .sorted()
+      .toList();
+  }
+
+  // Kiểm tra bài ứng viên có chứa ít nhất một nguyên liệu trong danh sách lọc hay không.
+  private boolean matchesFilterIngredients(Set<String> filterIngredients, Post candidate) {
+    if (filterIngredients.isEmpty()) {
+      return true;
+    }
+
+    Set<String> candidateIngredients = normalizeIngredients(candidate.getRecipeIngredientKeywords());
+    return filterIngredients.stream()
+      .anyMatch(filterIngredient -> candidateIngredients.stream()
+        .anyMatch(candidateIngredient -> isSoftIngredientMatch(filterIngredient, candidateIngredient)));
+  }
+
+  // Trả về trọng số của từng nguyên liệu 
   private double getIngredientWeight(String ingredient) {
-    if (STRONG_REDUCED_INGREDIENTS.contains(ingredient)) {
+    if (matchesReducedIngredient(ingredient, STRONG_REDUCED_INGREDIENTS)) {
       return STRONG_REDUCED_WEIGHT;
     }
-    if (LIGHT_REDUCED_INGREDIENTS.contains(ingredient)) {
+    if (matchesReducedIngredient(ingredient, LIGHT_REDUCED_INGREDIENTS)) {
       return LIGHT_REDUCED_WEIGHT;
     }
     return 1.0d;
+  }
+
+  // Kiểm tra nguyên liệu hiện tại có khớp mềm với nhóm nguyên liệu giảm trọng số hay không.
+  private boolean matchesReducedIngredient(String ingredient, Set<String> reducedIngredients) {
+    String normalizedIngredient = normalizeIngredient(ingredient);
+    return reducedIngredients.stream()
+      .map(this::normalizeIngredient)
+      .anyMatch(reducedIngredient -> isSoftIngredientMatch(normalizedIngredient, reducedIngredient));
+  }
+
+  // So khớp mềm hai chuỗi nguyên liệu theo kiểu một bên chứa bên còn lại.
+  private boolean isSoftIngredientMatch(String left, String right) {
+    return left.contains(right) || right.contains(left);
   }
 
   private Set<String> normalizeIngredients(Set<String> ingredients) {
@@ -529,9 +575,28 @@ public class PostService {
       .orElse(Set.of())
       .stream()
       .filter(Objects::nonNull)
-      .map(String::trim)
+      .map(this::normalizeIngredient)
       .filter(value -> !value.isBlank())
-      .map(String::toLowerCase)
       .collect(Collectors.toSet());
+  }
+
+  private Set<String> normalizeIngredients(List<String> ingredients) {
+    return Optional.ofNullable(ingredients)
+      .orElse(List.of())
+      .stream()
+      .filter(Objects::nonNull)
+      .map(this::normalizeIngredient)
+      .filter(value -> !value.isBlank())
+      .collect(Collectors.toSet());
+  }
+
+  // Bỏ khoảng trắng thừa và chuyển về chữ thường để so khớp nhất quán nhưng vẫn giữ dấu tiếng Việt.
+  private String normalizeIngredient(String ingredient) {
+    //   String withoutVietnameseD = trimmed
+    //   .replace('đ', 'd')
+    //   .replace('Đ', 'd');
+    // String normalized = Normalizer.normalize(withoutVietnameseD, Normalizer.Form.NFD);
+    // return normalized.replaceAll("\\p{M}+", "");
+    return ingredient.trim().toLowerCase();
   }
 }
