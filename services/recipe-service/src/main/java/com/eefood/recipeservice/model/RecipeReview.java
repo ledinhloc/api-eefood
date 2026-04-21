@@ -32,8 +32,6 @@ public class RecipeReview extends BaseEntity {
 
     private Integer totalWeight;
 
-    private String reviewText;
-
     @OneToMany(mappedBy = "review", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     @SQLRestriction("is_deleted = false")

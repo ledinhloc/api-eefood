@@ -45,8 +45,6 @@ CREATE TABLE recipe_reviews (
     rating          DOUBLE PRECISION                        NOT NULL, -- kết quả cuối (VD: 4.5)
     total_weight    INTEGER, -- tổng weight đã dùng
 
-    review_text     VARCHAR, -- optional text
-
     CONSTRAINT fk_rr_recipe FOREIGN KEY (recipe_id) REFERENCES recipes(id) ON DELETE CASCADE,
 
     CONSTRAINT unique_user_recipe_review UNIQUE (user_id, recipe_id)

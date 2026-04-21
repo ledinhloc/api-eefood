@@ -127,18 +127,18 @@ spring:
               uri: lb://REACTION-SERVICE
               predicates:
                 - Path=/api/v1/meal-plan/**
-
             - id: recipe-service
               uri: lb://RECIPE-SERVICE
               predicates:
                 - Path=/api/v1/nutrition/**
-
             - id: recipe-service
               uri: lb://RECIPE-SERVICE
               predicates:
                 - Path=/api/v1/cooking/**
-
-            
+            - id: recipe-service
+              uri: lb://RECIPE-SERVICE
+              predicates:
+                - Path=/api/v1/recipe-review/**
     bus:
       enabled: true
     stream:
