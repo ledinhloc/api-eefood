@@ -33,6 +33,8 @@ public enum ErrorMessage {
   FAIL_UPDATE_PROFILE_USER("User cant't update profile"),
   FAIL_DELETE_USER("User cant't delete"),
   FAIL_UPDATE_ROLE("User cant't update role"),
+  USER_HEIGHT_NOT_FOUND("User height not found"),
+  USER_WEIGHT_NOT_FOUND("User weight not found"),
 
   // Message in dto - Start
   FULL_NAME_REQUIRED("Full name is required"),

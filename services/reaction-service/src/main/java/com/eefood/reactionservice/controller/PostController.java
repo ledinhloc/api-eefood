@@ -145,6 +145,7 @@ public class PostController {
     @RequestParam(required = false) List<String> ingredients,
     @RequestParam(defaultValue = "10") Integer limit
   ) {
+    log.info("ingredients = {}", ingredients);  
     List<SimilarPostResponse> posts = postService.getSimilarRecipes(recipeId, ingredients, limit);
     return new ResponseData<>(HttpStatus.OK.value(), "Success", posts);
   }
