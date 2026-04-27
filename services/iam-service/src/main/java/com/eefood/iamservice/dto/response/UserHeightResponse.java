@@ -1,7 +1,7 @@
 package com.eefood.iamservice.dto.response;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -15,5 +15,5 @@ public class UserHeightResponse {
   private Long id;
   private Long userId;
   private BigDecimal heightCm;
-  private LocalDateTime recordedAt;
+  private LocalDate recordedDate;
 }

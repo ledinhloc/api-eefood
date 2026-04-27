@@ -3,7 +3,7 @@ package com.eefood.iamservice.dto.request;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -18,5 +18,5 @@ public class UserWeightRequest {
   @DecimalMin(value = "0.01", message = "Weight must be greater than 0")
   private BigDecimal weightKg;
 
-  private LocalDateTime recordedAt;
+  private LocalDate recordedDate;
 }
