@@ -18,6 +18,12 @@ import org.springframework.web.bind.annotation.*;
 public class CookingSessionController {
     private final CookingSessionService cookingSessionService;
 
+    @GetMapping("/recipe/{recipeId}/completed")
+    public ResponseData<Boolean> isCompleted(@PathVariable Long recipeId) {
+        boolean result = cookingSessionService.isSessionCompleted(recipeId);
+        return new ResponseData<>(HttpStatus.OK.value(), "Success", result);
+    }
+
     @GetMapping("/recipe/{recipeId}")
     public ResponseData<CookingSessionResponse> getOrCreateCookingSession(@PathVariable Long recipeId) {
         CookingSessionResponse response = cookingSessionService.getOrCreateCookingSession(recipeId);
