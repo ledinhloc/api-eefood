@@ -13,6 +13,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface PostRepository extends JpaRepository<Post, Long>, JpaSpecificationExecutor<Post> {
@@ -52,4 +53,31 @@ public interface PostRepository extends JpaRepository<Post, Long>, JpaSpecificat
    LEFT JOIN FETCH p.recipeIngredientKeywords
    WHERE p.id IN :ids""")
   List<Post> findAllById(@Param("ids") Iterable<Long> ids);
+
+  @Query("""
+    SELECT DISTINCT p
+    FROM Post p
+    LEFT JOIN FETCH p.recipeIngredientKeywords
+    WHERE p.isDeleted = false
+      AND p.status = :status
+      AND p.recipeId = :recipeId
+    """)
+  Optional<Post> findByRecipeIdAndStatusWithIngredients(
+    @Param("recipeId") Long recipeId,
+    @Param("status") PostStatus status
+  );
+
+  @Query("""
+    SELECT DISTINCT p
+    FROM Post p
+    LEFT JOIN FETCH p.recipeIngredientKeywords
+    WHERE p.isDeleted = false
+      AND p.status = :status
+      AND p.recipeId IS NOT NULL
+      AND p.recipeId <> :recipeId
+    """)
+  List<Post> findAllSimilarCandidates(
+    @Param("recipeId") Long recipeId,
+    @Param("status") PostStatus status
+  );
 }

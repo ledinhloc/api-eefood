@@ -26,16 +26,30 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class PostService {
+  private static final double STRONG_REDUCED_WEIGHT = 0.1d;
+  private static final double LIGHT_REDUCED_WEIGHT = 0.5d;
+  private static final Set<String> STRONG_REDUCED_INGREDIENTS = Set.of(
+    "muối", "đường", "tiêu", "nước", "dầu ăn", "bột ngọt", "hạt nêm", "gia vị"
+  );
+  private static final Set<String> LIGHT_REDUCED_INGREDIENTS = Set.of(
+    "tỏi", "ớt", "hành", "nước mắm", "xì dầu", "dầu hào"
+  );
+
   private final PostRepository postRepo;
   private final PostMapper postMapper;
   private final IamClient iamClient;
@@ -48,6 +62,8 @@ public class PostService {
   private final NotificationProducer notificationProducer;
   private final PostApprovalProducer postApprovalProducer;
   private final ChromaEmbeddingService chromaEmbeddingService;
+
+  private record SimilarCandidateScore(Post post, double score, List<String> matchedIngredients) {}
 
   public List<PostPublishResponse> getPostsPublishByUser() {
     Long userId = securityUtil.getCurrentUserId();
@@ -440,5 +456,155 @@ public class PostService {
     response.setAvatarUrl(userInfo.getAvatarUrl());
 
     return response;
+  }
+
+  @Transactional(readOnly = true)
+  // Tìm các bài viết món ăn tương tự từ recipe gốc, có thể lọc thêm theo danh sách nguyên liệu đầu vào.
+  public List<SimilarPostResponse> getSimilarRecipes(Long recipeId, List<String> ingredients, Integer limit) {
+    // tìm post gốc
+    Post targetPost = postRepo.findByRecipeIdAndStatusWithIngredients(recipeId, PostStatus.APPROVED)
+      .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.POST_NOT_FOUND));
+
+    Set<String> targetIngredients = normalizeIngredients(targetPost.getRecipeIngredientKeywords());
+    if (targetIngredients.isEmpty()) {
+      return List.of();
+    }
+
+    // Chuẩn hóa danh sách nguyên liệu lọc do client truyền lên.
+    Set<String> filterIngredients = normalizeIngredients(ingredients);
+
+    List<Post> candidates = postRepo.findAllSimilarCandidates(recipeId, PostStatus.APPROVED);
+
+    List<SimilarCandidateScore> topCandidates = candidates.stream()
+      .map(candidate -> evaluateSimilarCandidate(targetIngredients, filterIngredients, candidate))
+      .filter(Objects::nonNull)
+      .sorted(Comparator.comparingDouble(SimilarCandidateScore::score)
+        .reversed()
+        .thenComparing(result -> result.post().getId(), Comparator.nullsLast(Comparator.reverseOrder())))
+      .limit(limit)
+      .toList();
+
+    log.info("Similar recipes result for recipeId={}: {}", recipeId,
+      topCandidates.stream()
+        .map(result -> result.post().getTitle() + " (score=" + result.score() + ")")
+        .toList());
+
+    return topCandidates.stream()
+      .map(result -> SimilarPostResponse.builder()
+        .postId(result.post().getId())
+        .recipeId(result.post().getRecipeId())
+        .title(result.post().getTitle())
+        .imageUrl(result.post().getImageUrl())
+        .matchedIngredients(result.matchedIngredients())
+        .build())
+      .toList();
+  }
+
+  private SimilarCandidateScore evaluateSimilarCandidate(
+    Set<String> targetIngredients,
+    Set<String> filterIngredients,
+    Post candidate
+  ) {
+    Set<String> candidateIngredients = normalizeIngredients(candidate.getRecipeIngredientKeywords());
+    if (!matchesFilterIngredients(filterIngredients, candidateIngredients)) {
+      return null;
+    }
+
+    List<String> matchedIngredients = getMatchedIngredients(targetIngredients, candidateIngredients);
+    double weightedScore = matchedIngredients.stream()
+      .mapToDouble(this::getIngredientWeight)
+      .sum();
+    if (weightedScore <= 0) {
+      return null;
+    }
+
+    return new SimilarCandidateScore(candidate, weightedScore, matchedIngredients);
+  }
+
+  private List<String> getMatchedIngredients(Set<String> targetIngredients, Post candidate) {
+    Set<String> candidateIngredients = normalizeIngredients(candidate.getRecipeIngredientKeywords());
+    return getMatchedIngredients(targetIngredients, candidateIngredients);
+  }
+
+  private List<String> getMatchedIngredients(Set<String> targetIngredients, Set<String> candidateIngredients) {
+    return candidateIngredients.stream()
+      .filter(candidateIngredient -> targetIngredients.stream()
+        .anyMatch(targetIngredient -> isSoftIngredientMatch(targetIngredient, candidateIngredient)))
+      .sorted()
+      .toList();
+  }
+
+  // Kiểm tra bài ứng viên có chứa ít nhất một nguyên liệu trong danh sách lọc hay không.
+  private boolean matchesFilterIngredients(Set<String> filterIngredients, Post candidate) {
+    if (filterIngredients.isEmpty()) {
+      return true;
+    }
+
+    Set<String> candidateIngredients = normalizeIngredients(candidate.getRecipeIngredientKeywords());
+    return matchesFilterIngredients(filterIngredients, candidateIngredients);
+  }
+
+  private boolean matchesFilterIngredients(Set<String> filterIngredients, Set<String> candidateIngredients) {
+    if (filterIngredients.isEmpty()) {
+      return true;
+    }
+
+    return filterIngredients.stream()
+      .anyMatch(filterIngredient -> candidateIngredients.stream()
+        .anyMatch(candidateIngredient -> isSoftIngredientMatch(filterIngredient, candidateIngredient)));
+  }
+
+  // Trả về trọng số của từng nguyên liệu 
+  private double getIngredientWeight(String ingredient) {
+    if (matchesReducedIngredient(ingredient, STRONG_REDUCED_INGREDIENTS)) {
+      return STRONG_REDUCED_WEIGHT;
+    }
+    if (matchesReducedIngredient(ingredient, LIGHT_REDUCED_INGREDIENTS)) {
+      return LIGHT_REDUCED_WEIGHT;
+    }
+    return 1.0d;
+  }
+
+  // Kiểm tra nguyên liệu hiện tại có khớp mềm với nhóm nguyên liệu giảm trọng số hay không.
+  private boolean matchesReducedIngredient(String ingredient, Set<String> reducedIngredients) {
+    String normalizedIngredient = normalizeIngredient(ingredient);
+    return reducedIngredients.stream()
+      .map(this::normalizeIngredient)
+      .anyMatch(reducedIngredient -> isSoftIngredientMatch(normalizedIngredient, reducedIngredient));
+  }
+
+  // So khớp mềm hai chuỗi nguyên liệu theo kiểu một bên chứa bên còn lại.
+  private boolean isSoftIngredientMatch(String left, String right) {
+    return left.contains(right) || right.contains(left);
+  }
+
+  private Set<String> normalizeIngredients(Set<String> ingredients) {
+    return Optional.ofNullable(ingredients)
+      .orElse(Set.of())
+      .stream()
+      .filter(Objects::nonNull)
+      .map(this::normalizeIngredient)
+      .filter(value -> !value.isBlank())
+      .collect(Collectors.toSet());
+  }
+
+  private Set<String> normalizeIngredients(List<String> ingredients) {
+    return Optional.ofNullable(ingredients)
+      .orElse(List.of())
+      .stream()
+      .filter(Objects::nonNull)
+      .map(this::normalizeIngredient)
+      .filter(value -> !value.isBlank())
+      .collect(Collectors.toSet());
+  }
+
+  // Bỏ khoảng trắng thừa và chuyển về chữ thường để so khớp nhất quán nhưng vẫn giữ dấu tiếng Việt.
+  private String normalizeIngredient(String ingredient) {
+    //   String withoutVietnameseD = trimmed
+    //   .replace('đ', 'd')
+    //   .replace('Đ', 'd');
+    // String normalized = Normalizer.normalize(withoutVietnameseD, Normalizer.Form.NFD);
+    // return normalized.replaceAll("\\p{M}+", "");
+    return ingredient.trim().toLowerCase();
   }
 }

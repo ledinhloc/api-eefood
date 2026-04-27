@@ -213,6 +213,7 @@ public class LivePollService {
       Set<Long> existingOptionIds = livePollVoteStateCacheService.getOptionIds(pollId, userId);
       Long existingOptionId = existingOptionIds.stream().findFirst().orElse(null);
 
+      //chưa có vote
       if (existingOptionId == null) {
         livePollVoteStateCacheService.saveOptionIds(pollId, userId, Set.of(optionId));
 
