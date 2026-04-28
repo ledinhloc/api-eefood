@@ -183,16 +183,20 @@ public class MealPlanAiPlannerService {
                 {
                   "gender": "%s",
                   "age": %d,
+                  "activityLevel": "%s",
                   "allergies": %s,
                   "eatingPreferences": %s,
-                  "dietaryPreferences": %s
+                  "dietaryPreferences": %s,
+                  "healthConditions": %s
                 }
                 """.formatted(
                 user.getGender(),
                 age,
+                user.getActivityLevel(),
                 normalizeList(user.getAllergies()),
                 normalizeList(user.getEatingPreferences()),
-                normalizeList(user.getDietaryPreferences())
+                normalizeList(user.getDietaryPreferences()),
+                normalizeList(user.getHealthConditions())
         );
     }
 

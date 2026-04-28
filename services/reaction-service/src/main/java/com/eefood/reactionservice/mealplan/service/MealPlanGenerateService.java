@@ -514,7 +514,9 @@ public class MealPlanGenerateService {
         }
         return "Allergies: " + normalizeList(user.getAllergies())
                 + "; Eating preferences: " + normalizeList(user.getEatingPreferences())
-                + "; Dietary preferences: " + normalizeList(user.getDietaryPreferences());
+                + "; Dietary preferences: " + normalizeList(user.getDietaryPreferences())
+                + "; Activity level: " + normalize(user.getActivityLevel())
+                + "; Health conditions: " + normalizeList(user.getHealthConditions());
     }
 
     private List<String> normalizeList(List<String> values) {
