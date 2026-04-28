@@ -66,6 +66,11 @@ public class Recipe extends BaseEntity {
   @OneToOne(mappedBy = "recipe", cascade = CascadeType.ALL)
   private RecipeNutritionAnalysis nutritionAnalysis;
 
+  @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
+  @Builder.Default
+  @SQLRestriction("is_deleted = false")
+  private Set<RecipeReview> reviews = new HashSet<>();
+
   public void addStep(RecipeStep step) {
     steps.add(step);
     step.setRecipe(this);
