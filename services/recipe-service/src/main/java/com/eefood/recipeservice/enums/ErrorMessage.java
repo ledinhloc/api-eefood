@@ -75,6 +75,14 @@ public enum ErrorMessage {
   COOKING_SESSION_NOT_FOUND("Cooking session not found"),
   COOKING_SESSION_FORBIDDEN("Cooking session forbidden"),
   COOKING_SESSION_ALREADY_COMPLETED("Cooking session already completed"),
+
+
+  // review
+  QUESTION_NOT_FOUND("Question not found"),
+  OPTION_NOT_FOUND("Option not found"),
+  INVALID_OPTION_FOR_QUESTION("Invalid option for question"),
+  INVALID_REVIEW_REQUEST("Invalid review request"),
+  DUPLICATE_QUESTION("Duplicate question"),
   ;
 
 

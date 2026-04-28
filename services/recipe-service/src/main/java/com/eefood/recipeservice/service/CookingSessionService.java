@@ -24,7 +24,6 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -35,6 +34,17 @@ public class CookingSessionService {
     private final RecipeRepository recipeRepository;
     private final SecurityUtil securityUtil;
     private final CookingSessionMapper cookingSessionMapper;
+
+    public boolean isSessionCompleted(Long recipeId) {
+        Long userId = securityUtil.getCurrentUserId();
+        CookingSessions session = sessionRepository.findByUserIdAndRecipeIdAndIsDeletedFalse(userId, recipeId)
+                .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.COOKING_SESSION_NOT_FOUND));
+
+        boolean hasUnfinishedStep = sessionStepRepository
+                .existsByCookingSessionIdAndStatusNot(session.getId(), CookingStepStatus.DONE);
+
+        return !hasUnfinishedStep && session.getStatus() == CookingSessionStatus.COMPLETED;
+    }
 
     public CookingSessionResponse getOrCreateCookingSession(Long recipeId) {
         Long userId = securityUtil.getCurrentUserId();

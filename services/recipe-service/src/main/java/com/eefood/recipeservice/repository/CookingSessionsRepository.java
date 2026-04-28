@@ -10,4 +10,5 @@ import java.util.Optional;
 @Repository
 public interface CookingSessionsRepository extends JpaRepository<CookingSessions, Long> {
     Optional<CookingSessions> findByUserIdAndRecipeIdAndStatus(Long userId, Long recipeId, CookingSessionStatus status);
+    Optional<CookingSessions> findByUserIdAndRecipeIdAndIsDeletedFalse(Long userId, Long recipeId);
 }
