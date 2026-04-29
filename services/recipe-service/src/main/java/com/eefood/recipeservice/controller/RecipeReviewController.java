@@ -1,11 +1,16 @@
 package com.eefood.recipeservice.controller;
 
 import com.eefood.recipeservice.dto.request.RecipeReviewRequest;
-import com.eefood.recipeservice.dto.response.IngredientAlterResponse;
+import com.eefood.recipeservice.dto.response.RecipeReviewStatsResponse;
 import com.eefood.recipeservice.dto.response.ResponseData;
+import com.eefood.recipeservice.dto.response.ReviewDetailResponse;
 import com.eefood.recipeservice.dto.response.ReviewQuestionResponse;
 import com.eefood.recipeservice.service.RecipeReviewService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -15,6 +20,24 @@ import java.util.List;
 @RequiredArgsConstructor
 public class RecipeReviewController {
     private final RecipeReviewService recipeReviewService;
+
+    @GetMapping("/{recipeId}/stats")
+    public ResponseData<RecipeReviewStatsResponse> getRecipeReviewStats(@PathVariable Long recipeId)
+    {
+        RecipeReviewStatsResponse response = recipeReviewService.getRecipeReviewStats(recipeId);
+        return new ResponseData<>(200, "Get success", response);
+    }
+
+    @GetMapping("/{recipeId}/list")
+    public ResponseData<Page<ReviewDetailResponse>> getRecipeReviews(
+            @PathVariable Long recipeId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size)
+    {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        return new ResponseData<>(200, "Get success", recipeReviewService.getRecipeReviews(recipeId, pageable));
+    }
+
     @GetMapping
     public ResponseData<List<ReviewQuestionResponse>> getListReviewQuestion() {
         List<ReviewQuestionResponse> responses = recipeReviewService.getReviewQuestion();
