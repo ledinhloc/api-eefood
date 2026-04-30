@@ -11,8 +11,12 @@ import com.eefood.iamservice.enums.Provider;
 import com.eefood.iamservice.enums.Role;
 import com.eefood.iamservice.kafka.FirebaseNotificationProducer;
 import com.eefood.iamservice.mapper.UserMapper;
+import com.eefood.iamservice.model.UserHeight;
 import com.eefood.iamservice.model.User;
+import com.eefood.iamservice.model.UserWeight;
+import com.eefood.iamservice.repository.UserHeightRepository;
 import com.eefood.iamservice.repository.UserRepository;
+import com.eefood.iamservice.repository.UserWeightRepository;
 import com.eefood.iamservice.utils.ExceptionUtil;
 
 import java.time.LocalDateTime;
@@ -43,6 +47,8 @@ public class UserService {
   private final KeycloakAdminService keycloakAdminService;
   private final FirebaseNotificationProducer firebaseNotificationProducer;
   private final SecurityUtil securityUtil;
+  private final UserHeightRepository userHeightRepository;
+  private final UserWeightRepository userWeightRepository;
 
 
   public Page<UserResponse> getUsers(String search, Role role, Provider provider, Pageable pageable) {
@@ -59,6 +65,9 @@ public class UserService {
 
 
   public UserResponse getUserById(Long id) {
+    if (id == null) {
+      throw ExceptionUtil.badRequest(ErrorMessage.INVALID_PARAMETER_TYPE);
+    }
     User user = userRepository.findById(id).orElse(null);
     return userMapper.toUserResponse(user);
   }
@@ -245,6 +254,26 @@ public class UserService {
   public List<UserNotificationResponse> getUserForNotifications() {
     List<User> response = userRepository.findAllByIsDeletedFalse();
     return response.stream().map(userMapper::toUserNotificationResponse).collect(Collectors.toList());
+  }
+
+  public UserBodyMetricsResponse getUserBodyMetrics(Long userId) {
+    if (userId == null) {
+      throw ExceptionUtil.badRequest(ErrorMessage.INVALID_PARAMETER_TYPE);
+    }
+    UserHeight latestHeight = userHeightRepository.findAllByUser_IdOrderByRecordedDateDesc(userId).stream()
+        .findFirst()
+        .orElse(null);
+    UserWeight latestWeight = userWeightRepository.findAllByUser_IdOrderByRecordedDateDesc(userId).stream()
+        .findFirst()
+        .orElse(null);
+
+    return UserBodyMetricsResponse.builder()
+        .userId(userId)
+        .heightCm(latestHeight != null ? latestHeight.getHeightCm() : null)
+        .heightRecordedDate(latestHeight != null ? latestHeight.getRecordedDate() : null)
+        .weightKg(latestWeight != null ? latestWeight.getWeightKg() : null)
+        .weightRecordedDate(latestWeight != null ? latestWeight.getRecordedDate() : null)
+        .build();
   }
 
   public List<UserRegistrationStatsResponse> getRecentUserStats() {

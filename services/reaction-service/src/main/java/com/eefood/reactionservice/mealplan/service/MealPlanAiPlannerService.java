@@ -1,5 +1,6 @@
 package com.eefood.reactionservice.mealplan.service;
 
+import com.eefood.reactionservice.dto.response.UserBodyMetricsResponse;
 import com.eefood.reactionservice.dto.response.UserResponse;
 import com.eefood.reactionservice.mealplan.dto.ai.GeneratedMealItem;
 import com.eefood.reactionservice.mealplan.dto.ai.MealPlanAiCandidate;
@@ -35,12 +36,13 @@ public class MealPlanAiPlannerService {
 
     public List<GeneratedMealItem> generatePlan(
             UserResponse user,
+            UserBodyMetricsResponse bodyMetrics,
             MealPlanGenerateRequest request,
             List<MealPlanAiCandidate> candidates,
             int days
     ) {
         try {
-            String prompt = buildGeneratePrompt(user, request, candidates, days);
+            String prompt = buildGeneratePrompt(user, bodyMetrics, request, candidates, days);
             ChatRequest chatRequest = ChatRequest.builder()
                     .messages(UserMessage.from(prompt))
                     .build();
@@ -56,6 +58,7 @@ public class MealPlanAiPlannerService {
     // Gom dữ liệu user và candidate recipe thành prompt ngắn gọn, có cấu trúc.
     private String buildGeneratePrompt(
             UserResponse user,
+            UserBodyMetricsResponse bodyMetrics,
             MealPlanGenerateRequest request,
             List<MealPlanAiCandidate> candidates,
             int days
@@ -77,7 +80,8 @@ public class MealPlanAiPlannerService {
                                     "carbs", defaultDouble(candidate.getNutrition().getTotalCarb()),
                                     "fat", defaultDouble(candidate.getNutrition().getTotalFat()),
                                     "fiber", defaultDouble(candidate.getNutrition().getTotalFiber()),
-                                    "sugar", defaultDouble(candidate.getNutrition().getTotalSugar())
+                                    "sugar", defaultDouble(candidate.getNutrition().getTotalSugar()),
+                                    "sodium", defaultDouble(candidate.getNutrition().getTotalSodium())
                             )
                     )).toList()
             );
@@ -94,7 +98,10 @@ public class MealPlanAiPlannerService {
                 - Tổng số item phải bằng days * 3.
                 - planDate phải bắt đầu từ start_date và kéo dài đúng số ngày được cung cấp.
                 - Phải chú ý dị ứng thực phẩm một cách nghiêm ngặt.
-                - Nếu goal nhắc đến tiểu đường hoặc ít đường thì ưu tiên món ít đường.
+                - Nếu healthConditions có tiểu đường/diabetes thì ưu tiên món ít đường, nhiều chất xơ.
+                - Nếu healthConditions có cao huyết áp/hypertension thì ưu tiên món sodium thấp.
+                - Nếu healthConditions có mỡ máu/cholesterol/tim mạch thì hạn chế món nhiều fat.
+                - Nếu healthConditions có dạ dày/gastric thì hạn chế món cay, chua.
                 Cấu trúc JSON cần trả về:
                 {
                   "items": [
@@ -114,7 +121,7 @@ public class MealPlanAiPlannerService {
                 days: %d
                 candidate_recipes: %s
                 """.formatted(
-                buildUserProfileSummary(user),
+                buildUserProfileSummary(user, bodyMetrics, request.getGoal()),
                 request.getGoal(),
                 request.getStartDate(),
                 days,
@@ -172,7 +179,7 @@ public class MealPlanAiPlannerService {
     }
 
     // Tóm tắt user profile thành các field cần thiết để AI lên kế hoạch.
-    private String buildUserProfileSummary(UserResponse user) {
+    private String buildUserProfileSummary(UserResponse user, UserBodyMetricsResponse bodyMetrics, String goal) {
         if (user == null) {
             return "{}";
         }
@@ -183,6 +190,8 @@ public class MealPlanAiPlannerService {
                 {
                   "gender": "%s",
                   "age": %d,
+                  "heightCm": "%s",
+                  "weightKg": "%s",
                   "activityLevel": "%s",
                   "allergies": %s,
                   "eatingPreferences": %s,
@@ -192,6 +201,8 @@ public class MealPlanAiPlannerService {
                 """.formatted(
                 user.getGender(),
                 age,
+                bodyMetrics != null ? bodyMetrics.getHeightCm() : null,
+                bodyMetrics != null ? bodyMetrics.getWeightKg() : null,
                 user.getActivityLevel(),
                 normalizeList(user.getAllergies()),
                 normalizeList(user.getEatingPreferences()),
