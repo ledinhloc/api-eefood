@@ -22,6 +22,7 @@ public class UserResponse {
   private String role;
   private LocalDate dob;
   private String gender;
+  private String activityLevel;
   private JsonNode address;
   private String provider;
   private String avatarUrl;
@@ -29,6 +30,7 @@ public class UserResponse {
   private List<String> allergies;
   private List<String> eatingPreferences;
   private List<String> dietaryPreferences;
+  private List<String> healthConditions;
   private String accessToken;
   private String refreshToken;
   private LocalDateTime createdAt;

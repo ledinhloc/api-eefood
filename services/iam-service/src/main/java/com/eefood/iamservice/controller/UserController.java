@@ -47,10 +47,12 @@ public class UserController {
 
   @GetMapping("/info/{userId}")
   public ResponseData<UserResponse> getUserById(@PathVariable Long userId) {
-    if(userId == null) {
-      return new ResponseData<>(HttpStatus.BAD_REQUEST.value(), "userId is null",null);
-    }
     return new ResponseData<>(HttpStatus.OK.value(), "success",userService.getUserById(userId));
+  }
+
+  @GetMapping("/{userId}/body-metrics")
+  public ResponseData<UserBodyMetricsResponse> getUserBodyMetrics(@PathVariable Long userId) {
+    return new ResponseData<>(HttpStatus.OK.value(), "success", userService.getUserBodyMetrics(userId));
   }
 
   @DeleteMapping("/cache-user-info")
