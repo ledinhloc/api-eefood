@@ -70,7 +70,7 @@ public class CookingSessionService {
         Long userId = securityUtil.getCurrentUserId();
 
         CookingSessions session = sessionRepository
-                .findByUserIdAndRecipeIdAndIsDeletedFalse(userId, recipeId)
+                .findTopByUserIdAndRecipeIdAndIsDeletedFalseOrderByCreatedAtDesc(userId, recipeId)
                 .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.COOKING_SESSION_NOT_FOUND));
 
         return session.getStatus() == CookingSessionStatus.COMPLETED;
