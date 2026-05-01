@@ -20,6 +20,7 @@ import com.eefood.recipeservice.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -35,17 +36,47 @@ public class CookingSessionService {
     private final SecurityUtil securityUtil;
     private final CookingSessionMapper cookingSessionMapper;
 
-    public boolean isSessionCompleted(Long recipeId) {
-        Long userId = securityUtil.getCurrentUserId();
-        CookingSessions session = sessionRepository.findByUserIdAndRecipeIdAndIsDeletedFalse(userId, recipeId)
-                .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.COOKING_SESSION_NOT_FOUND));
+    private void resetSession(CookingSessions session, List<RecipeStep> recipeSteps) {
+        LocalDateTime now = LocalDateTime.now();
 
-        boolean hasUnfinishedStep = sessionStepRepository
-                .existsByCookingSessionIdAndStatusNot(session.getId(), CookingStepStatus.DONE);
+        session.setStatus(CookingSessionStatus.IN_PROGRESS);
+        session.setCurrentStep(1);
+        session.setStartedAt(now);
 
-        return !hasUnfinishedStep && session.getStatus() == CookingSessionStatus.COMPLETED;
+        // Xóa step cũ
+        sessionStepRepository.deleteByCookingSessionId(session.getId());
+
+        List<CookingSessionStep> newSteps = new ArrayList<>();
+
+        for (RecipeStep recipeStep : recipeSteps) {
+            boolean isFirst = recipeStep.getStepNumber() == 1;
+
+            CookingSessionStep step = CookingSessionStep.builder()
+                    .cookingSession(session)
+                    .recipeStep(recipeStep)
+                    .status(isFirst ? CookingStepStatus.IN_PROGRESS : CookingStepStatus.PENDING)
+                    .startedAt(isFirst ? now : null)
+                    .completedAt(null)
+                    .build();
+
+            newSteps.add(step);
+        }
+
+        sessionStepRepository.saveAll(newSteps);
+        sessionRepository.save(session);
     }
 
+    public boolean isSessionCompleted(Long recipeId) {
+        Long userId = securityUtil.getCurrentUserId();
+
+        CookingSessions session = sessionRepository
+                .findTopByUserIdAndRecipeIdAndIsDeletedFalseOrderByCreatedAtDesc(userId, recipeId)
+                .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.COOKING_SESSION_NOT_FOUND));
+
+        return session.getStatus() == CookingSessionStatus.COMPLETED;
+    }
+
+    @Transactional
     public CookingSessionResponse getOrCreateCookingSession(Long recipeId) {
         Long userId = securityUtil.getCurrentUserId();
         Recipe recipe = recipeRepository.findById(recipeId).orElseThrow(()-> ExceptionUtil.notFound(ErrorMessage.RECIPE_NOT_FOUND));
@@ -56,7 +87,13 @@ public class CookingSessionService {
         }
 
         CookingSessions session = sessionRepository.findByUserIdAndRecipeIdAndStatus(userId, recipeId, CookingSessionStatus.IN_PROGRESS)
-                .orElseGet(()-> createNewSession(userId, recipe, recipeSteps));
+                .orElse(null);
+        if(session == null) {
+            session = createNewSession(userId, recipe, recipeSteps);
+        }
+        else {
+            resetSession(session, recipeSteps);
+        }
 
         List<CookingSessionStep> sessionSteps = sessionStepRepository
                 .findByCookingSessionIdOrderByRecipeStepStepNumberAsc(session.getId());
@@ -192,10 +229,6 @@ public class CookingSessionService {
 
         if (!session.getUserId().equals(userId)) {
             throw ExceptionUtil.forbidden(ErrorMessage.COOKING_SESSION_FORBIDDEN);
-        }
-
-        if (session.getStatus() == CookingSessionStatus.COMPLETED) {
-            throw ExceptionUtil.badRequest(ErrorMessage.COOKING_SESSION_ALREADY_COMPLETED);
         }
 
         return session;

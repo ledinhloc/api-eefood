@@ -11,4 +11,5 @@ import java.util.List;
 public interface CookingSessionStepRepository extends JpaRepository<CookingSessionStep, Long> {
     List<CookingSessionStep> findByCookingSessionIdOrderByRecipeStepStepNumberAsc(Long sessionId);
     boolean existsByCookingSessionIdAndStatusNot(Long sessionId, CookingStepStatus status);
+    void deleteByCookingSessionId(Long sessionId);
 }
