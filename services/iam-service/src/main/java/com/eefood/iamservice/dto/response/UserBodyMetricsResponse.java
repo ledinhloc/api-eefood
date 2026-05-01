@@ -11,9 +11,10 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class UserHeightResponse {
-  private Long id;
+public class UserBodyMetricsResponse {
   private Long userId;
   private BigDecimal heightCm;
-  private LocalDate recordedDate;
+  private LocalDate heightRecordedDate;
+  private BigDecimal weightKg;
+  private LocalDate weightRecordedDate;
 }

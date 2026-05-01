@@ -2,7 +2,7 @@ package com.eefood.iamservice.model;
 
 import jakarta.persistence.*;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import lombok.*;
 
 @Entity
@@ -25,5 +25,5 @@ public class UserHeight {
   private BigDecimal heightCm;
 
   @Column(nullable = false)
-  private LocalDateTime recordedAt;
+  private LocalDate recordedDate;
 }

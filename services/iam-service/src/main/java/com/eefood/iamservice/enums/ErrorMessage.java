@@ -35,6 +35,8 @@ public enum ErrorMessage {
   FAIL_UPDATE_ROLE("User cant't update role"),
   USER_HEIGHT_NOT_FOUND("User height not found"),
   USER_WEIGHT_NOT_FOUND("User weight not found"),
+  USER_HEIGHT_ALREADY_EXISTS_IN_DAY("User height already exists for this day"),
+  USER_WEIGHT_ALREADY_EXISTS_IN_DAY("User weight already exists for this day"),
 
   // Message in dto - Start
   FULL_NAME_REQUIRED("Full name is required"),

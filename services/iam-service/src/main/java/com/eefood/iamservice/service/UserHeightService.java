@@ -10,7 +10,7 @@ import com.eefood.iamservice.repository.UserHeightRepository;
 import com.eefood.iamservice.repository.UserRepository;
 import com.eefood.iamservice.utils.ExceptionUtil;
 import com.eefood.iamservice.utils.SecurityUtil;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -26,7 +26,7 @@ public class UserHeightService {
 
   public List<UserHeightResponse> getMyHeights() {
     Long userId = securityUtil.getCurrentUserId();
-    return userHeightRepository.findAllByUser_IdOrderByRecordedAtDesc(userId).stream()
+    return userHeightRepository.findAllByUser_IdOrderByRecordedDateDesc(userId).stream()
         .map(userBodyMapper::toHeightResponse)
         .toList();
   }
@@ -34,11 +34,18 @@ public class UserHeightService {
   @Transactional
   public UserHeightResponse createMyHeight(UserHeightRequest request) {
     User user = getCurrentUser();
+    LocalDate recordedDate = resolveRecordedDate(request.getRecordedDate());
+    boolean exists =
+        userHeightRepository.existsByUser_IdAndRecordedDate(user.getId(), recordedDate);
+    if (exists) {
+      throw ExceptionUtil.badRequest(ErrorMessage.USER_HEIGHT_ALREADY_EXISTS_IN_DAY);
+    }
+
     UserHeight userHeight =
         UserHeight.builder()
             .user(user)
             .heightCm(request.getHeightCm())
-            .recordedAt(resolveRecordedAt(request.getRecordedAt()))
+            .recordedDate(recordedDate)
             .build();
 
     return userBodyMapper.toHeightResponse(userHeightRepository.save(userHeight));
@@ -53,8 +60,14 @@ public class UserHeightService {
             .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.USER_HEIGHT_NOT_FOUND));
 
     userHeight.setHeightCm(request.getHeightCm());
-    if (request.getRecordedAt() != null) {
-      userHeight.setRecordedAt(request.getRecordedAt());
+    if (request.getRecordedDate() != null) {
+      boolean exists =
+          userHeightRepository.existsByUser_IdAndRecordedDateAndIdNot(
+              userId, request.getRecordedDate(), heightId);
+      if (exists) {
+        throw ExceptionUtil.badRequest(ErrorMessage.USER_HEIGHT_ALREADY_EXISTS_IN_DAY);
+      }
+      userHeight.setRecordedDate(request.getRecordedDate());
     }
 
     return userBodyMapper.toHeightResponse(userHeightRepository.save(userHeight));
@@ -78,7 +91,7 @@ public class UserHeightService {
         .orElseThrow(() -> ExceptionUtil.badRequest(ErrorMessage.USER_NOT_FOUND));
   }
 
-  private LocalDateTime resolveRecordedAt(LocalDateTime recordedAt) {
-    return recordedAt != null ? recordedAt : LocalDateTime.now();
+  private LocalDate resolveRecordedDate(LocalDate recordedDate) {
+    return recordedDate != null ? recordedDate : LocalDate.now();
   }
 }

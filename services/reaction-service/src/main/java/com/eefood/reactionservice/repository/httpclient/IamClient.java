@@ -1,6 +1,7 @@
 package com.eefood.reactionservice.repository.httpclient;
 
 import com.eefood.reactionservice.dto.request.UserNotificationResquest;
+import com.eefood.reactionservice.dto.response.UserBodyMetricsResponse;
 import com.eefood.reactionservice.dto.response.ResponseData;
 import com.eefood.reactionservice.dto.response.UserInfo;
 import com.eefood.reactionservice.dto.response.UserResponse;
@@ -21,6 +22,9 @@ public interface IamClient {
 
   @GetMapping("/api/v1/users/{userId}")
   ResponseData<UserInfo> getUserInfo(@PathVariable("userId") Long userId);
+
+  @GetMapping("/api/v1/users/{userId}/body-metrics")
+  ResponseData<UserBodyMetricsResponse> getUserBodyMetrics(@PathVariable("userId") Long userId);
 
   @PostMapping("/api/v1/users/batch")
   ResponseData<List<UserInfo>> getUserInfoBatch(@RequestBody List<Long> userIds);

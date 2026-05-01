@@ -10,7 +10,7 @@ import com.eefood.iamservice.repository.UserRepository;
 import com.eefood.iamservice.repository.UserWeightRepository;
 import com.eefood.iamservice.utils.ExceptionUtil;
 import com.eefood.iamservice.utils.SecurityUtil;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -26,7 +26,7 @@ public class UserWeightService {
 
   public List<UserWeightResponse> getMyWeights() {
     Long userId = securityUtil.getCurrentUserId();
-    return userWeightRepository.findAllByUser_IdOrderByRecordedAtDesc(userId).stream()
+    return userWeightRepository.findAllByUser_IdOrderByRecordedDateDesc(userId).stream()
         .map(userBodyMapper::toWeightResponse)
         .toList();
   }
@@ -34,11 +34,18 @@ public class UserWeightService {
   @Transactional
   public UserWeightResponse createMyWeight(UserWeightRequest request) {
     User user = getCurrentUser();
+    LocalDate recordedDate = resolveRecordedDate(request.getRecordedDate());
+    boolean exists =
+        userWeightRepository.existsByUser_IdAndRecordedDate(user.getId(), recordedDate);
+    if (exists) {
+      throw ExceptionUtil.badRequest(ErrorMessage.USER_WEIGHT_ALREADY_EXISTS_IN_DAY);
+    }
+
     UserWeight userWeight =
         UserWeight.builder()
             .user(user)
             .weightKg(request.getWeightKg())
-            .recordedAt(resolveRecordedAt(request.getRecordedAt()))
+            .recordedDate(recordedDate)
             .build();
 
     return userBodyMapper.toWeightResponse(userWeightRepository.save(userWeight));
@@ -53,8 +60,14 @@ public class UserWeightService {
             .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.USER_WEIGHT_NOT_FOUND));
 
     userWeight.setWeightKg(request.getWeightKg());
-    if (request.getRecordedAt() != null) {
-      userWeight.setRecordedAt(request.getRecordedAt());
+    if (request.getRecordedDate() != null) {
+      boolean exists =
+          userWeightRepository.existsByUser_IdAndRecordedDateAndIdNot(
+              userId, request.getRecordedDate(), weightId);
+      if (exists) {
+        throw ExceptionUtil.badRequest(ErrorMessage.USER_WEIGHT_ALREADY_EXISTS_IN_DAY);
+      }
+      userWeight.setRecordedDate(request.getRecordedDate());
     }
 
     return userBodyMapper.toWeightResponse(userWeightRepository.save(userWeight));
@@ -78,7 +91,7 @@ public class UserWeightService {
         .orElseThrow(() -> ExceptionUtil.badRequest(ErrorMessage.USER_NOT_FOUND));
   }
 
-  private LocalDateTime resolveRecordedAt(LocalDateTime recordedAt) {
-    return recordedAt != null ? recordedAt : LocalDateTime.now();
+  private LocalDate resolveRecordedDate(LocalDate recordedDate) {
+    return recordedDate != null ? recordedDate : LocalDate.now();
   }
 }
