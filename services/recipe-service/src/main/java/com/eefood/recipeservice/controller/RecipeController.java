@@ -1,5 +1,6 @@
 package com.eefood.recipeservice.controller;
 
+import com.eefood.recipeservice.dto.request.RecipeCompareRequest;
 import com.eefood.recipeservice.dto.request.RecipeExtractDTO;
 import com.eefood.recipeservice.dto.request.RecipeRequest;
 import com.eefood.recipeservice.dto.request.RequestUrl;
@@ -34,6 +35,12 @@ public class RecipeController {
   private final RecipeService recipeService;
   private final RecipeSearchService recipeSearchService;
   private final AlternateIngredientService alternateIngredientService;
+
+  @PostMapping("/compare")
+  public ResponseData<RecipeCompareResponse> compareRecipe(@RequestBody RecipeCompareRequest request) {
+    RecipeCompareResponse responses = recipeService.compare(request);
+    return new ResponseData<>(200, "Compare success", responses);
+  }
 
   @GetMapping("/{recipeId}/ingredient-substitutes/{ingredientId}")
   public ResponseData<IngredientAlterResponse> getIngredientAlter(@PathVariable Long recipeId, @PathVariable Long ingredientId) {

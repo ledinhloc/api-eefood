@@ -1,5 +1,6 @@
 package com.eefood.recipeservice.mapper;
 
+import com.eefood.recipeservice.dto.RecipeCompareDTO;
 import com.eefood.recipeservice.dto.request.RecipeIngredientRequest;
 import com.eefood.recipeservice.dto.request.RecipeRequest;
 import com.eefood.recipeservice.dto.request.RecipeStepRequest;
@@ -9,12 +10,28 @@ import com.eefood.recipeservice.model.*;
 import org.mapstruct.*;
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 @Mapper(componentModel = "spring")
 public interface RecipeMapper {
+  @Mappings({
+          @Mapping(target = "totalTime", expression = "java(calcTotalTime(recipe))"),
+          @Mapping(target = "stepCount", expression = "java(recipe.getSteps() != null ? recipe.getSteps().size() : 0)"),
+          @Mapping(target = "ingredientCount", expression = "java(recipe.getIngredients() != null ? recipe.getIngredients().size() : 0)"),
+          @Mapping(target = "difficulty", expression = "java(recipe.getDifficulty() != null ? recipe.getDifficulty().name() : null)"),
+          @Mapping(target = "calories",    source = "nutrition.totalCalories",  defaultValue = "0.0"),
+          @Mapping(target = "protein",     source = "nutrition.totalProtein",   defaultValue = "0.0"),
+          @Mapping(target = "fat",         source = "nutrition.totalFat",       defaultValue = "0.0"),
+          @Mapping(target = "carb",        source = "nutrition.totalCarb",      defaultValue = "0.0"),
+          @Mapping(target = "fiber",       source = "nutrition.totalFiber",     defaultValue = "0.0"),
+          @Mapping(target = "sugar",       source = "nutrition.totalSugar",     defaultValue = "0.0"),
+          @Mapping(target = "cal",       source = "nutrition.totalCalcium",     defaultValue = "0.0"),
+          @Mapping(target = "sodium",       source = "nutrition.totalSodium",     defaultValue = "0.0"),
+          @Mapping(target = "healthScore", source = "nutrition.healthScore",    defaultValue = "0.0"),
+  })
+  RecipeCompareDTO toCompareResponse(Recipe recipe);
+
   @Mappings({
     @Mapping(target = "difficulty", expression = "java(String.valueOf(recipe.getDifficulty()))")
   })
@@ -73,6 +90,12 @@ public interface RecipeMapper {
       .filter(i -> !Boolean.TRUE.equals(i.getIsDeleted()))
       .map(i -> i.getIngredient().getName())
       .collect(Collectors.toSet());
+  }
+
+  default Integer calcTotalTime(Recipe recipe) {
+    int prep = recipe.getPrepTime() != null ? recipe.getPrepTime() : 0;
+    int cook = recipe.getCookTime() != null ? recipe.getCookTime() : 0;
+    return (prep == 0 && cook == 0) ? null : prep + cook;
   }
 //  @Named("filterDeletedIngredients")
 //  default List<RecipeIngredientResponse> mapFilteredIngredients(Set<RecipeIngredient> ingredients) {

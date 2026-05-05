@@ -62,6 +62,25 @@ public class RecipeService {
   private static final int MAX_USER_ID = 20;
   private static final Random random = new Random();
 
+  public RecipeCompareResponse compare(RecipeCompareRequest compareRequest) {
+    if(compareRequest.getRecipeIdA().equals(compareRequest.getRecipeIdB())) {
+      throw ExceptionUtil.badRequest(ErrorMessage.RECIPE_NOT_SAME);
+    }
+
+    Recipe recipeA = recipeRepository
+            .findByIdAndIsDeletedFalse(compareRequest.getRecipeIdA())
+            .orElseThrow(()-> ExceptionUtil.notFound(ErrorMessage.RECIPE_NOT_FOUND));
+
+    Recipe recipeB = recipeRepository
+            .findByIdAndIsDeletedFalse(compareRequest.getRecipeIdB())
+            .orElseThrow(()-> ExceptionUtil.notFound(ErrorMessage.RECIPE_NOT_FOUND));
+
+    return RecipeCompareResponse.builder()
+            .recipeA(recipeMapper.toCompareResponse(recipeA))
+            .recipeB(recipeMapper.toCompareResponse(recipeB))
+            .build();
+  }
+
   //tim theo ten neu chua co thi tao
   private Set<Category> resolveCategories(List<String> categoryNames) {
     if(categoryNames == null || categoryNames.isEmpty()) {

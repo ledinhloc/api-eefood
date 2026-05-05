@@ -83,6 +83,9 @@ public enum ErrorMessage {
   INVALID_OPTION_FOR_QUESTION("Invalid option for question"),
   INVALID_REVIEW_REQUEST("Invalid review request"),
   DUPLICATE_QUESTION("Duplicate question"),
+
+  // compare
+  RECIPE_NOT_SAME("Can't compare the same recipe"),
   ;
 
 
