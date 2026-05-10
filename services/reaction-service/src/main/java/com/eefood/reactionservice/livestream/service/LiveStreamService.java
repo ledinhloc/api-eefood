@@ -11,7 +11,9 @@ import com.eefood.reactionservice.livestream.model.LiveStream;
 import com.eefood.reactionservice.livestream.mapper.LiveStreamMapper;
 import com.eefood.reactionservice.livestream.repository.LiveStreamBlockRepository;
 import com.eefood.reactionservice.livestream.repository.LiveStreamRepository;
+import com.eefood.reactionservice.repository.FollowRepository;
 import com.eefood.reactionservice.repository.httpclient.IamClient;
+import com.eefood.reactionservice.util.NotificationUtils;
 import io.livekit.server.AccessToken;
 import io.livekit.server.RoomServiceClient;
 import io.livekit.server.RoomJoin;
@@ -36,6 +38,8 @@ public class LiveStreamService {
   private final SimpMessagingTemplate messagingTemplate;
   private final LiveStreamBlockRepository liveStreamBlockRepository;
   private final IamClient iamClient;
+  private final FollowRepository followRepository;
+  private final NotificationUtils notificationUtils;
 
   @Transactional(readOnly = true)
   public LiveStreamResponse checkUserStream(Long currentUserId,Long userId) {
@@ -130,6 +134,7 @@ public class LiveStreamService {
 
       liveStreamRepository.save(live);
       log.info("Live stream started: {}", live.getId());
+      notifyFollowersLiveStarted(live);
 
       return buildLiveResponse(live, userId);
     } catch (Exception e) {
@@ -230,6 +235,44 @@ public class LiveStreamService {
   @Transactional(readOnly = true)
   public boolean isUserBlockedByStreamer(Long streamerId, Long userId) {
     return liveStreamBlockRepository.existsByStreamerIdAndBlockedUserId(streamerId, userId);
+  }
+
+  private void notifyFollowersLiveStarted(LiveStream liveStream) {
+    try {
+      List<Long> followerIds = followRepository.findByFollowingId(liveStream.getUserId()).stream()
+        .map(follow -> follow.getFollowerId())
+        .distinct()
+        .toList();
+
+      if (followerIds.isEmpty()) {
+        log.info("No followers to notify for livestream {}", liveStream.getId());
+        return;
+      }
+
+      UserInfo streamerInfo = null;
+      try {
+        streamerInfo = iamClient.getUserInfo(liveStream.getUserId()).getData();
+      } catch (Exception e) {
+        log.warn("Could not load streamer info for livestream {}: {}", liveStream.getId(), e.getMessage());
+      }
+
+      String streamerName = streamerInfo != null ? streamerInfo.getUsername() : null;
+      String avatarUrl = streamerInfo != null ? streamerInfo.getAvatarUrl() : null;
+
+      for (Long followerId : followerIds) {
+        notificationUtils.sendLiveStartedNotification(
+          followerId,
+          liveStream.getId(),
+          streamerName,
+          avatarUrl,
+          liveStream.getTitle()
+        );
+      }
+
+      log.info("Sent livestream start notification to {} followers for livestream {}", followerIds.size(), liveStream.getId());
+    } catch (Exception e) {
+      log.error("Failed to notify followers for livestream {}", liveStream.getId(), e);
+    }
   }
 
   private LiveStreamResponse buildLiveResponse(LiveStream live, Long userId) {

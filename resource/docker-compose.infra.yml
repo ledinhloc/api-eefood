@@ -61,8 +61,8 @@ services:
       LIVEKIT_RTC_ANNOUNCE_IP: "172.16.1.202"
 
       # Port range cho RTC (UDP)
-      LIVEKIT_RTC_PORT_RANGE_START: "52000"
-      LIVEKIT_RTC_PORT_RANGE_END: "52019"
+      LIVEKIT_RTC_PORT_RANGE_START: "50100"
+      LIVEKIT_RTC_PORT_RANGE_END: "50119"
 
       # ICE Configuration
       LIVEKIT_RTC_USE_ICE_LITE: "false"
@@ -75,7 +75,7 @@ services:
     mem_limit: 512m
     ports:
       - "7880:7880"                    # WebSocket
-      - "52000-52019:52000-52019/udp"  # RTC ports
+      - "50100-50119:50100-50119/udp"  # RTC ports
 
 #    restart: unless-stopped
     networks:
