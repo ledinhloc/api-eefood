@@ -30,6 +30,7 @@ public class SecurityConfig {
               .requestMatchers(HttpMethod.GET, "/api/v1/recipes/detail/**").permitAll()
               .requestMatchers(HttpMethod.GET, "/api/v1/recipes/public/**").permitAll()
               .requestMatchers(HttpMethod.POST, "/api/v1/shopping/chatbot/add").permitAll()
+              .requestMatchers(HttpMethod.GET, "/api/v1/nutrition/recipe/{recipeId}/chatbot").permitAll()
               .anyRequest().authenticated());
 
     httpSecurity.oauth2ResourceServer(
