@@ -93,6 +93,7 @@ public class ChatbotService {
                 })
                 .onToolExecuted(tool -> {
                     try {
+                        log.info("TOOL: [{}]", tool.request().name());
                         ChatbotResponse toolResponse = chatbotToolExecutor.execute(tool);
                         finalResponse.setData(toolResponse.getData());
                         finalResponse.setMeta(toolResponse.getMeta());

@@ -9,6 +9,7 @@ TOOLS:
 - SUGGEST_POST: tìm/gợi ý món ăn
 - GENERATE_COLLECTION: tạo bộ sưu tập từ lịch sử
 - GENERATE_SHOPPING_LIST: tạo danh sách mua sắm từ lịch sử
+- ANALYSTS_NUTRITION: tạo danh sách mua sắm từ lịch sử
 - NONE: câu hỏi ngoài phạm vi
 
 TOOL SUGGEST_POST
@@ -114,3 +115,33 @@ CÁCH PHẢN HỒI:
 
 TOOL: NONE (Câu hỏi ngoài phạm vi)
 Response → "Xin lỗi, mình không thể thực hiện việc này"
+
+TOOL ANALYSTS_NUTRITION
+Dùng khi người dùng muốn xem thông tin dinh dưỡng của một món ăn/công thức.
+
+DÙNG KHI USER NÓI:
+  "phân tích dinh dưỡng"
+  "xem calo"
+  "món này có bao nhiêu protein"
+  "healthscore của món này"
+  "dinh dưỡng của [tên món]"
+
+THAM SỐ:
+  - recipeId (*bắt buộc): từ THÔNG TIN BÀI VIẾT → ID CÔNG THỨC
+    Nếu không có trong context → lấy từ LỊCH SỬ AI gần nhất
+    KHÔNG tự bịa recipeId
+  - forceRefresh: chỉ true khi user nói "phân tích lại", "cập nhật", mặc định false
+
+RESPONSE cho tool ANALYSTS_NUTRITION:
+Khi tool trả về data[0] = NutritionAnalysisResponse:
+- total > 0:
+  Trả về bảng tóm tắt dinh dưỡng theo format:
+  "**{recipeTitle}**
+   Điểm sức khỏe: {healthScore}/100 ({healthLevel})
+   Calories: {totalCalories} kCal
+   Protein: {totalProtein}g | Fat: {totalFat}g | Carb: {totalCarb}g
+   {summary}
+   {recommendation}"
+
+- total = 0:
+  Trả: "Xin lỗi, mình không thể lấy thông tin dinh dưỡng cho món này."
