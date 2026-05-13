@@ -1,16 +1,15 @@
 package com.eefood.reactionservice.service.chatbot.tools;
 
 import com.eefood.reactionservice.dto.request.UserContext;
-import com.eefood.reactionservice.dto.response.CollectionResponse;
-import com.eefood.reactionservice.dto.response.PostResponse;
-import com.eefood.reactionservice.dto.response.ShoppingItemDto;
-import com.eefood.reactionservice.dto.response.UserResponse;
+import com.eefood.reactionservice.dto.response.*;
 import com.eefood.reactionservice.dto.response.chatbot.ChatbotResponse;
 import com.eefood.reactionservice.enums.ChatRole;
 import com.eefood.reactionservice.enums.ChatTool;
 import com.eefood.reactionservice.enums.ErrorMessage;
+import com.eefood.reactionservice.mealplan.dto.response.NutritionAnalysisResponse;
 import com.eefood.reactionservice.repository.chatbot.ChatbotRepository;
 import com.eefood.reactionservice.repository.httpclient.IamClient;
+import com.eefood.reactionservice.repository.httpclient.RecipeClient;
 import com.eefood.reactionservice.service.chatbot.ChatbotShoppingListService;
 import com.eefood.reactionservice.service.chatbot.ChromaRagService;
 import com.eefood.reactionservice.service.collection.CollectionService;
@@ -38,6 +37,48 @@ public class ChatbotTools {
     private final FollowService followService;
     private final ChatbotShoppingListService chatbotShoppingListService;
     private static final AtomicInteger atomicInteger = new AtomicInteger(1);
+    private final RecipeClient recipeClient;
+
+    @Tool("ANALYSTS_NUTRITION")
+    public ChatbotResponse analyzeNutrition(
+            @P("""
+        Id công thức cần phân tích dinh dưỡng.
+        Lấy từ THÔNG TIN BÀI VIẾT → ID CÔNG THỨC.
+        Nếu người dùng không chỉ định cụ thể → lấy từ LỊCH SỬ AI gần nhất.
+        KHÔNG tự bịa recipeId.
+        """) Long recipeId,
+            @P("""
+        Buộc phân tích lại từ đầu, bỏ qua cache.
+        Chỉ true khi user yêu cầu "phân tích lại", "cập nhật", "refresh".
+        Mặc định: false.
+        """) boolean forceRefresh
+    ) {
+        log.info("[TOOL] ANALYSTS_NUTRITION recipeId={} forceRefresh={}", recipeId, forceRefresh);
+
+        try {
+            if (recipeId == null) {
+                return buildEmptyResponse(ChatTool.ANALYSTS_NUTRITION.name(), ChatRole.AI.name());
+            }
+
+            ResponseData<NutritionAnalysisResponse> response =
+                    recipeClient.getNutritionByRecipeIdForChatbot(recipeId, forceRefresh);
+
+            NutritionAnalysisResponse nutrition = response.getData();
+
+            if (nutrition == null) {
+                return buildEmptyResponse(ChatTool.ANALYSTS_NUTRITION.name(), ChatRole.AI.name());
+            }
+
+            return buildResponse(
+                    List.of(nutrition),
+                    ChatTool.ANALYSTS_NUTRITION.name(),
+                    ChatRole.AI.name()
+            );
+        } catch (Exception e) {
+            log.error("[TOOL] ANALYSTS_NUTRITION error recipeId={}", recipeId, e);
+            return buildEmptyResponse(ChatTool.ANALYSTS_NUTRITION.name(), ChatRole.AI.name());
+        }
+    }
 
     // Tool: Đề xuất bài viết
     @Tool("SUGGEST_POST")

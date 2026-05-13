@@ -21,6 +21,19 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 public class NutritionAnalysisController {
     private final NutritionAnalysisService nutritionAnalysisService;
 
+    // Phan tich dinh duong dang JSON, khong dung SSE cho chatbot no auth
+    @GetMapping("/recipe/{recipeId}/chatbot")
+    public ResponseData<NutritionAnalysisResponse> getNutritionByRecipeIdForChatbot(
+            @PathVariable Long recipeId,
+            @RequestParam(defaultValue = "false") boolean forceRefresh
+    ) {
+        return new ResponseData<>(
+                HttpStatus.OK.value(),
+                "Get Nutrition By Recipe Success",
+                nutritionAnalysisService.getNutritionByRecipeId(recipeId, forceRefresh)
+        );
+    }
+
     // Phan tich dinh duong dang JSON, khong dung SSE.
     @GetMapping("/recipe/{recipeId}")
     public ResponseData<NutritionAnalysisResponse> getNutritionByRecipeId(

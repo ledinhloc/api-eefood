@@ -46,4 +46,10 @@ public interface RecipeClient {
           @RequestParam Long userId,
           @RequestParam(defaultValue = "1") Integer servings
   );
+
+  @GetMapping("/api/v1/nutrition/recipe/{recipeId}/chatbot")
+  ResponseData<NutritionAnalysisResponse> getNutritionByRecipeIdForChatbot(
+          @PathVariable("recipeId") Long recipeId,
+          @RequestParam(defaultValue = "false") boolean forceRefresh
+  );
 }
