@@ -506,10 +506,12 @@ public class PostService {
     Post candidate
   ) {
     Set<String> candidateIngredients = normalizeIngredients(candidate.getRecipeIngredientKeywords());
+    //lọc
     if (!matchesFilterIngredients(filterIngredients, candidateIngredients)) {
       return null;
     }
 
+    //Tính điểm tương đồng
     List<String> matchedIngredients = getMatchedIngredients(targetIngredients, candidateIngredients);
     double weightedScore = matchedIngredients.stream()
       .mapToDouble(this::getIngredientWeight)
@@ -521,27 +523,12 @@ public class PostService {
     return new SimilarCandidateScore(candidate, weightedScore, matchedIngredients);
   }
 
-  private List<String> getMatchedIngredients(Set<String> targetIngredients, Post candidate) {
-    Set<String> candidateIngredients = normalizeIngredients(candidate.getRecipeIngredientKeywords());
-    return getMatchedIngredients(targetIngredients, candidateIngredients);
-  }
-
   private List<String> getMatchedIngredients(Set<String> targetIngredients, Set<String> candidateIngredients) {
     return candidateIngredients.stream()
       .filter(candidateIngredient -> targetIngredients.stream()
         .anyMatch(targetIngredient -> isSoftIngredientMatch(targetIngredient, candidateIngredient)))
       .sorted()
       .toList();
-  }
-
-  // Kiểm tra bài ứng viên có chứa ít nhất một nguyên liệu trong danh sách lọc hay không.
-  private boolean matchesFilterIngredients(Set<String> filterIngredients, Post candidate) {
-    if (filterIngredients.isEmpty()) {
-      return true;
-    }
-
-    Set<String> candidateIngredients = normalizeIngredients(candidate.getRecipeIngredientKeywords());
-    return matchesFilterIngredients(filterIngredients, candidateIngredients);
   }
 
   private boolean matchesFilterIngredients(Set<String> filterIngredients, Set<String> candidateIngredients) {

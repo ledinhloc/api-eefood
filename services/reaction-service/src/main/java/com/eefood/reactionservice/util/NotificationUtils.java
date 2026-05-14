@@ -112,4 +112,29 @@ public class NotificationUtils {
 
       notificationProducer.sendNotification(notification);
     }
+
+    public void sendLiveStartedNotification(Long receiverId,
+                                            Long liveStreamId,
+                                            String streamerName,
+                                            String avatarUrl,
+                                            String liveTitle) {
+        String safeStreamerName = streamerName == null || streamerName.isBlank()
+                ? "Người bạn đang theo dõi"
+                : streamerName;
+        String safeLiveTitle = liveTitle == null || liveTitle.isBlank()
+                ? "đã bắt đầu livestream"
+                : "đã bắt đầu livestream: " + liveTitle;
+
+        NotificationEvent notification = NotificationEvent.newBuilder()
+                .setTitle(safeStreamerName + " đang livestream")
+                .setBody(safeLiveTitle)
+                .setPath("/livestreams/" + liveStreamId)
+                .setAvatarUrl(avatarUrl == null ? "" : avatarUrl)
+                .setPostImageUrl("")
+                .setType("LIVESTREAM")
+                .setUserId(receiverId)
+                .build();
+
+        notificationProducer.sendNotification(notification);
+    }
 }
