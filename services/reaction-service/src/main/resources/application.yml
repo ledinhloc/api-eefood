@@ -16,6 +16,9 @@ livekit:
   http:
     url: ${LIVEKIT_HTTP_URL:http://127.0.0.1:7880}
 
+whisper:
+  base-url: ${WHISPER_BASE_URL:http://127.0.0.1:8091}
+
 elasticsearch:
   host: ${ES_HOST:localhost}
   port: ${ES_PORT:9200}
