@@ -26,21 +26,23 @@ public class LiveStreamController {
   @PostMapping("/schedule")
   public ResponseData<LiveStreamResponse> scheduleLive(
     @RequestParam String description,
-    @RequestParam String scheduledAt
+    @RequestParam String scheduledAt,
+    @RequestParam(required = false) String spokenLanguage
   ) {
     Long userId = securityUtil.getCurrentUserId();
     LocalDateTime time = LocalDateTime.parse(scheduledAt);
-    var res = liveStreamService.scheduleLive(userId, description, time);
+    var res = liveStreamService.scheduleLive(userId, description, time, spokenLanguage);
     return new ResponseData<>(HttpStatus.OK.value(), "success", res);
   }
 
   @PostMapping("/start")
   public ResponseData<LiveStreamResponse> startLiveStream(
     @RequestParam(required = false) Long liveStreamId,
-    @RequestParam(required = false) String description
+    @RequestParam(required = false) String description,
+    @RequestParam(required = false) String spokenLanguage
   ) {
     Long userId = securityUtil.getCurrentUserId();
-    return new ResponseData<>(HttpStatus.OK.value(), "success", liveStreamService.startLiveStream(userId, liveStreamId, description));
+    return new ResponseData<>(HttpStatus.OK.value(), "success", liveStreamService.startLiveStream(userId, liveStreamId, description, spokenLanguage));
   }
 
   @PostMapping("/{liveStreamId}/end")

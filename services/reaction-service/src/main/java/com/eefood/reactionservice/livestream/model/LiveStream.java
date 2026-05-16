@@ -1,6 +1,7 @@
 package com.eefood.reactionservice.livestream.model;
 
 import com.eefood.reactionservice.enums.LiveStreamStatus;
+import com.eefood.reactionservice.livestream.enums.SubtitleLanguage;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.SuperBuilder;
@@ -36,6 +37,11 @@ public class LiveStream {
   @Enumerated(EnumType.STRING)
   @Builder.Default
   private LiveStreamStatus status = LiveStreamStatus.SCHEDULED;
+
+  @Column(nullable = false)
+  @Enumerated(EnumType.STRING)
+  @Builder.Default
+  private SubtitleLanguage spokenLanguage = SubtitleLanguage.VI;
 
   @Builder.Default
   private Integer viewerCount = 0;

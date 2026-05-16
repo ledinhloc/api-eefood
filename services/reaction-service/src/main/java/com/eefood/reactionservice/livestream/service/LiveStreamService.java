@@ -7,6 +7,7 @@ import com.eefood.reactionservice.enums.ErrorMessage;
 import com.eefood.reactionservice.enums.LiveStreamStatus;
 import com.eefood.reactionservice.exception.ExceptionUtil;
 import com.eefood.reactionservice.livestream.dto.ws.LiveStreamEndMessage;
+import com.eefood.reactionservice.livestream.enums.SubtitleLanguage;
 import com.eefood.reactionservice.livestream.model.LiveStream;
 import com.eefood.reactionservice.livestream.mapper.LiveStreamMapper;
 import com.eefood.reactionservice.livestream.repository.LiveStreamBlockRepository;
@@ -68,18 +69,19 @@ public class LiveStreamService {
     return res;
   }
 
-  public LiveStreamResponse scheduleLive(Long userId, String description, LocalDateTime time) {
+  public LiveStreamResponse scheduleLive(Long userId, String description, LocalDateTime time, String spokenLanguage) {
     LiveStream liveStream = new LiveStream();
     liveStream.setUserId(userId);
     liveStream.setTitle(description);
     liveStream.setScheduledAt(time);
     liveStream.setStatus(LiveStreamStatus.SCHEDULED);
+    liveStream.setSpokenLanguage(parseSpokenLanguage(spokenLanguage));
     liveStreamRepository.save(liveStream);
     return liveStreamMapper.toResponse(liveStream);
   }
 
   @Transactional
-  public LiveStreamResponse startLiveStream(Long userId, Long liveStreamId, String requestTitle) {
+  public LiveStreamResponse startLiveStream(Long userId, Long liveStreamId, String requestTitle, String spokenLanguage) {
     try {
       LiveStream live;
       //Nếu có id lịch livestream
@@ -97,6 +99,9 @@ public class LiveStreamService {
         live.setStatus(LiveStreamStatus.LIVE);
         live.setStartedAt(LocalDateTime.now());
         if (requestTitle != null) live.setTitle(requestTitle);
+        if (spokenLanguage != null && !spokenLanguage.isBlank()) {
+          live.setSpokenLanguage(parseSpokenLanguage(spokenLanguage));
+        }
       }
       else {
         //Không có id → check user đang live chưa
@@ -115,6 +120,7 @@ public class LiveStreamService {
         live.setTitle(requestTitle);
         live.setStatus(LiveStreamStatus.LIVE);
         live.setStartedAt(LocalDateTime.now());
+        live.setSpokenLanguage(parseSpokenLanguage(spokenLanguage));
       }
       String roomName = "live_" + userId + "_" + System.currentTimeMillis();
 
@@ -315,5 +321,9 @@ public class LiveStreamService {
    */
   public String generateStreamerToken(String roomName, Long userId) {
     return generateToken(roomName, "streamer_" + userId, true);
+  }
+
+  private SubtitleLanguage parseSpokenLanguage(String spokenLanguage) {
+    return SubtitleLanguage.fromCode(spokenLanguage);
   }
 }

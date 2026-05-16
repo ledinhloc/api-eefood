@@ -61,7 +61,7 @@ public class LiveCommentController {
   public ResponseData<LiveAudioTranscriptionResponse> transcribeAudio(
     @PathVariable Long liveStreamId,
     @RequestParam("audio") MultipartFile audio,
-    @RequestParam(value = "language", defaultValue = "vi") String language
+    @RequestParam(value = "language", required = false) String language
   ) {
     return new ResponseData<>(
       HttpStatus.OK.value(),

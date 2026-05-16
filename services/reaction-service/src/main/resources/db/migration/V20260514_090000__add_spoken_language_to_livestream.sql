@@ -1,0 +1,2 @@
+ALTER TABLE live_streams
+    ADD COLUMN IF NOT EXISTS spoken_language VARCHAR(10) NOT NULL DEFAULT 'VI';
