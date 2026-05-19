@@ -5,7 +5,9 @@ import lombok.*;
 import lombok.experimental.SuperBuilder;
 import org.hibernate.annotations.SQLRestriction;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -32,5 +34,5 @@ public class ReviewQuestion extends BaseEntity{
     @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     @SQLRestriction("is_deleted = false")
-    private Set<ReviewOption> options = new HashSet<>();
+    private List<ReviewOption> options = new ArrayList<>();
 }
