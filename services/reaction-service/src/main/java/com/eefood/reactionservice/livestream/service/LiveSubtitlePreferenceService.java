@@ -25,6 +25,7 @@ public class LiveSubtitlePreferenceService {
 
   private final Map<String, SubtitleSubscription> subscriptionsBySessionId = new ConcurrentHashMap<>();
 
+  //Đăng ký preference của user
   public void register(Principal principal, String sessionId, SubtitleSubscriptionRequest request) {
     if (principal == null || principal.getName() == null || principal.getName().isBlank()) {
       throw new IllegalArgumentException("WebSocket principal is required");
@@ -48,7 +49,7 @@ public class LiveSubtitlePreferenceService {
         .build()
     );
   }
-
+  //Push message qua WebSocket
   public void sendToSubscribers(Long liveStreamId, String spokenLanguageCode, LiveSubtitleMessage message) {
     SubtitleLanguage spokenLanguage = SubtitleLanguage.fromCode(spokenLanguageCode);
 
@@ -63,6 +64,7 @@ public class LiveSubtitlePreferenceService {
       ));
   }
 
+  //xóa subscription khi socket disconnect
   @EventListener
   public void handleSessionDisconnect(SessionDisconnectEvent event) {
     subscriptionsBySessionId.remove(event.getSessionId());
