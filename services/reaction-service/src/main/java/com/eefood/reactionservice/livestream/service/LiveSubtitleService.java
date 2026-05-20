@@ -1,5 +1,6 @@
 package com.eefood.reactionservice.livestream.service;
 
+import com.eefood.reactionservice.livestream.dto.request.LiveSubtitleTranscriptRequest;
 import com.eefood.reactionservice.livestream.dto.response.LiveAudioTranscriptionResponse;
 import com.eefood.reactionservice.livestream.dto.ws.LiveSubtitleMessage;
 import com.eefood.reactionservice.livestream.enums.SubtitleLanguage;
@@ -35,7 +36,7 @@ public class LiveSubtitleService {
         audioFile.getContentType(),
         spokenLanguage
       );
-      broadcastSubtitle(liveStreamId, spokenLanguage, text);
+      broadcastSubtitle(liveStreamId, spokenLanguage, text, LocalDateTime.now());
 
       return LiveAudioTranscriptionResponse.builder()
         .liveStreamId(liveStreamId)
@@ -47,6 +48,26 @@ public class LiveSubtitleService {
     } catch (IOException e) {
       throw new RuntimeException("Cannot read uploaded audio file", e);
     }
+  }
+
+  public LiveSubtitleMessage publishTranscript(LiveSubtitleTranscriptRequest request) {
+    if (request == null) {
+      throw new IllegalArgumentException("Subtitle transcript request is required");
+    }
+    if (request.getLiveStreamId() == null) {
+      throw new IllegalArgumentException("Live stream id is required");
+    }
+    if (request.getText() == null || request.getText().isBlank()) {
+      throw new IllegalArgumentException("Subtitle text is required");
+    }
+
+    LiveStream liveStream = liveStreamRepository.findById(request.getLiveStreamId())
+      .orElseThrow(() -> new RuntimeException("Live stream not found"));
+
+    String spokenLanguage = resolveSpokenLanguage(request.getSpokenLanguage(), liveStream);
+    LocalDateTime createdAt = request.getCreatedAt() == null ? LocalDateTime.now() : request.getCreatedAt();
+
+    return broadcastSubtitle(request.getLiveStreamId(), spokenLanguage, request.getText().trim(), createdAt);
   }
 
   private String resolveSpokenLanguage(String language, LiveStream liveStream) {
@@ -62,16 +83,20 @@ public class LiveSubtitleService {
     return spokenLanguage.getCode();
   }
 
-  private void broadcastSubtitle(Long liveStreamId, String spokenLanguage, String text) {
-    subtitlePreferenceService.sendToSubscribers(
-      liveStreamId,
-      spokenLanguage,
-      LiveSubtitleMessage.builder()
-        .liveStreamId(liveStreamId)
-        .targetLanguage(spokenLanguage)
-        .text(text)
-        .createdAt(LocalDateTime.now())
-        .build()
-    );
+  private LiveSubtitleMessage broadcastSubtitle(
+    Long liveStreamId,
+    String spokenLanguage,
+    String text,
+    LocalDateTime createdAt
+  ) {
+    LiveSubtitleMessage message = LiveSubtitleMessage.builder()
+      .liveStreamId(liveStreamId)
+      .targetLanguage(spokenLanguage)
+      .text(text)
+      .createdAt(createdAt)
+      .build();
+
+    subtitlePreferenceService.sendToSubscribers(liveStreamId, spokenLanguage, message);
+    return message;
   }
 }

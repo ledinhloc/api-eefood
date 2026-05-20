@@ -1,10 +1,12 @@
 package com.eefood.reactionservice.livestream.controller;
 
 import com.eefood.reactionservice.livestream.dto.response.LiveAudioTranscriptionResponse;
+import com.eefood.reactionservice.livestream.dto.request.LiveSubtitleTranscriptRequest;
 import com.eefood.reactionservice.livestream.dto.response.LiveStreamResponse;
 import com.eefood.reactionservice.dto.response.ResponseData;
 import com.eefood.reactionservice.livestream.service.LiveStreamService;
 import com.eefood.reactionservice.livestream.service.LiveSubtitleService;
+import com.eefood.reactionservice.livestream.dto.ws.LiveSubtitleMessage;
 import com.eefood.reactionservice.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -35,6 +37,17 @@ public class LiveStreamController {
       HttpStatus.OK.value(),
       "transcribe success",
       liveSubtitleService.transcribe(liveStreamId, audio, language)
+    );
+  }
+
+  @PostMapping("/subtitles/transcripts")
+  public ResponseData<LiveSubtitleMessage> publishSubtitleTranscript(
+    @RequestBody LiveSubtitleTranscriptRequest request
+  ) {
+    return new ResponseData<>(
+      HttpStatus.OK.value(),
+      "subtitle broadcasted",
+      liveSubtitleService.publishTranscript(request)
     );
   }
 
