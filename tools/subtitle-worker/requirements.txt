@@ -1,0 +1,4 @@
+livekit
+PyJWT
+requests
+python-dotenv

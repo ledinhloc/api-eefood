@@ -7,3 +7,8 @@ link ui swagger: https://editor.swagger.io/
 -> vào ui kibana: login với els: elastic - elastic123
 
 build avro: mvn clean compile
+
+Subtitle
+cd D:\tlcn_v2\api-eefood\tools\subtitle-worker
+pip install -r requirements.txt
+python app.py
