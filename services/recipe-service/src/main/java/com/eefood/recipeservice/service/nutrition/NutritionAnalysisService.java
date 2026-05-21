@@ -51,7 +51,52 @@ public class NutritionAnalysisService {
     private final ReactionClient reactionClient;
     private final RecipeIngredientNutritionResolver recipeIngredientNutritionResolver;
 
-    // Tra ve du lieu dinh duong dang JSON de service khac goi truc tiep.
+    // Tra ve du lieu dinh duong dang JSON full có summary và recommendation de service khac goi truc tiep.
+    @Transactional
+    public NutritionAnalysisResponse getNutritionByRecipeIdFull(Long recipeId, boolean forceRefresh) {
+        String cacheKey = CACHE_PREFIX + recipeId;
+
+        if (!forceRefresh) {
+            NutritionAnalysisResponse cached =
+                    (NutritionAnalysisResponse) redisTemplate.opsForValue().get(cacheKey);
+            if (cached != null) {
+                log.info("[Nutrition] Cache hit for recipeId={}", recipeId);
+                return cached;
+            }
+        }
+
+        Recipe recipe = recipeRepository.findByIdWithIngredients(recipeId)
+                .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.RECIPE_NOT_FOUND));
+
+        if (recipe.getIngredients() == null || recipe.getIngredients().isEmpty()) {
+            throw ExceptionUtil.badRequest(ErrorMessage.RECIPE_HAS_NO_INGREDIENTS);
+        }
+
+        List<RecipeIngredient> ingredients = new ArrayList<>(recipe.getIngredients());
+        List<RecipeIngredientNutrition> rinList =
+                recipeIngredientNutritionResolver.resolveIngredientNutritions(recipe, ingredients);
+
+        RecipeNutrition nutrition = calculateAndSaveTotalNutrition(recipe, rinList);
+        List<IngredientNutritionDetail> details = rinList.stream()
+                .map(nutritionMapper::toDetail)
+                .toList();
+
+        RecipeNutritionAnalysis analysis;
+        try {
+            analysis = CompletableFuture
+                    .supplyAsync(() -> aiAnalyzeAndSave(recipe, nutrition), nutritionAiExecutor)
+                    .get(15, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            log.warn("[Nutrition SSE] AI analysis timed out, using fallback");
+            analysis = buildFallbackAnalysis(recipe, nutrition);
+        }
+
+        NutritionAnalysisResponse fullResponse = nutritionMapper.toResponse(nutrition, analysis, details);
+
+        redisTemplate.opsForValue().set(cacheKey, fullResponse, CACHE_TTL);
+        return fullResponse;
+    }
+
     @Transactional
     public NutritionAnalysisResponse getNutritionByRecipeId(Long recipeId, boolean forceRefresh) {
         String cacheKey = CACHE_PREFIX + recipeId;
