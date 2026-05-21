@@ -24,8 +24,10 @@ class WorkerConfig:
     livekit_api_secret: Optional[str]
     room_name: str
     live_stream_id: int
-    whisper_base_url: str
     reaction_base_url: str
+    whisper_model_size: str
+    whisper_device: str
+    whisper_compute_type: str
     bot_identity: str
     bot_name: str
     streamer_identity_prefix: str
@@ -34,11 +36,6 @@ class WorkerConfig:
     num_channels: int
     language: Optional[str]
     request_timeout_seconds: int
-
-    @property
-    def whisper_url(self) -> str:
-        """Tạo URL inference của Whisper mà worker sẽ gọi."""
-        return f"{self.whisper_base_url.rstrip('/')}/inference"
 
     @property
     def transcript_url(self) -> str:
@@ -55,12 +52,14 @@ def load_config() -> WorkerConfig:
         livekit_api_secret=os.getenv("LIVEKIT_API_SECRET"),
         room_name=required_env("ROOM_NAME"),
         live_stream_id=int(required_env("LIVE_STREAM_ID")),
-        whisper_base_url=required_env("WHISPER_BASE_URL"),
         reaction_base_url=required_env("REACTION_BASE_URL"),
+        whisper_model_size=os.getenv("WHISPER_MODEL_SIZE", "base"),
+        whisper_device=os.getenv("WHISPER_DEVICE", "cpu"),
+        whisper_compute_type=os.getenv("WHISPER_COMPUTE_TYPE", "int8"),
         bot_identity=os.getenv("BOT_IDENTITY", "subtitle-worker"),
         bot_name=os.getenv("BOT_NAME", "Subtitle Worker"),
         streamer_identity_prefix=os.getenv("STREAMER_IDENTITY_PREFIX", "streamer_"),
-        chunk_seconds=int(os.getenv("CHUNK_SECONDS", "1")),
+        chunk_seconds=int(os.getenv("CHUNK_SECONDS", "2")),
         sample_rate=int(os.getenv("AUDIO_SAMPLE_RATE", "16000")),
         num_channels=int(os.getenv("AUDIO_NUM_CHANNELS", "1")),
         language=os.getenv("SPOKEN_LANGUAGE"),

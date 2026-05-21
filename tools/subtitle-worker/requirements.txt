@@ -2,3 +2,4 @@ livekit
 PyJWT
 requests
 python-dotenv
+faster-whisper

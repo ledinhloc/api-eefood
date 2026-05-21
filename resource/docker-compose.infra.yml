@@ -219,19 +219,19 @@ services:
 #    networks:
 #      - microservices-net
 
-  whisper:
-    image: ghcr.io/ggml-org/whisper.cpp:main
-    container_name: whisper
-    entrypoint: ["/bin/bash", "-lc"]
-    ports:
-      - "8091:8080"
-    volumes:
-      - whisper_models:/models
-    command:
-      - "mkdir -p /models && (test -f /models/ggml-tiny.bin || /app/models/download-ggml-model.sh tiny /models) && /app/build/bin/whisper-server --host 0.0.0.0 --port 8080 -m /models/ggml-tiny.bin"
-    mem_limit: 768m
-    networks:
-      - microservices-net
+#  whisper:
+#    image: ghcr.io/ggml-org/whisper.cpp:main
+#    container_name: whisper
+#    entrypoint: ["/bin/bash", "-lc"]
+#    ports:
+#      - "8091:8080"
+#    volumes:
+#      - whisper_models:/models
+#    command:
+#      - "mkdir -p /models && (test -f /models/ggml-tiny.bin || /app/models/download-ggml-model.sh tiny /models) && /app/build/bin/whisper-server --host 0.0.0.0 --port 8080 -m /models/ggml-tiny.bin"
+#    mem_limit: 768m
+#    networks:
+#      - microservices-net
 
 #  loki:
 #    container_name: loki
@@ -277,4 +277,4 @@ volumes:
   pgadmin:
   elasticsearch-data:
   chroma_data:
-  whisper_models:
+#  whisper_models:
