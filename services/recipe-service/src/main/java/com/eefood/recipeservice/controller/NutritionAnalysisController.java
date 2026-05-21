@@ -30,7 +30,7 @@ public class NutritionAnalysisController {
         return new ResponseData<>(
                 HttpStatus.OK.value(),
                 "Get Nutrition By Recipe Success",
-                nutritionAnalysisService.getNutritionByRecipeId(recipeId, forceRefresh)
+                nutritionAnalysisService.getNutritionByRecipeIdFull(recipeId, forceRefresh)
         );
     }
 
