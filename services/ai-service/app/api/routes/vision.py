@@ -18,7 +18,7 @@ def get_detection_service() -> IngredientDetectionService:
     return IngredientDetectionService()
 
 
-@router.post("/ingredients:detect", response_model=ResponseData, response_model_exclude_none=True)
+@router.post("/ingredients/detect", response_model=ResponseData, response_model_exclude_none=True)
 async def detect_ingredients(
     file: UploadFile = File(...),
     detection_service: IngredientDetectionService = Depends(get_detection_service),

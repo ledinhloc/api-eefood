@@ -41,7 +41,7 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8099
 
 ### Detect ingredients
 
-`POST /api/v1/vision/ingredients:detect`
+`POST /api/v1/vision/ingredients/detect`
 
 Body:
 

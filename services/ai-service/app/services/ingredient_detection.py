@@ -17,11 +17,13 @@ class IngredientDetectionError(RuntimeError):
 
 
 class IngredientDetectionService:
+    # Cache model, classes va output names de khong phai load lai moi request.
     _net = None
     _classes: list[str] | None = None
     _out_names: list[str] | None = None
 
     def __init__(self) -> None:
+        # Lay cau hinh model va threshold tu file config.
         self.model_path: Path = settings.model_path
         self.classes_path: Path = settings.classes_path
         self.input_size = settings.input_size
@@ -35,13 +37,16 @@ class IngredientDetectionService:
         self.postprocessing = "yolov8"
 
     def detect(self, image_bytes: bytes) -> IngredientDetectionResponse:
+        # Nhan bytes anh tu API va chuyen sang dinh dang OpenCV BGR.
         frame = self._read_image(image_bytes)
         frame_height, frame_width = frame.shape[:2]
 
+        # Load model va danh sach ten class.
         net = self._get_net()
         classes = self._get_classes()
         out_names = self._get_out_names()
 
+        # Tao blob dau vao dung theo tham so cua model YOLOv8 ONNX hien tai.
         blob = cv2.dnn.blobFromImage(
             frame,
             size=(self.input_size, self.input_size),
@@ -58,8 +63,10 @@ class IngredientDetectionService:
                 "im_info",
             )
 
+        # Chay forward de lay output tu model.
         outputs = net.forward(out_names)
 
+        # Giai ma output, loc confidence va ap dung NMS.
         detections = self._postprocess(
             outputs=outputs,
             frame_width=frame_width,
@@ -69,6 +76,7 @@ class IngredientDetectionService:
             net=net,
         )
 
+        # Rut gon danh sach nhan duy nhat va tra response cuoi cung.
         labels = list(OrderedDict.fromkeys(item.label for item in detections))
         return IngredientDetectionResponse(
             labels=labels,
@@ -83,6 +91,7 @@ class IngredientDetectionService:
         except Exception as exc:
             raise IngredientDetectionError("Cannot decode uploaded image.") from exc
 
+        # PIL doc anh de dang hon, sau do doi sang numpy/BGR de OpenCV xu ly.
         rgb_image = pil_image.convert("RGB")
         image_array = np.array(rgb_image)
         return cv2.cvtColor(image_array, cv2.COLOR_RGB2BGR)
@@ -94,6 +103,7 @@ class IngredientDetectionService:
                 raise IngredientDetectionError(
                     f"Model file not found: {settings.model_path}"
                 )
+            # Load model ONNX mot lan va giu lai trong bo nho de tai su dung.
             cls._net = cv2.dnn.readNet(str(settings.model_path))
             cls._net.setPreferableBackend(0)
             cls._net.setPreferableTarget(0)
@@ -106,6 +116,7 @@ class IngredientDetectionService:
                 raise IngredientDetectionError(
                     f"Classes file not found: {settings.classes_path}"
                 )
+            # Moi dong trong file txt tuong ung voi mot nhan class cua model.
             cls._classes = [
                 line.strip()
                 for line in settings.classes_path.read_text(encoding="utf-8").splitlines()
@@ -116,6 +127,7 @@ class IngredientDetectionService:
     @classmethod
     def _get_out_names(cls) -> list[str]:
         if cls._out_names is None:
+            # Lay ten cac output layer de dung cho forward(...).
             net = cls._get_net()
             cls._out_names = list(net.getUnconnectedOutLayersNames())
         return cls._out_names
@@ -129,6 +141,7 @@ class IngredientDetectionService:
         out_names: list[str],
         net,
     ) -> list[DetectionItem]:
+        # Postprocess dua tren logic Streamlit goc: giai ma box, score va class.
         layer_names = net.getLayerNames()
         last_layer_id = net.getLayerId(layer_names[-1])
         last_layer = net.getLayer(last_layer_id)
@@ -137,8 +150,10 @@ class IngredientDetectionService:
         confidences: list[float] = []
         boxes: list[list[int]] = []
 
+        # Chuan hoa output ve dang de lap qua tung tensor.
         processed_outputs = outputs if isinstance(outputs, (list, tuple)) else [outputs]
 
+        # Tinh ti le scale box theo kich thuoc anh goc.
         if last_layer.type == "Region":
             box_scale_w = frame_width
             box_scale_h = frame_height
@@ -146,12 +161,14 @@ class IngredientDetectionService:
             box_scale_w = frame_width / float(self.input_size)
             box_scale_h = frame_height / float(self.input_size)
 
+        # Duyet tung output va tung detection de lay class, score va bounding box.
         if last_layer.type == "Region" or self.postprocessing == "yolov8":
             for out in processed_outputs:
                 current = out
                 if current is None:
                     continue
 
+                # YOLOv8 ONNX thuong can transpose ve [num_boxes, features].
                 if current.ndim == 3:
                     current = current[0].transpose(1, 0)
                 elif current.ndim == 2 and current.shape[0] < current.shape[1]:
@@ -161,6 +178,7 @@ class IngredientDetectionService:
                     if detection.shape[0] < 5:
                         continue
 
+                    # Lay vector score, chon class co score cao nhat va loc theo threshold.
                     scores = detection[4:]
                     if self.background_label_id >= 0:
                         scores = np.delete(scores, self.background_label_id)
@@ -170,6 +188,7 @@ class IngredientDetectionService:
                     if confidence <= self.confidence_threshold:
                         continue
 
+                    # Chuyen toa do center-width-height thanh left-top-width-height.
                     center_x = int(detection[0] * box_scale_w)
                     center_y = int(detection[1] * box_scale_h)
                     width = int(detection[2] * box_scale_w)
@@ -191,6 +210,7 @@ class IngredientDetectionService:
             last_layer_type=last_layer.type,
         )
 
+        # Chuyen ket qua da loc thanh schema response.
         detections: list[DetectionItem] = []
         for index in selected_indices:
             left, top, width, height = boxes[index]
@@ -217,6 +237,7 @@ class IngredientDetectionService:
         if not class_ids:
             return []
 
+        # Giu hanh vi NMS gan voi logic goc trong file Streamlit.
         need_nms = len(out_names) > 1 or (
             (last_layer_type == "Region" or self.postprocessing == "yolov8")
             and self.backend != cv2.dnn.DNN_BACKEND_OPENCV
@@ -224,12 +245,14 @@ class IngredientDetectionService:
         if not need_nms:
             return list(range(len(class_ids)))
 
+        # NMS theo tung class de giam box trung lap nhung van giu nhan hop le.
         class_ids_array = np.array(class_ids)
         boxes_array = np.array(boxes)
         confidences_array = np.array(confidences)
 
         indices: list[int] = []
         for class_id in set(class_ids_array.tolist()):
+            # Tach box theo tung class roi moi chay NMS.
             class_indices = np.where(class_ids_array == class_id)[0]
             class_confidences = confidences_array[class_indices]
             class_boxes = boxes_array[class_indices].tolist()
@@ -242,6 +265,7 @@ class IngredientDetectionService:
             if nms_indices is None or len(nms_indices) == 0:
                 continue
 
+            # Map chi so sau NMS ve chi so goc cua danh sach detection.
             flattened = np.array(nms_indices).reshape(-1)
             for idx in flattened:
                 indices.append(int(class_indices[int(idx)]))
