@@ -15,9 +15,9 @@ class Settings(BaseSettings):
     model_path: Path = BASE_DIR / "assets" / "models" / "yolov8n_traicay.onnx"
     classes_path: Path = BASE_DIR / "assets" / "classes" / "fruit_detection_classes_yolo.txt"
     input_size: int = 640
-    confidence_threshold: float = 0.5
-    nms_threshold: float = 0.4
-    scale: float = 0.00392
+    confidence_threshold: float = 0.5 #Ngưỡng confidence để giữ detection
+    nms_threshold: float = 0.4 #Ngưỡng NMS để loại bớt box trùng nhau
+    scale: float = 0.00392 #Hệ số scale khi đưa ảnh vào model
 
 
 settings = Settings()
