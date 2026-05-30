@@ -31,6 +31,18 @@
         <spring-cloud.version>2025.0.0</spring-cloud.version>
     </properties>
     <dependencies>
+        <!-- PayPal Checkout SDK -->
+        <dependency>
+            <groupId>com.paypal.sdk</groupId>
+            <artifactId>checkout-sdk</artifactId>
+            <version>2.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.paypal.sdk</groupId>
+            <artifactId>paypal-core</artifactId>
+            <version>1.7.2</version>
+            <scope>compile</scope>
+        </dependency>
         <!-- REST Template -->
         <dependency>
             <groupId>org.apache.httpcomponents.client5</groupId>

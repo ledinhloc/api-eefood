@@ -277,4 +277,3 @@ volumes:
   pgadmin:
   elasticsearch-data:
   chroma_data:
-#  whisper_models:
