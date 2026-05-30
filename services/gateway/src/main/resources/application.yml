@@ -139,6 +139,10 @@ spring:
               uri: lb://RECIPE-SERVICE
               predicates:
                 - Path=/api/v1/recipe-review/**
+            - id: reaction-service
+              uri: lb://REACTION-SERVICE
+              predicates:
+                - Path=/api/v1/payment/**
     bus:
       enabled: true
     stream:

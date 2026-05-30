@@ -6,9 +6,12 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface LiveStreamRepository extends JpaRepository<LiveStream, Long> {
 
   LiveStream findTopByUserIdAndStatusInOrderByIdDesc(Long userId, List<LiveStreamStatus> scheduled);
+
+  Optional<LiveStream> findByIdAndStatus(Long id, LiveStreamStatus status);
 }
