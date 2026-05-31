@@ -1,8 +1,10 @@
 package com.eefood.reactionservice.service.payment;
 
+import com.eefood.reactionservice.dto.response.payment.DiamondPackageResponse;
 import com.eefood.reactionservice.enums.WalletHistoryType;
 import com.eefood.reactionservice.model.payment.UserWallet;
 import com.eefood.reactionservice.model.payment.WalletHistory;
+import com.eefood.reactionservice.repository.DiamondPackageRepository;
 import com.eefood.reactionservice.repository.payment.UserWalletRepository;
 import com.eefood.reactionservice.repository.payment.WalletHistoryRepository;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Map;
 
 @Slf4j
@@ -21,6 +24,25 @@ public class DiamondWalletService {
     private final UserWalletRepository userWalletRepository;
     private final WalletHistoryRepository walletHistoryRepository;
     private final SimpMessagingTemplate messagingTemplate;
+    private final DiamondPackageRepository diamondPackageRepository;
+
+    @Transactional(readOnly = true)
+    public List<DiamondPackageResponse> getAllPackages() {
+
+        return diamondPackageRepository
+                .findByIsActiveTrueOrderByPriceAsc()
+                .stream()
+                .map(pkg -> DiamondPackageResponse.builder()
+                        .id(pkg.getId())
+                        .diamondAmount(pkg.getDiamondAmount())
+                        .bonusDiamond(pkg.getBonusDiamond())
+                        .price(pkg.getPrice())
+                        .currency(pkg.getCurrency())
+                        .isActive(pkg.getIsActive())
+                        .build())
+                .toList();
+    }
+
     // Trừ dimond
     @Transactional(propagation = Propagation.REQUIRED)
     public void spend(Long userId, Long amount) {

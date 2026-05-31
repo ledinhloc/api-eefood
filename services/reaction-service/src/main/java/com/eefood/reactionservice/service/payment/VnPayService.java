@@ -137,13 +137,20 @@ public class VnPayService {
         Map<String, String> result = new HashMap<>();
 
         try {
-            // Verify chữ ký
-            String vnpSecureHash = params.remove("vnp_SecureHash");
-            params.remove("vnp_SecureHashType");
-            String hashData = VnPayUtils.buildQueryString(params);
+            // Tách ra trước, KHÔNG remove khỏi map gốc ngay
+            String vnpSecureHash = params.get("vnp_SecureHash");
+
+            // Build map chỉ gồm các params cần hash (loại bỏ SecureHash fields)
+            Map<String, String> hashParams = new HashMap<>(params);
+            hashParams.remove("vnp_SecureHash");
+            hashParams.remove("vnp_SecureHashType");
+
+            // Dùng buildHashData (sorted, không encode) thay vì buildQueryString
+            String hashData = VnPayUtils.buildHashData(hashParams);
             String calculatedHash = VnPayUtils.hmacSHA512(vnPayConfig.getHashSecret(), hashData);
 
             if (!calculatedHash.equalsIgnoreCase(vnpSecureHash)) {
+                log.warn("IPN invalid checksum. Expected={}, Got={}", calculatedHash, vnpSecureHash);
                 result.put("RspCode", "97");
                 result.put("Message", "Invalid Checksum");
                 return result;
@@ -227,9 +234,13 @@ public class VnPayService {
         params.put("vnp_OrderType", vnPayConfig.getOrderType());
         params.put("vnp_Locale", vnPayConfig.getLocale());
         params.put("vnp_ReturnUrl", vnPayConfig.getReturnUrl());
-        params.put("vnp_IpAddr", clientIp != null ? clientIp : "127.0.0.1");
+        params.put("vnp_IpAddr", "127.0.0.1");
         params.put("vnp_CreateDate", VnPayUtils.formatVNPayDate(now));
         params.put("vnp_ExpireDate", VnPayUtils.formatVNPayDate(expireTime));
+
+//        if (vnPayConfig.getIpnUrl() != null && !vnPayConfig.getIpnUrl().isBlank()) {
+//            params.put("vnp_IpnUrl", vnPayConfig.getIpnUrl());
+//        }
 
         // Tạo chuỗi hash (không encode)
         String hashData = VnPayUtils.buildHashData(params);

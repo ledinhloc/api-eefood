@@ -30,6 +30,7 @@ public class SecurityConfig {
               .requestMatchers(HttpMethod.GET, "/api/v1/posts").permitAll()
               .requestMatchers(HttpMethod.GET, "/api/v1/posts/my").permitAll()
               .requestMatchers(HttpMethod.GET, "/api/v1/livestreams/check").permitAll()
+              .requestMatchers(HttpMethod.GET, "/api/v1/payment/vnpay/ipn").permitAll()
               .anyRequest().authenticated());
 
     httpSecurity.oauth2ResourceServer(
