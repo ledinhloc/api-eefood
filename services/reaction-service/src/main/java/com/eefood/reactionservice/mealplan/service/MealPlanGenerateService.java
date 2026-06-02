@@ -10,9 +10,9 @@ import com.eefood.reactionservice.mealplan.dto.ai.MealPlanAiCandidate;
 import com.eefood.reactionservice.mealplan.dto.request.MealPlanGenerateRequest;
 import com.eefood.reactionservice.mealplan.dto.response.MealPlanResponse;
 import com.eefood.reactionservice.mealplan.dto.response.NutritionAnalysisResponse;
-import com.eefood.reactionservice.mealplan.enums.MealPlanItemSource;
-import com.eefood.reactionservice.mealplan.enums.MealPlanItemStatus;
 import com.eefood.reactionservice.mealplan.enums.MealSlot;
+import com.eefood.reactionservice.mealplan.mapper.MealPlanAiMapper;
+import com.eefood.reactionservice.mealplan.mapper.MealPlanItemMapper;
 import com.eefood.reactionservice.mealplan.model.MealPlan;
 import com.eefood.reactionservice.mealplan.model.MealPlanItem;
 import com.eefood.reactionservice.mealplan.repo.MealPlanItemIngredientRepository;
@@ -28,9 +28,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -60,6 +58,8 @@ public class MealPlanGenerateService {
     private final RecipeClient recipeClient;
     private final MealPlanService mealPlanService;
     private final MealPlanAiPlannerService mealPlanAiPlannerService;
+    private final MealPlanAiMapper mealPlanAiMapper;
+    private final MealPlanItemMapper mealPlanItemMapper;
     private final Executor applicationTaskExecutor;
 
     @Transactional
@@ -232,20 +232,7 @@ public class MealPlanGenerateService {
                 return null;
             }
 
-            return MealPlanAiCandidate.builder()
-                    .recipeId(post.getRecipeId())
-                    .postId(post.getId())
-                    .title(post.getTitle())
-                    .description(post.getDescription())
-                    .imageUrl(post.getImageUrl())
-                    .region(post.getRegion())
-                    .prepTime(post.getPrepTime())
-                    .cookTime(post.getCookTime())
-                    .difficulty(post.getDifficulty() != null ? post.getDifficulty().name() : null)
-                    .ingredientKeywords(post.getRecipeIngredientKeywords() != null
-                            ? new ArrayList<>(post.getRecipeIngredientKeywords()) : List.of())
-                    .nutrition(nutrition)
-                    .build();
+            return mealPlanAiMapper.toCandidate(post, nutrition);
         } catch (Exception e) {
             log.warn("Skip recipeId={} due to nutrition fetch failure: {}", post.getRecipeId(), e.getMessage());
             return null;
@@ -277,40 +264,10 @@ public class MealPlanGenerateService {
         return generated;
     }
 
-    private MealPlanItem toMealPlanItem(Long mealPlanId, GeneratedMealItem generatedItem) {
-        // Lưu kết quả AI thành MealPlanItem với snapshot dinh dưỡng từ recipe.
-        MealPlanAiCandidate candidate = generatedItem.getCandidate();
-        NutritionAnalysisResponse nutrition = candidate.getNutrition();
-
-        return MealPlanItem.builder()
-                .mealPlanId(mealPlanId)
-                .planDate(generatedItem.getPlanDate())
-                .mealSlot(generatedItem.getMealSlot())
-                .itemOrder(generatedItem.getItemOrder())
-                .itemSource(MealPlanItemSource.RECIPE)
-                .recipeId(candidate.getRecipeId())
-                .postId(candidate.getPostId())
-                .plannedServings(generatedItem.getServings())
-                .actualServings(null)
-                .status(MealPlanItemStatus.PLANNED)
-                .recipeTitle(candidate.getTitle())
-                .imageUrl(candidate.getImageUrl())
-                .calories(toBigDecimal(nutrition.getTotalCalories()))
-                .protein(toBigDecimal(nutrition.getTotalProtein()))
-                .carbs(toBigDecimal(nutrition.getTotalCarb()))
-                .fat(toBigDecimal(nutrition.getTotalFat()))
-                .fiber(toBigDecimal(nutrition.getTotalFiber()))
-                .sugar(toBigDecimal(nutrition.getTotalSugar()))
-                .calcium(toBigDecimal(nutrition.getTotalCalcium()))
-                .sodium(toBigDecimal(nutrition.getTotalSodium()))
-                .note(generatedItem.getNote())
-                .build();
-    }
-
     private void saveGeneratedItems(Long mealPlanId, List<GeneratedMealItem> generatedItems) {
         mealPlanItemRepository.saveAll(
                 generatedItems.stream()
-                        .map(item -> toMealPlanItem(mealPlanId, item))
+                        .map(item -> mealPlanItemMapper.toEntity(item, mealPlanId))
                         .toList()
         );
     }
@@ -564,7 +521,4 @@ public class MealPlanGenerateService {
         return Math.min(resolvedDays, MAX_GENERATE_DAYS);
     }
 
-    private BigDecimal toBigDecimal(Double value) {
-        return value == null ? null : BigDecimal.valueOf(value);
-    }
 }
