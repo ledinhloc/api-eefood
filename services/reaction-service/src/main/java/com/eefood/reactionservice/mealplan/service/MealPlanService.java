@@ -52,7 +52,7 @@ import java.util.stream.Collectors;
 public class MealPlanService {
     private static final int MAX_GENERATE_DAYS = 5;
     private static final int DEFAULT_DAYS = 3;
-    private static final int INITIAL_POST_LIMIT = 30;
+    private static final int POST_LIMIT = 20;
     private static final int CANDIDATE_LIMIT = 12;
     private static final List<MealSlot> DEFAULT_SLOTS = List.of(MealSlot.BREAKFAST, MealSlot.LUNCH, MealSlot.DINNER);
 
@@ -314,13 +314,13 @@ public class MealPlanService {
     ) {
         // Lay cac post da duyet, roi loai mon vi pham di ung.
         List<Post> approvedPosts = postRepository.findByStatusAndIsDeletedFalse(
-                PostStatus.APPROVED,
-                PageRequest.of(0, 100)
+                PostStatus.APPROVED
         );
 
         List<String> allergies = normalizeList(user != null ? user.getAllergies() : List.of());
         List<String> eatingPreferences = normalizeList(user != null ? user.getEatingPreferences() : List.of());
         List<String> dietaryPreferences = normalizeList(user != null ? user.getDietaryPreferences() : List.of());
+        List<String> healthConditions = normalizeList(user != null ? user.getHealthConditions() : List.of());
         // Dung city de cong nhe cho mon cung vung mien.
         String userCity = user != null && user.getAddress() != null && user.getAddress().get("city") != null
                 ? normalize(user.getAddress().get("city").asText())
@@ -340,7 +340,7 @@ public class MealPlanService {
                         userCity,
                         recentRecipeIds
                 )).reversed())
-                .limit(INITIAL_POST_LIMIT)
+                .limit(POST_LIMIT)
                 .toList();
 
         // Chi goi nutrition cho pool da qua vong loc dau de giam thoi gian cho.
@@ -357,6 +357,9 @@ public class MealPlanService {
         return futures.stream()
                 .map(CompletableFuture::join)
                 .filter(Objects::nonNull)
+                .sorted(Comparator.comparingInt((MealPlanAiCandidate candidate) ->
+                        scoreCandidateByNutrition(candidate, goal, healthConditions)
+                ).reversed())
                 .limit(CANDIDATE_LIMIT)
                 .toList();
     }
@@ -427,6 +430,83 @@ public class MealPlanService {
         return allergies.stream().anyMatch(allergy ->
                 ingredientNames.stream().anyMatch(name -> name.contains(allergy) || allergy.contains(name))
         );
+    }
+
+    private int scoreCandidateByNutrition(MealPlanAiCandidate candidate, String goal, List<String> healthConditions) {
+        if (candidate.getNutrition() == null) {
+            return 0;
+        }
+
+        String normalizedGoal = normalize(goal);
+        int score = 0;
+
+        if (hasAnyTextMatch(normalizedGoal, List.of("giảm cân", "giam can", "eat clean", "healthy", "ăn kiêng", "an kieng"))) {
+            score += scoreWeightLossNutrition(candidate);
+        }
+        if (hasAnyTextMatch(normalizedGoal, List.of("tăng cơ", "tang co", "protein", "muscle"))) {
+            score += scoreHighProteinNutrition(candidate);
+        }
+        if (hasAnyTextMatch(normalizedGoal, List.of("ít đường", "it duong", "tiểu đường", "tieu duong", "low sugar"))
+                || hasAnyTextMatch(healthConditions, List.of("tiểu đường", "tieu duong", "diabetes"))) {
+            score += scoreLowSugarNutrition(candidate);
+        }
+        if (hasAnyTextMatch(healthConditions, List.of("cao huyết áp", "cao huyet ap", "hypertension"))) {
+            score += scoreLowSodiumNutrition(candidate);
+        }
+        if (hasAnyTextMatch(healthConditions, List.of("mỡ máu", "mo mau", "cholesterol", "tim mạch", "tim mach"))) {
+            score += scoreLowFatNutrition(candidate);
+        }
+
+        return score;
+    }
+
+    private int scoreWeightLossNutrition(MealPlanAiCandidate candidate) {
+        double calories = nutritionValue(candidate.getNutrition().getTotalCalories());
+        double protein = nutritionValue(candidate.getNutrition().getTotalProtein());
+        double fiber = nutritionValue(candidate.getNutrition().getTotalFiber());
+
+        int score = 0;
+        score += calories <= 400 ? 8 : calories <= 600 ? 4 : calories >= 800 ? -8 : 0;
+        score += protein >= 25 ? 6 : protein >= 15 ? 3 : 0;
+        score += fiber >= 5 ? 6 : fiber >= 3 ? 3 : 0;
+        return score;
+    }
+
+    private int scoreHighProteinNutrition(MealPlanAiCandidate candidate) {
+        double protein = nutritionValue(candidate.getNutrition().getTotalProtein());
+        return protein >= 35 ? 12 : protein >= 25 ? 8 : protein >= 15 ? 4 : 0;
+    }
+
+    private int scoreLowSugarNutrition(MealPlanAiCandidate candidate) {
+        double sugar = nutritionValue(candidate.getNutrition().getTotalSugar());
+        double fiber = nutritionValue(candidate.getNutrition().getTotalFiber());
+
+        int score = 0;
+        score += sugar <= 5 ? 10 : sugar <= 10 ? 5 : sugar >= 20 ? -10 : 0;
+        score += fiber >= 5 ? 5 : fiber >= 3 ? 2 : 0;
+        return score;
+    }
+
+    private int scoreLowSodiumNutrition(MealPlanAiCandidate candidate) {
+        double sodium = nutritionValue(candidate.getNutrition().getTotalSodium());
+        return sodium <= 400 ? 8 : sodium <= 700 ? 4 : sodium >= 1000 ? -8 : 0;
+    }
+
+    private int scoreLowFatNutrition(MealPlanAiCandidate candidate) {
+        double fat = nutritionValue(candidate.getNutrition().getTotalFat());
+        return fat <= 15 ? 8 : fat <= 25 ? 4 : fat >= 35 ? -8 : 0;
+    }
+
+    private boolean hasAnyTextMatch(String text, List<String> keywords) {
+        return keywords.stream().anyMatch(keyword -> isTextMatch(text, keyword));
+    }
+
+    private boolean hasAnyTextMatch(List<String> values, List<String> keywords) {
+        return values.stream().anyMatch(value -> hasAnyTextMatch(value, keywords));
+    }
+
+    private double nutritionValue(Double value) {
+        return value == null ? 0d : value;
     }
 
     private int scorePostForInitialSelection(
