@@ -65,7 +65,13 @@ public class MealPlanGenerateService {
     @Transactional
     public MealPlanResponse generateInitialMealPlan(Long userId, MealPlanGenerateRequest request) {
         // lấy user + candidate, generate plan, rồi thay item hiện tại của plan.
-        validateGenerateRequest(userId, request);
+        if (userId == null || request == null || request.getStartDate() == null || request.getGoal() == null || request.getGoal().isBlank()) {
+          throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
+        }
+
+        if (request.getDays() != null && (request.getDays() <= 0 || request.getDays() > MAX_GENERATE_DAYS)) {
+          throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
+        }
 
         UserResponse user = iamClient.getUserById(userId).getData();
         UserBodyMetricsResponse bodyMetrics = iamClient.getUserBodyMetrics(userId).getData();
@@ -556,17 +562,6 @@ public class MealPlanGenerateService {
     private int resolveDays(Integer days) {
         int resolvedDays = days == null || days <= 0 ? DEFAULT_DAYS : days;
         return Math.min(resolvedDays, MAX_GENERATE_DAYS);
-    }
-
-    private void validateGenerateRequest(Long userId, MealPlanGenerateRequest request) {
-        // Validate request cơ bản trước khi gọi xuống các service khác.
-        if (userId == null || request == null || request.getStartDate() == null || request.getGoal() == null || request.getGoal().isBlank()) {
-            throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
-        }
-
-        if (request.getDays() != null && (request.getDays() <= 0 || request.getDays() > MAX_GENERATE_DAYS)) {
-            throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
-        }
     }
 
     private BigDecimal toBigDecimal(Double value) {

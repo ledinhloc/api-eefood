@@ -10,7 +10,7 @@ import com.eefood.reactionservice.mealplan.dto.response.MealPlanResponse;
 import com.eefood.reactionservice.mealplan.dto.response.NutritionAnalysisResponse;
 import com.eefood.reactionservice.mealplan.enums.MealPlanItemSource;
 import com.eefood.reactionservice.mealplan.enums.MealPlanItemStatus;
-import com.eefood.reactionservice.mealplan.mapper.MealPlanMapper;
+import com.eefood.reactionservice.mealplan.mapper.MealPlanItemMapper;
 import com.eefood.reactionservice.mealplan.model.MealPlan;
 import com.eefood.reactionservice.mealplan.model.MealPlanItem;
 import com.eefood.reactionservice.mealplan.model.MealPlanItemIngredient;
@@ -28,7 +28,6 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -39,7 +38,7 @@ public class MealPlanItemService {
     private final MealPlanItemIngredientRepository mealPlanItemIngredientRepository;
     private final PostRepository postRepository;
     private final RecipeClient recipeClient;
-    private final MealPlanMapper mealPlanMapper;
+    private final MealPlanItemMapper mealPlanItemMapper;
     private final MealPlanService mealPlanService;
 
     @Transactional
@@ -87,24 +86,24 @@ public class MealPlanItemService {
         return mealPlanService.getCurrentMealPlan(userId);
     }
 
-    @Transactional
-    public MealPlanItemResponse getMealPlanItemDetail(Long userId, Long itemId) {
-        if (userId == null || itemId == null) {
-            throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
-        }
+    // @Transactional
+    // public MealPlanItemResponse getMealPlanItemDetail(Long userId, Long itemId) {
+    //     if (userId == null || itemId == null) {
+    //         throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
+    //     }
 
-        MealPlan mealPlan = mealPlanRepository.findByUserId(userId)
-                .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.MEAL_PLAN_NOT_FOUND));
+    //     MealPlan mealPlan = mealPlanRepository.findByUserId(userId)
+    //             .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.MEAL_PLAN_NOT_FOUND));
 
-        MealPlanItem item = mealPlanItemRepository.findByIdAndMealPlanId(itemId, mealPlan.getId())
-                .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.MEAL_PLAN_ITEM_NOT_FOUND));
+    //     MealPlanItem item = mealPlanItemRepository.findByIdAndMealPlanId(itemId, mealPlan.getId())
+    //             .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.MEAL_PLAN_ITEM_NOT_FOUND));
 
-        return buildItemResponse(item);
-    }
+    //     return buildItemResponse(item);
+    // }
 
     private MealPlanItemResponse buildItemResponse(MealPlanItem item) {
         // Chỉ nạp lại ingredients của riêng item vừa upsert để tránh over-fetch cả meal plan.
-        MealPlanItemResponse response = mealPlanMapper.toResponse(item);
+        MealPlanItemResponse response = mealPlanItemMapper.toResponse(item);
         BigDecimal multiplier = BigDecimal.valueOf(resolveServings(item));
 
         response.setCalories(scale(item.getCalories(), multiplier));
@@ -117,7 +116,7 @@ public class MealPlanItemService {
         response.setSodium(scale(item.getSodium(), multiplier));
         response.setIngredients(
                 mealPlanItemIngredientRepository.findAllByMealPlanItemIdIn(List.of(item.getId())).stream()
-                        .map(mealPlanMapper::toResponse)
+                        .map(mealPlanItemMapper::toResponse)
                         .toList()
         );
         return response;
@@ -221,14 +220,8 @@ public class MealPlanItemService {
         List<MealPlanItemIngredient> entities = ingredients.stream()
                 .filter(Objects::nonNull)
                 .filter(ingredient -> ingredient.getName() != null && !ingredient.getName().isBlank())
-                .map(ingredient -> MealPlanItemIngredient.builder()
-                        .mealPlanItemId(mealPlanItemId)
-                        .name(ingredient.getName().trim())
-                        .quantity(ingredient.getQuantity())
-                        .unit(ingredient.getUnit())
-                        .note(ingredient.getNote())
-                        .build())
-                .collect(Collectors.toList());
+                .map(ingredient -> mealPlanItemMapper.toEntity(ingredient, mealPlanItemId))
+                .toList();
 
         if (!entities.isEmpty()) {
             mealPlanItemIngredientRepository.saveAll(entities);

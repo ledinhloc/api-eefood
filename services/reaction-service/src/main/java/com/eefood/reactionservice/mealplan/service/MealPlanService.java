@@ -7,6 +7,7 @@ import com.eefood.reactionservice.mealplan.dto.response.MealPlanDailySummaryResp
 import com.eefood.reactionservice.mealplan.dto.response.MealPlanItemIngredientResponse;
 import com.eefood.reactionservice.mealplan.dto.response.MealPlanItemResponse;
 import com.eefood.reactionservice.mealplan.dto.response.MealPlanResponse;
+import com.eefood.reactionservice.mealplan.mapper.MealPlanItemMapper;
 import com.eefood.reactionservice.mealplan.mapper.MealPlanMapper;
 import com.eefood.reactionservice.mealplan.model.MealPlan;
 import com.eefood.reactionservice.mealplan.model.MealPlanItem;
@@ -29,11 +30,11 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class MealPlanService {
-
     private final MealPlanRepository mealPlanRepository;
     private final MealPlanItemRepository mealPlanItemRepository;
     private final MealPlanItemIngredientRepository mealPlanItemIngredientRepository;
     private final MealPlanMapper mealPlanMapper;
+    private final MealPlanItemMapper mealPlanItemMapper;
 
     @Transactional
     public MealPlanResponse upsertCurrentMealPlan(Long userId, MealPlanUpsertRequest request) {
@@ -42,14 +43,10 @@ public class MealPlanService {
         MealPlan mealPlan = mealPlanRepository.findByUserId(userId)
                 .orElseGet(() -> MealPlan.builder().userId(userId).build());
 
-        mealPlan.setGoal(request.getGoal());
-        mealPlan.setStartDate(request.getStartDate());
-        mealPlan.setEndDate(request.getEndDate());
-        mealPlan.setNote(request.getNote());
-        mealPlan.setUserHealthNote(request.getUserHealthNote());
+        mealPlanMapper.updateFromRequest(request, mealPlan);
 
         MealPlan savedMealPlan = mealPlanRepository.save(mealPlan);
-        return buildMealPlanResponse(savedMealPlan);
+        return mealPlanMapper.toResponse(savedMealPlan);
     }
 
     @Transactional
@@ -59,7 +56,7 @@ public class MealPlanService {
         }
 
         return mealPlanRepository.findByUserId(userId)
-                .map(this::buildMealPlanResponse)
+                .map(mealPlanMapper::toResponse)
                 .orElse(null);
     }
 
@@ -95,21 +92,6 @@ public class MealPlanService {
     }
 
     @Transactional
-    public MealPlanDailySummaryResponse getDailySummary(Long userId, LocalDate planDate) {
-        if (userId == null || planDate == null) {
-            throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
-        }
-
-        MealPlan mealPlan = mealPlanRepository.findByUserId(userId)
-                .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.MEAL_PLAN_NOT_FOUND));
-
-        List<MealPlanItem> items = mealPlanItemRepository
-                .findAllByMealPlanIdAndPlanDateOrderByMealSlotAscItemOrderAsc(mealPlan.getId(), planDate);
-
-        return toDailySummary(planDate, items);
-    }
-
-    @Transactional
     public List<MealPlanItemResponse> getItemsByDate(Long userId, LocalDate planDate) {
         if (userId == null || planDate == null) {
             throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
@@ -126,14 +108,6 @@ public class MealPlanService {
 
         hydrateIngredients(responses);
         return responses;
-    }
-
-    private MealPlanResponse buildMealPlanResponse(MealPlan mealPlan) {
-        // Dựng response hoàn chỉnh của meal plan, bao gồm item và ingredients theo từng item.
-        MealPlanResponse response = mealPlanMapper.toResponse(mealPlan);
-
-        response.setItems(List.of());
-        return response;
     }
 
     private void validateUpsertRequest(Long userId, MealPlanUpsertRequest request) {
@@ -190,7 +164,7 @@ public class MealPlanService {
     }
 
     private MealPlanItemResponse toScaledItemResponse(MealPlanItem item) {
-        MealPlanItemResponse response = mealPlanMapper.toResponse(item);
+        MealPlanItemResponse response = mealPlanItemMapper.toResponse(item);
         BigDecimal multiplier = BigDecimal.valueOf(resolveServings(item));
 
         response.setCalories(scale(item.getCalories(), multiplier));
@@ -224,7 +198,7 @@ public class MealPlanService {
                 .stream()
                 .collect(Collectors.groupingBy(
                         MealPlanItemIngredient::getMealPlanItemId,
-                        Collectors.mapping(mealPlanMapper::toResponse, Collectors.toList())
+                        Collectors.mapping(mealPlanItemMapper::toResponse, Collectors.toList())
                 ));
 
         items.forEach(item -> item.setIngredients(ingredientsByItemId.getOrDefault(item.getId(), List.of())));

@@ -49,16 +49,6 @@ public class MealPlanController {
         );
     }
 
-    @GetMapping("/daily-summary/by-date")
-    public ResponseData<MealPlanDailySummaryResponse> getDailySummaryByDate(@RequestParam LocalDate date) {
-        Long userId = securityUtil.getCurrentUserId();
-        return new ResponseData<>(
-                HttpStatus.OK.value(),
-                "Get Daily Summary By Date Success",
-                mealPlanService.getDailySummary(userId, date)
-        );
-    }
-
     @PutMapping
     public ResponseData<MealPlanResponse> upsertMealPlan(@RequestBody MealPlanUpsertRequest request) {
         Long userId = securityUtil.getCurrentUserId();
