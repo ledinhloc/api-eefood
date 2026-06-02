@@ -13,7 +13,7 @@ import org.mapstruct.Mapping;
 
 import java.math.BigDecimal;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", imports = {MealPlanItemSource.class, MealPlanItemStatus.class})
 public interface MealPlanItemMapper {
     @Mapping(target = "ingredients", ignore = true)
     MealPlanItemResponse toResponse(MealPlanItem mealPlanItem);

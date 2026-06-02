@@ -7,7 +7,6 @@ import com.eefood.reactionservice.mealplan.dto.request.MealPlanUpsertRequest;
 import com.eefood.reactionservice.mealplan.dto.response.MealPlanDailySummaryResponse;
 import com.eefood.reactionservice.mealplan.dto.response.MealPlanItemResponse;
 import com.eefood.reactionservice.mealplan.dto.response.MealPlanResponse;
-import com.eefood.reactionservice.mealplan.service.MealPlanGenerateService;
 import com.eefood.reactionservice.mealplan.service.MealPlanItemService;
 import com.eefood.reactionservice.mealplan.service.MealPlanService;
 import com.eefood.reactionservice.util.SecurityUtil;
@@ -26,7 +25,6 @@ public class MealPlanController {
 
     private final MealPlanService mealPlanService;
     private final MealPlanItemService mealPlanItemService;
-    private final MealPlanGenerateService mealPlanGenerateService;
     private final SecurityUtil securityUtil;
 
     @GetMapping
@@ -65,7 +63,7 @@ public class MealPlanController {
         return new ResponseData<>(
                 HttpStatus.OK.value(),
                 "Generate Meal Plan Success",
-                mealPlanGenerateService.generateInitialMealPlan(userId, request)
+                mealPlanService.generateInitialMealPlan(userId, request)
         );
     }
 
@@ -78,7 +76,7 @@ public class MealPlanController {
         return new ResponseData<>(
                 HttpStatus.OK.value(),
                 "Continue Meal Plan Success",
-                mealPlanGenerateService.continueMealPlan(userId, startDate, days)
+                mealPlanService.continueMealPlan(userId, startDate, days)
         );
     }
 

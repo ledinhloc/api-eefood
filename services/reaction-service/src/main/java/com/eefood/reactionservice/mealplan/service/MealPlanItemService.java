@@ -3,7 +3,6 @@ package com.eefood.reactionservice.mealplan.service;
 import com.eefood.reactionservice.enums.ErrorMessage;
 import com.eefood.reactionservice.enums.PostStatus;
 import com.eefood.reactionservice.exception.ExceptionUtil;
-import com.eefood.reactionservice.mealplan.dto.request.MealPlanItemIngredientUpsertRequest;
 import com.eefood.reactionservice.mealplan.dto.request.MealPlanItemUpsertRequest;
 import com.eefood.reactionservice.mealplan.dto.response.MealPlanItemResponse;
 import com.eefood.reactionservice.mealplan.dto.response.MealPlanResponse;
@@ -13,8 +12,6 @@ import com.eefood.reactionservice.mealplan.enums.MealPlanItemStatus;
 import com.eefood.reactionservice.mealplan.mapper.MealPlanItemMapper;
 import com.eefood.reactionservice.mealplan.model.MealPlan;
 import com.eefood.reactionservice.mealplan.model.MealPlanItem;
-import com.eefood.reactionservice.mealplan.model.MealPlanItemIngredient;
-import com.eefood.reactionservice.mealplan.repo.MealPlanItemIngredientRepository;
 import com.eefood.reactionservice.mealplan.repo.MealPlanItemRepository;
 import com.eefood.reactionservice.mealplan.repo.MealPlanRepository;
 import com.eefood.reactionservice.model.Post;
@@ -26,8 +23,6 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.List;
-import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -35,11 +30,11 @@ public class MealPlanItemService {
 
     private final MealPlanRepository mealPlanRepository;
     private final MealPlanItemRepository mealPlanItemRepository;
-    private final MealPlanItemIngredientRepository mealPlanItemIngredientRepository;
     private final PostRepository postRepository;
     private final RecipeClient recipeClient;
     private final MealPlanItemMapper mealPlanItemMapper;
     private final MealPlanService mealPlanService;
+    private final MealPlanIngredientService mealPlanIngredientService;
 
     @Transactional
     public MealPlanItemResponse upsertMealPlanItem(Long userId, MealPlanItemUpsertRequest request) {
@@ -61,7 +56,7 @@ public class MealPlanItemService {
 
         // Nếu client gửi ingredients thì coi như muốn đồng bộ lại toàn bộ danh sách nguyên liệu.
         if (request.getIngredients() != null) {
-            replaceIngredients(savedItem.getId(), request.getIngredients());
+            mealPlanIngredientService.replaceIngredients(savedItem.getId(), request.getIngredients());
         }
 
         return buildItemResponse(savedItem);
@@ -80,7 +75,7 @@ public class MealPlanItemService {
         MealPlanItem item = mealPlanItemRepository.findByIdAndMealPlanId(itemId, mealPlan.getId())
                 .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.MEAL_PLAN_ITEM_NOT_FOUND));
 
-        mealPlanItemIngredientRepository.deleteAllByMealPlanItemId(item.getId());
+        mealPlanIngredientService.deleteIngredientsByItemId(item.getId());
         mealPlanItemRepository.delete(item);
 
         return mealPlanService.getCurrentMealPlan(userId);
@@ -104,11 +99,7 @@ public class MealPlanItemService {
     private MealPlanItemResponse buildItemResponse(MealPlanItem item) {
         // Chỉ nạp lại ingredients của riêng item vừa upsert để tránh over-fetch cả meal plan.
         MealPlanItemResponse response = mealPlanItemMapper.toScaledResponse(item);
-        response.setIngredients(
-                mealPlanItemIngredientRepository.findAllByMealPlanItemIdIn(List.of(item.getId())).stream()
-                        .map(mealPlanItemMapper::toResponse)
-                        .toList()
-        );
+        response.setIngredients(mealPlanIngredientService.getIngredientResponses(item.getId()));
         return response;
     }
 
@@ -201,21 +192,6 @@ public class MealPlanItemService {
             throw ExceptionUtil.notFound(ErrorMessage.RECIPE_NOT_FOUND);
         }
         return post;
-    }
-
-    private void replaceIngredients(Long mealPlanItemId, List<MealPlanItemIngredientUpsertRequest> ingredients) {
-        // Replace-all giúp FE chỉ cần gửi trạng thái ingredients cuối cùng, không phải gửi diff add/remove.
-        mealPlanItemIngredientRepository.deleteAllByMealPlanItemId(mealPlanItemId);
-
-        List<MealPlanItemIngredient> entities = ingredients.stream()
-                .filter(Objects::nonNull)
-                .filter(ingredient -> ingredient.getName() != null && !ingredient.getName().isBlank())
-                .map(ingredient -> mealPlanItemMapper.toEntity(ingredient, mealPlanItemId))
-                .toList();
-
-        if (!entities.isEmpty()) {
-            mealPlanItemIngredientRepository.saveAll(entities);
-        }
     }
 
     private void validateItemUpsertRequest(Long userId, MealPlanItemUpsertRequest request, MealPlanItem existingItem) {
