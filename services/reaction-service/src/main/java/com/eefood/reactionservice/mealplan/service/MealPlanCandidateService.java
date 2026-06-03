@@ -14,6 +14,7 @@ import com.eefood.reactionservice.repository.httpclient.RecipeClient;
 import com.eefood.reactionservice.repository.post.PostRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -31,7 +32,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 public class MealPlanCandidateService {
-    private static final int POST_LIMIT = 20;
+    private static final int APPROVED_POST_SCAN_LIMIT = 200;
+    private static final int POST_LIMIT = 15;
     private static final int CANDIDATE_LIMIT = 12;
 
     private final PostRepository postRepository;
@@ -43,7 +45,10 @@ public class MealPlanCandidateService {
     private final Executor applicationTaskExecutor;
 
     public List<MealPlanAiCandidate> loadCandidates(Long userId, UserResponse user, String goal) {
-        List<Post> approvedPosts = postRepository.findByStatusAndIsDeletedFalse(PostStatus.APPROVED);
+        List<Post> approvedPosts = postRepository.findByStatusAndIsDeletedFalse(
+                PostStatus.APPROVED,
+                PageRequest.of(0, APPROVED_POST_SCAN_LIMIT)
+        );
 
         List<String> allergies = normalizeList(user != null ? user.getAllergies() : List.of());
         List<String> eatingPreferences = normalizeList(user != null ? user.getEatingPreferences() : List.of());
