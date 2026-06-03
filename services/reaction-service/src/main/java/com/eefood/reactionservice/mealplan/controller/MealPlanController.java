@@ -27,6 +27,16 @@ public class MealPlanController {
     private final MealPlanItemService mealPlanItemService;
     private final SecurityUtil securityUtil;
 
+    @DeleteMapping
+    public ResponseData<Void> deleteCurrentMealPlan() {
+        Long userId = securityUtil.getCurrentUserId();
+        mealPlanService.deleteCurrentMealPlan(userId);
+        return new ResponseData<>(
+                HttpStatus.OK.value(),
+                "Delete Meal Plan Success"
+        );
+    }
+
     @GetMapping
     public ResponseData<MealPlanResponse> getCurrentMealPlan() {
         Long userId = securityUtil.getCurrentUserId();
