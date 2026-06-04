@@ -1,0 +1,7 @@
+livekit
+PyJWT
+requests
+python-dotenv
+faster-whisper
+fastapi==0.115.12
+uvicorn[standard]==0.34.2

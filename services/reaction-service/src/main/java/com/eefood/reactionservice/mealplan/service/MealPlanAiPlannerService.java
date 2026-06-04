@@ -66,24 +66,9 @@ public class MealPlanAiPlannerService {
         String candidateJson;
         try {
             candidateJson = objectMapper.writeValueAsString(
-                    candidates.stream().map(candidate -> Map.of(
-                            "recipeId", candidate.getRecipeId(),
-                            "postId", candidate.getPostId(),
-                            "title", candidate.getTitle(),
-                            "difficulty", candidate.getDifficulty(),
-                            "prepTime", candidate.getPrepTime(),
-                            "cookTime", candidate.getCookTime(),
-                            "ingredients", candidate.getIngredientKeywords(),
-                            "nutrition", Map.of(
-                                    "calories", defaultDouble(candidate.getNutrition().getTotalCalories()),
-                                    "protein", defaultDouble(candidate.getNutrition().getTotalProtein()),
-                                    "carbs", defaultDouble(candidate.getNutrition().getTotalCarb()),
-                                    "fat", defaultDouble(candidate.getNutrition().getTotalFat()),
-                                    "fiber", defaultDouble(candidate.getNutrition().getTotalFiber()),
-                                    "sugar", defaultDouble(candidate.getNutrition().getTotalSugar()),
-                                    "sodium", defaultDouble(candidate.getNutrition().getTotalSodium())
-                            )
-                    )).toList()
+                    candidates.stream()
+                            .map(this::toPromptCandidate)
+                            .toList()
             );
         } catch (Exception e) {
             candidateJson = "[]";
@@ -130,6 +115,27 @@ public class MealPlanAiPlannerService {
     }
 
     // Chỉ nhận các item JSON hợp lệ và phải trỏ tới candidate recipe đã biết.
+    private Map<String, Object> toPromptCandidate(MealPlanAiCandidate candidate) {
+        return Map.of(
+                "recipeId", candidate.getRecipeId(),
+                "title", candidate.getTitle(),
+                "ingredients", candidate.getIngredientKeywords(),
+                "nutrition", toPromptNutrition(candidate)
+        );
+    }
+
+    private Map<String, Object> toPromptNutrition(MealPlanAiCandidate candidate) {
+        return Map.of(
+                "calories", defaultDouble(candidate.getNutrition().getTotalCalories()),
+                "protein", defaultDouble(candidate.getNutrition().getTotalProtein()),
+                "carbs", defaultDouble(candidate.getNutrition().getTotalCarb()),
+                "fat", defaultDouble(candidate.getNutrition().getTotalFat()),
+                "fiber", defaultDouble(candidate.getNutrition().getTotalFiber()),
+                "sugar", defaultDouble(candidate.getNutrition().getTotalSugar()),
+                "sodium", defaultDouble(candidate.getNutrition().getTotalSodium())
+        );
+    }
+
     private List<GeneratedMealItem> parseGeneratedItems(
             String raw,
             LocalDate startDate,

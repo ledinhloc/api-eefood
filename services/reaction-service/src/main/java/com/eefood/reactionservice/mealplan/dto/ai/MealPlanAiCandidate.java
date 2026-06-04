@@ -15,6 +15,7 @@ import java.util.List;
 @AllArgsConstructor
 @Builder
 public class MealPlanAiCandidate {
+    //Post + nutrition từ recipe-service
     private Long recipeId;
     private Long postId;
     private String title;

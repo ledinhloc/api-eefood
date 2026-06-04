@@ -34,20 +34,20 @@ services:
       timeout: 10s
       retries: 5
 
-  kibana:
-    image: docker.elastic.co/kibana/kibana:8.11.1
-    container_name: kibana
-    depends_on:
-      elasticsearch:
-        condition: service_healthy
-    environment:
-      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-      - ELASTICSEARCH_USERNAME=kibana_system
-      - ELASTICSEARCH_PASSWORD=kibana123
-    ports:
-      - "5601:5601"
-    networks:
-      - microservices-net
+#  kibana:
+#    image: docker.elastic.co/kibana/kibana:8.11.1
+#    container_name: kibana
+#    depends_on:
+#      elasticsearch:
+#        condition: service_healthy
+#    environment:
+#      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+#      - ELASTICSEARCH_USERNAME=kibana_system
+#      - ELASTICSEARCH_PASSWORD=kibana123
+#    ports:
+#      - "5601:5601"
+#    networks:
+#      - microservices-net
 
   livekit:
     image: livekit/livekit-server:latest
@@ -57,8 +57,8 @@ services:
       LIVEKIT_PORT: "7880"
 
       # RTC Configuration - IP máy thật
-      LIVEKIT_RTC_NODE_IP: "192.168.1.8" #172.16.1.202
-      LIVEKIT_RTC_ANNOUNCE_IP: "192.168.1.8"
+      LIVEKIT_RTC_NODE_IP: "192.168.2.11"
+      LIVEKIT_RTC_ANNOUNCE_IP: "192.168.2.11"
 
       # Port range cho RTC (UDP)
       LIVEKIT_RTC_PORT_RANGE_START: "50100"
@@ -99,44 +99,26 @@ services:
       - microservices-net
 #    restart: unless-stopped
 
-  zookeeper:
-    image: confluentinc/cp-zookeeper:latest
-    container_name: zookeeper
-    environment:
-      ZOOKEEPER_SERVER_ID: 1
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-    mem_limit: 512m
-    ports:
-      - "22181:2181"
-    networks:
-      - microservices-net
-    healthcheck:
-      test: echo srvr | nc localhost 2181 || exit 1
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   kafka:
     image: confluentinc/cp-kafka:7.4.3
     container_name: kafka
-    depends_on:
-      zookeeper:
-        condition: service_healthy
     ports:
       - "9092:9092"
       - "9093:9093"
     environment:
-      KAFKA_BROKER_ID: 2
-      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:29093'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_LISTENERS: PLAINTEXT_INTERNAL://0.0.0.0:29092,PLAINTEXT_C://0.0.0.0:9093,PLAINTEXT_L://0.0.0.0:9092
+      KAFKA_LISTENERS: PLAINTEXT_INTERNAL://0.0.0.0:29092,PLAINTEXT_C://0.0.0.0:9093,PLAINTEXT_L://0.0.0.0:9092,CONTROLLER://0.0.0.0:29093
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT_INTERNAL://kafka:29092,PLAINTEXT_L://localhost:9092,PLAINTEXT_C://kafka:9093
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT_INTERNAL:PLAINTEXT,PLAINTEXT_L:PLAINTEXT,PLAINTEXT_C:PLAINTEXT
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT_INTERNAL:PLAINTEXT,PLAINTEXT_L:PLAINTEXT,PLAINTEXT_C:PLAINTEXT,CONTROLLER:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
-      KAFKA_HEAP_OPTS: "-Xms512m -Xmx512m"
+      KAFKA_HEAP_OPTS: "-Xms256m -Xmx256m"
     mem_limit: 1g
     networks:
       - microservices-net
@@ -168,23 +150,22 @@ services:
       timeout: 5s
       retries: 5
 
-  kafka-ui:
-    image: provectuslabs/kafka-ui:latest
-    container_name: kafka_ui
-    depends_on:
-      - kafka
-    ports:
-      - "9010:8080"
-    environment:
-      - KAFKA_CLUSTERS_0_NAME=kafka
-      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9093
-      - KAFKA_CLUSTERS_0_ZOOKEEPER=zookeeper:2181
-      - KAFKA_CLUSTERS_0_SCHEMAREGISTRY=http://schema-registry:8081
-      - JAVA_OPTS=-Xms128m -Xmx256m
-    mem_limit: 512m
-#    restart: always
-    networks:
-      - microservices-net
+#  kafka-ui:
+#    image: provectuslabs/kafka-ui:latest
+#    container_name: kafka_ui
+#    depends_on:
+#      - kafka
+#    ports:
+#      - "9010:8080"
+#    environment:
+#      - KAFKA_CLUSTERS_0_NAME=kafka
+#      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9093
+#      - KAFKA_CLUSTERS_0_SCHEMAREGISTRY=http://schema-registry:8081
+#      - JAVA_OPTS=-Xms128m -Xmx256m
+#    mem_limit: 512m
+##    restart: always
+#    networks:
+#      - microservices-net
 
   keycloak:
     container_name: keycloak
@@ -226,17 +207,31 @@ services:
     networks:
       - microservices-net
 
-  redisinsight:
-    image: redis/redisinsight:latest
-    container_name: redis-ui
-    mem_limit: 512m
-#    restart: always
-    ports:
-      - "5540:5540"
-    depends_on:
-      - redis
-    networks:
-      - microservices-net
+#  redisinsight:
+#    image: redis/redisinsight:latest
+#    container_name: redis-ui
+#    mem_limit: 512m
+##    restart: always
+#    ports:
+#      - "5540:5540"
+#    depends_on:
+#      - redis
+#    networks:
+#      - microservices-net
+
+#  whisper:
+#    image: ghcr.io/ggml-org/whisper.cpp:main
+#    container_name: whisper
+#    entrypoint: ["/bin/bash", "-lc"]
+#    ports:
+#      - "8091:8080"
+#    volumes:
+#      - whisper_models:/models
+#    command:
+#      - "mkdir -p /models && (test -f /models/ggml-tiny.bin || /app/models/download-ggml-model.sh tiny /models) && /app/build/bin/whisper-server --host 0.0.0.0 --port 8080 -m /models/ggml-tiny.bin"
+#    mem_limit: 768m
+#    networks:
+#      - microservices-net
 
 #  loki:
 #    container_name: loki
