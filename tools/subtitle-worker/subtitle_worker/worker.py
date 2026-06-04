@@ -3,11 +3,11 @@ import logging
 from datetime import datetime
 from typing import Optional
 
-from audio_chunker import AudioChunker
-from backend_client import BackendClient
-from config import WorkerConfig
-from livekit_client import LiveKitAudioClient
-from whisper_client import WhisperClient
+from subtitle_worker.audio.chunker import AudioChunker
+from subtitle_worker.clients.backend import BackendClient
+from subtitle_worker.clients.livekit import LiveKitAudioClient
+from subtitle_worker.clients.whisper import WhisperClient
+from subtitle_worker.config import WorkerConfig
 
 
 logger = logging.getLogger("subtitle-worker")

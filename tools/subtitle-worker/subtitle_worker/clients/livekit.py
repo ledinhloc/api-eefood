@@ -6,8 +6,8 @@ from typing import Awaitable, Callable
 import jwt
 from livekit import rtc
 
-from audio_chunker import AudioChunker
-from config import WorkerConfig
+from subtitle_worker.audio.chunker import AudioChunker
+from subtitle_worker.config import WorkerConfig
 
 
 logger = logging.getLogger("subtitle-worker")

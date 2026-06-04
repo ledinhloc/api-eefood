@@ -45,33 +45,31 @@ LIVEKIT_API_KEY=devkey
 LIVEKIT_API_SECRET=secret
 REACTION_BASE_URL=http://127.0.0.1:8095
 
-AUDIO_NUM_CHANNELS=2
+AUDIO_NUM_CHANNELS=1
 SPOKEN_LANGUAGE=vi
 
 WORKER_CONTROL_HOST=127.0.0.1
 WORKER_CONTROL_PORT=9000
 ```
 
-`ROOM_NAME` va `LIVE_STREAM_ID` khong can sua nua. Backend se gui hai gia tri nay qua `/start`.
-
 ## Run
 
 Khuyen dung Uvicorn:
 
 ```powershell
-uvicorn app:app --host 127.0.0.1 --port 9000
+uvicorn subtitle_worker.app:app --host 127.0.0.1 --port 9000
 ```
 
 Neu muon auto reload khi sua code:
 
 ```powershell
-uvicorn app:app --reload --host 127.0.0.1 --port 9000
+uvicorn subtitle_worker.app:app --reload --host 127.0.0.1 --port 9000
 ```
 
 Co the chay bang Python:
 
 ```powershell
-python app.py
+python -m subtitle_worker.app
 ```
 
 ## Endpoints

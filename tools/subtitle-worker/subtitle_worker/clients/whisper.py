@@ -4,7 +4,7 @@ import os
 
 from faster_whisper import WhisperModel
 
-from config import WorkerConfig
+from subtitle_worker.config import WorkerConfig
 
 
 DEFAULT_BEAM_SIZE = 3

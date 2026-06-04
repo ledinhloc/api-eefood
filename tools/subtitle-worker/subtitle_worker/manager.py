@@ -3,8 +3,8 @@ import logging
 from dataclasses import dataclass
 from typing import Any, Optional
 
-from config import WorkerConfig
-from subtitle_worker import SubtitleWorker
+from subtitle_worker.config import WorkerConfig
+from subtitle_worker.worker import SubtitleWorker
 
 
 logger = logging.getLogger("subtitle-worker")

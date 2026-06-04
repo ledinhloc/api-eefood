@@ -6,8 +6,8 @@ from typing import Any
 import uvicorn
 from fastapi import FastAPI, HTTPException
 
-from config import load_config
-from subtitle_manager import SubtitleWorkerManager
+from subtitle_worker.config import load_config
+from subtitle_worker.manager import SubtitleWorkerManager
 
 
 logging.basicConfig(

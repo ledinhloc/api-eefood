@@ -3,7 +3,7 @@ from datetime import datetime
 
 import requests
 
-from config import WorkerConfig
+from subtitle_worker.config import WorkerConfig
 
 
 class BackendClient:
