@@ -18,7 +18,7 @@ public enum SubtitleLanguage {
 
   public static SubtitleLanguage fromCode(String code) {
     if (code == null || code.isBlank()) {
-      return VI;
+      return EN;
     }
 
     return Arrays.stream(values())

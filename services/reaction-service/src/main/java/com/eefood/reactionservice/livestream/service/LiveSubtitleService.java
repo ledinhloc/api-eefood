@@ -71,16 +71,12 @@ public class LiveSubtitleService {
   }
 
   private String resolveSpokenLanguage(String language, LiveStream liveStream) {
-    if (language != null && !language.isBlank()) {
-      return SubtitleLanguage.fromCode(language).getCode();
+    String code = language;
+    if (code == null || code.isBlank()) {
+      SubtitleLanguage spokenLanguage = liveStream.getSpokenLanguage();
+      code = spokenLanguage == null ? null : spokenLanguage.getCode();
     }
-
-    SubtitleLanguage spokenLanguage = liveStream.getSpokenLanguage();
-    if (spokenLanguage == null) {
-      return SubtitleLanguage.VI.getCode();
-    }
-
-    return spokenLanguage.getCode();
+    return SubtitleLanguage.fromCode(code).getCode();
   }
 
   private LiveSubtitleMessage broadcastSubtitle(

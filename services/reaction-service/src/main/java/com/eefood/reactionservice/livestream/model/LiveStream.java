@@ -41,7 +41,7 @@ public class LiveStream {
   @Column(nullable = false)
   @Enumerated(EnumType.STRING)
   @Builder.Default
-  private SubtitleLanguage spokenLanguage = SubtitleLanguage.VI;
+  private SubtitleLanguage spokenLanguage = SubtitleLanguage.EN;
 
   @Builder.Default
   private Integer viewerCount = 0;

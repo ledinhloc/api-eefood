@@ -1,5 +1,5 @@
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Optional
 
 from dotenv import load_dotenv
@@ -36,11 +36,28 @@ class WorkerConfig:
     num_channels: int
     language: Optional[str]
     request_timeout_seconds: int
+    worker_control_host: str
+    worker_control_port: int
 
     @property
     def transcript_url(self) -> str:
         """Tạo URL backend để gửi transcript text."""
         return f"{self.reaction_base_url.rstrip('/')}/api/v1/livestreams/subtitles/transcripts"
+
+    def with_livestream(
+        self,
+        *,
+        room_name: str,
+        live_stream_id: int,
+        language: Optional[str],
+    ) -> "WorkerConfig":
+        # Tao config rieng cho tung live tu payload /start.
+        return replace(
+            self,
+            room_name=room_name,
+            live_stream_id=live_stream_id,
+            language=language or self.language,
+        )
 
 
 def load_config() -> WorkerConfig:
@@ -50,8 +67,9 @@ def load_config() -> WorkerConfig:
         livekit_token=os.getenv("LIVEKIT_TOKEN"),
         livekit_api_key=os.getenv("LIVEKIT_API_KEY"),
         livekit_api_secret=os.getenv("LIVEKIT_API_SECRET"),
-        room_name=required_env("ROOM_NAME"),
-        live_stream_id=int(required_env("LIVE_STREAM_ID")),
+        # Hai gia tri nay duoc backend truyen qua /start, khong can trong .env.
+        room_name=os.getenv("ROOM_NAME", ""),
+        live_stream_id=int(os.getenv("LIVE_STREAM_ID", "0")),
         reaction_base_url=required_env("REACTION_BASE_URL"),
         whisper_model_size=os.getenv("WHISPER_MODEL_SIZE", "base"),
         whisper_device=os.getenv("WHISPER_DEVICE", "cpu"),
@@ -64,4 +82,6 @@ def load_config() -> WorkerConfig:
         num_channels=int(os.getenv("AUDIO_NUM_CHANNELS", "1")),
         language=os.getenv("SPOKEN_LANGUAGE"),
         request_timeout_seconds=int(os.getenv("REQUEST_TIMEOUT_SECONDS", "30")),
+        worker_control_host=os.getenv("WORKER_CONTROL_HOST", "127.0.0.1"),
+        worker_control_port=int(os.getenv("WORKER_CONTROL_PORT", "9000")),
     )

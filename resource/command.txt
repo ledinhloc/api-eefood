@@ -11,7 +11,7 @@ build avro: mvn clean compile
 Subtitle
 cd tools\subtitle-worker
 pip install -r requirements.txt
-python app.py
+uvicorn app:app --host 127.0.0.1 --port 9000
 
 - Khoi dong lai winnat(giai phong port)- khi livekit bi trung port
 net stop winnat

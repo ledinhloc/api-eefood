@@ -19,6 +19,9 @@ livekit:
 whisper:
   base-url: ${WHISPER_BASE_URL:http://127.0.0.1:8091}
 
+subtitle-worker:
+  base-url: ${SUBTITLE_WORKER_BASE_URL:http://127.0.0.1:9000}
+
 elasticsearch:
   host: ${ES_HOST:localhost}
   port: ${ES_PORT:9200}
