@@ -38,6 +38,7 @@ public class LiveGiftService {
     private final SimpMessagingTemplate messagingTemplate;
     private final LiveGiftMapper liveGiftMapper;
     private final IamClient iamClient;
+    private final LiveGiftBroadcastService broadcastService;
 
     public List<LiveGiftItemResponse>  getAvailableGifts() {
         return liveGiftItemRepository.findByIsActiveTrue()
@@ -85,13 +86,17 @@ public class LiveGiftService {
 
         diamondWalletService.topup(receiverId, hostReceives, null);
 
+        UserInfo userInfo = iamClient.getUserInfo(senderId).getData();
+
+        SendGiftResponse response = buildResponse(giftLog, gift, senderId, userInfo);
+
         log.info("Gift sent: sender={}, receiver={}, gift={}, qty={}, cost={}, hostGets={}",
                 senderId, receiverId, gift.getName(),
                 request.getQuantity(), totalCost, hostReceives);
 
-        UserInfo userInfo = iamClient.getUserInfo(senderId).getData();
-
-        SendGiftResponse response = buildResponse(giftLog, gift, senderId, userInfo);
+        // ASYNC: broadcast và leaderboard
+        broadcastService.broadcastGiftAnimation(request.getLivestreamId(), response);
+        broadcastService.updateLeaderboard(liveStream.getId(), senderId, totalCost);
 
         try {
             messagingTemplate.convertAndSend(
