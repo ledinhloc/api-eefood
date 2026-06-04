@@ -3,18 +3,15 @@ package com.eefood.reactionservice.mealplan.service;
 import com.eefood.reactionservice.enums.ErrorMessage;
 import com.eefood.reactionservice.enums.PostStatus;
 import com.eefood.reactionservice.exception.ExceptionUtil;
-import com.eefood.reactionservice.mealplan.dto.request.MealPlanItemIngredientUpsertRequest;
 import com.eefood.reactionservice.mealplan.dto.request.MealPlanItemUpsertRequest;
 import com.eefood.reactionservice.mealplan.dto.response.MealPlanItemResponse;
 import com.eefood.reactionservice.mealplan.dto.response.MealPlanResponse;
 import com.eefood.reactionservice.mealplan.dto.response.NutritionAnalysisResponse;
 import com.eefood.reactionservice.mealplan.enums.MealPlanItemSource;
 import com.eefood.reactionservice.mealplan.enums.MealPlanItemStatus;
-import com.eefood.reactionservice.mealplan.mapper.MealPlanMapper;
+import com.eefood.reactionservice.mealplan.mapper.MealPlanItemMapper;
 import com.eefood.reactionservice.mealplan.model.MealPlan;
 import com.eefood.reactionservice.mealplan.model.MealPlanItem;
-import com.eefood.reactionservice.mealplan.model.MealPlanItemIngredient;
-import com.eefood.reactionservice.mealplan.repo.MealPlanItemIngredientRepository;
 import com.eefood.reactionservice.mealplan.repo.MealPlanItemRepository;
 import com.eefood.reactionservice.mealplan.repo.MealPlanRepository;
 import com.eefood.reactionservice.model.Post;
@@ -26,9 +23,6 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -36,11 +30,11 @@ public class MealPlanItemService {
 
     private final MealPlanRepository mealPlanRepository;
     private final MealPlanItemRepository mealPlanItemRepository;
-    private final MealPlanItemIngredientRepository mealPlanItemIngredientRepository;
     private final PostRepository postRepository;
     private final RecipeClient recipeClient;
-    private final MealPlanMapper mealPlanMapper;
+    private final MealPlanItemMapper mealPlanItemMapper;
     private final MealPlanService mealPlanService;
+    private final MealPlanIngredientService mealPlanIngredientService;
 
     @Transactional
     public MealPlanItemResponse upsertMealPlanItem(Long userId, MealPlanItemUpsertRequest request) {
@@ -62,7 +56,7 @@ public class MealPlanItemService {
 
         // Nếu client gửi ingredients thì coi như muốn đồng bộ lại toàn bộ danh sách nguyên liệu.
         if (request.getIngredients() != null) {
-            replaceIngredients(savedItem.getId(), request.getIngredients());
+            mealPlanIngredientService.replaceIngredients(savedItem.getId(), request.getIngredients());
         }
 
         return buildItemResponse(savedItem);
@@ -81,45 +75,31 @@ public class MealPlanItemService {
         MealPlanItem item = mealPlanItemRepository.findByIdAndMealPlanId(itemId, mealPlan.getId())
                 .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.MEAL_PLAN_ITEM_NOT_FOUND));
 
-        mealPlanItemIngredientRepository.deleteAllByMealPlanItemId(item.getId());
+        mealPlanIngredientService.deleteIngredientsByItemId(item.getId());
         mealPlanItemRepository.delete(item);
 
         return mealPlanService.getCurrentMealPlan(userId);
     }
 
-    @Transactional
-    public MealPlanItemResponse getMealPlanItemDetail(Long userId, Long itemId) {
-        if (userId == null || itemId == null) {
-            throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
-        }
+    // @Transactional
+    // public MealPlanItemResponse getMealPlanItemDetail(Long userId, Long itemId) {
+    //     if (userId == null || itemId == null) {
+    //         throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
+    //     }
 
-        MealPlan mealPlan = mealPlanRepository.findByUserId(userId)
-                .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.MEAL_PLAN_NOT_FOUND));
+    //     MealPlan mealPlan = mealPlanRepository.findByUserId(userId)
+    //             .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.MEAL_PLAN_NOT_FOUND));
 
-        MealPlanItem item = mealPlanItemRepository.findByIdAndMealPlanId(itemId, mealPlan.getId())
-                .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.MEAL_PLAN_ITEM_NOT_FOUND));
+    //     MealPlanItem item = mealPlanItemRepository.findByIdAndMealPlanId(itemId, mealPlan.getId())
+    //             .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.MEAL_PLAN_ITEM_NOT_FOUND));
 
-        return buildItemResponse(item);
-    }
+    //     return buildItemResponse(item);
+    // }
 
     private MealPlanItemResponse buildItemResponse(MealPlanItem item) {
         // Chỉ nạp lại ingredients của riêng item vừa upsert để tránh over-fetch cả meal plan.
-        MealPlanItemResponse response = mealPlanMapper.toResponse(item);
-        BigDecimal multiplier = BigDecimal.valueOf(resolveServings(item));
-
-        response.setCalories(scale(item.getCalories(), multiplier));
-        response.setProtein(scale(item.getProtein(), multiplier));
-        response.setCarbs(scale(item.getCarbs(), multiplier));
-        response.setFat(scale(item.getFat(), multiplier));
-        response.setFiber(scale(item.getFiber(), multiplier));
-        response.setSugar(scale(item.getSugar(), multiplier));
-        response.setCalcium(scale(item.getCalcium(), multiplier));
-        response.setSodium(scale(item.getSodium(), multiplier));
-        response.setIngredients(
-                mealPlanItemIngredientRepository.findAllByMealPlanItemIdIn(List.of(item.getId())).stream()
-                        .map(mealPlanMapper::toResponse)
-                        .toList()
-        );
+        MealPlanItemResponse response = mealPlanItemMapper.toScaledResponse(item);
+        response.setIngredients(mealPlanIngredientService.getIngredientResponses(item.getId()));
         return response;
     }
 
@@ -214,27 +194,6 @@ public class MealPlanItemService {
         return post;
     }
 
-    private void replaceIngredients(Long mealPlanItemId, List<MealPlanItemIngredientUpsertRequest> ingredients) {
-        // Replace-all giúp FE chỉ cần gửi trạng thái ingredients cuối cùng, không phải gửi diff add/remove.
-        mealPlanItemIngredientRepository.deleteAllByMealPlanItemId(mealPlanItemId);
-
-        List<MealPlanItemIngredient> entities = ingredients.stream()
-                .filter(Objects::nonNull)
-                .filter(ingredient -> ingredient.getName() != null && !ingredient.getName().isBlank())
-                .map(ingredient -> MealPlanItemIngredient.builder()
-                        .mealPlanItemId(mealPlanItemId)
-                        .name(ingredient.getName().trim())
-                        .quantity(ingredient.getQuantity())
-                        .unit(ingredient.getUnit())
-                        .note(ingredient.getNote())
-                        .build())
-                .collect(Collectors.toList());
-
-        if (!entities.isEmpty()) {
-            mealPlanItemIngredientRepository.saveAll(entities);
-        }
-    }
-
     private void validateItemUpsertRequest(Long userId, MealPlanItemUpsertRequest request, MealPlanItem existingItem) {
         // Create mới bắt buộc đủ field chính, còn update thì cho phép partial update.
         if (userId == null || request == null) {
@@ -288,15 +247,6 @@ public class MealPlanItemService {
 
     private <T> T defaultValue(T value, T fallback) {
         return value == null ? fallback : value;
-    }
-
-    private int resolveServings(MealPlanItem item) {
-        Integer servings = item.getActualServings() != null ? item.getActualServings() : item.getPlannedServings();
-        return servings == null || servings <= 0 ? 1 : servings;
-    }
-
-    private BigDecimal scale(BigDecimal value, BigDecimal multiplier) {
-        return value == null ? BigDecimal.ZERO : value.multiply(multiplier);
     }
 
     private BigDecimal toBigDecimal(Double value) {

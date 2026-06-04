@@ -43,6 +43,8 @@ public interface PostRepository extends JpaRepository<Post, Long>, JpaSpecificat
   Long countByStatus(PostStatus status);
 
 
+  List<Post> findByStatusAndIsDeletedFalse(PostStatus status);
+
   List<Post> findByStatusAndIsDeletedFalse(PostStatus status, Pageable pageable);
 
   @Query("""

@@ -1,5 +1,6 @@
 package com.eefood.reactionservice.livestream.dto.response;
 import com.eefood.reactionservice.enums.LiveStreamStatus;
+import com.eefood.reactionservice.livestream.enums.SubtitleLanguage;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -18,6 +19,7 @@ public class LiveStreamResponse {
   private String description;
   private String thumbnailUrl;
   private LiveStreamStatus status;
+  private SubtitleLanguage spokenLanguage;
   private Integer viewerCount;
   private LocalDateTime scheduledAt;
   private LocalDateTime startedAt;

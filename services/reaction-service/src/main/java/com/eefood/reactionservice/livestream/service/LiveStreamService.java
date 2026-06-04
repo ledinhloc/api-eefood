@@ -7,10 +7,12 @@ import com.eefood.reactionservice.enums.ErrorMessage;
 import com.eefood.reactionservice.enums.LiveStreamStatus;
 import com.eefood.reactionservice.exception.ExceptionUtil;
 import com.eefood.reactionservice.livestream.dto.ws.LiveStreamEndMessage;
+import com.eefood.reactionservice.livestream.enums.SubtitleLanguage;
 import com.eefood.reactionservice.livestream.model.LiveStream;
 import com.eefood.reactionservice.livestream.mapper.LiveStreamMapper;
 import com.eefood.reactionservice.livestream.repository.LiveStreamBlockRepository;
 import com.eefood.reactionservice.livestream.repository.LiveStreamRepository;
+import com.eefood.reactionservice.livestream.repository.httpclient.SubtitleWorkerClient;
 import com.eefood.reactionservice.repository.FollowRepository;
 import com.eefood.reactionservice.repository.httpclient.IamClient;
 import com.eefood.reactionservice.util.NotificationUtils;
@@ -26,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Service
@@ -40,6 +43,7 @@ public class LiveStreamService {
   private final IamClient iamClient;
   private final FollowRepository followRepository;
   private final NotificationUtils notificationUtils;
+  private final SubtitleWorkerClient subtitleWorkerClient;
 
   @Transactional(readOnly = true)
   public LiveStreamResponse checkUserStream(Long currentUserId,Long userId) {
@@ -68,18 +72,19 @@ public class LiveStreamService {
     return res;
   }
 
-  public LiveStreamResponse scheduleLive(Long userId, String description, LocalDateTime time) {
+  public LiveStreamResponse scheduleLive(Long userId, String description, LocalDateTime time, String spokenLanguage) {
     LiveStream liveStream = new LiveStream();
     liveStream.setUserId(userId);
     liveStream.setTitle(description);
     liveStream.setScheduledAt(time);
     liveStream.setStatus(LiveStreamStatus.SCHEDULED);
+    liveStream.setSpokenLanguage(SubtitleLanguage.fromCode(spokenLanguage));
     liveStreamRepository.save(liveStream);
     return liveStreamMapper.toResponse(liveStream);
   }
 
   @Transactional
-  public LiveStreamResponse startLiveStream(Long userId, Long liveStreamId, String requestTitle) {
+  public LiveStreamResponse startLiveStream(Long userId, Long liveStreamId, String requestTitle, String spokenLanguage) {
     try {
       LiveStream live;
       //Nếu có id lịch livestream
@@ -91,12 +96,16 @@ public class LiveStreamService {
 
         // Nếu đang LIVE → trả về luôn
         if (live.getStatus() == LiveStreamStatus.LIVE) {
-          return buildLiveResponse(live, userId);
+          startSubtitleWorker(live);
+          return buildLiveStartResponse(live, userId);
         }
         // Update lịch thành LIVE
         live.setStatus(LiveStreamStatus.LIVE);
         live.setStartedAt(LocalDateTime.now());
         if (requestTitle != null) live.setTitle(requestTitle);
+        if (spokenLanguage != null && !spokenLanguage.isBlank()) {
+          live.setSpokenLanguage(SubtitleLanguage.fromCode(spokenLanguage));
+        }
       }
       else {
         //Không có id → check user đang live chưa
@@ -106,7 +115,8 @@ public class LiveStreamService {
         );
 
         if (live != null) {
-          return buildLiveResponse(live, userId);
+          startSubtitleWorker(live);
+          return buildLiveStartResponse(live, userId);
         }
 
         // Tạo live mới
@@ -115,6 +125,7 @@ public class LiveStreamService {
         live.setTitle(requestTitle);
         live.setStatus(LiveStreamStatus.LIVE);
         live.setStartedAt(LocalDateTime.now());
+        live.setSpokenLanguage(SubtitleLanguage.fromCode(spokenLanguage));
       }
       String roomName = "live_" + userId + "_" + System.currentTimeMillis();
 
@@ -135,8 +146,9 @@ public class LiveStreamService {
       liveStreamRepository.save(live);
       log.info("Live stream started: {}", live.getId());
       notifyFollowersLiveStarted(live);
+      startSubtitleWorker(live);
 
-      return buildLiveResponse(live, userId);
+      return buildLiveStartResponse(live, userId);
     } catch (Exception e) {
       log.error("Error starting live stream", e);
       throw new RuntimeException("Cannot start live stream: " + e.getMessage());
@@ -157,6 +169,7 @@ public class LiveStreamService {
     liveStream.setEndedAt(LocalDateTime.now());
     liveStream.setViewerCount(0);
     liveStreamRepository.save(liveStream);
+    stopSubtitleWorker(liveStreamId);
 
     // Delete LiveKit room
     try {
@@ -168,7 +181,7 @@ public class LiveStreamService {
     broadcastStreamEnded(liveStreamId, liveStream.getEndedAt());
 
     log.info("Live stream ended: {}", liveStreamId);
-    return liveStreamMapper.toResponse(liveStream);
+    return addStreamerProfile(liveStreamMapper.toResponse(liveStream));
   }
 
   private void broadcastStreamEnded(Long liveStreamId, LocalDateTime endedAt) {
@@ -211,13 +224,7 @@ public class LiveStreamService {
     String viewerToken = generateViewerToken(liveStream.getRoomName(),userId);
     LiveStreamResponse res = liveStreamMapper.toResponse(liveStream);
     res.setLivekitToken(viewerToken);
-    UserInfo user = iamClient.getUserInfo(res.getUserId()).getData();
-    if(user != null) {
-      res.setUsername(user.getUsername());
-      res.setEmail(user.getEmail());
-      res.setAvatarUrl(user.getAvatarUrl());
-    }
-    return res;
+    return addStreamerProfile(res);
   }
 
   @Transactional(readOnly = true)
@@ -275,10 +282,24 @@ public class LiveStreamService {
     }
   }
 
-  private LiveStreamResponse buildLiveResponse(LiveStream live, Long userId) {
+  private LiveStreamResponse buildLiveStartResponse(LiveStream live, Long userId) {
     String token = generateStreamerToken(live.getRoomName(), userId);
     LiveStreamResponse res = liveStreamMapper.toResponse(live);
     res.setLivekitToken(token);
+    return addStreamerProfile(res);
+  }
+
+  private LiveStreamResponse addStreamerProfile(LiveStreamResponse res) {
+    try {
+      UserInfo user = iamClient.getUserInfo(res.getUserId()).getData();
+      if(user != null) {
+        res.setUsername(user.getUsername());
+        res.setEmail(user.getEmail());
+        res.setAvatarUrl(user.getAvatarUrl());
+      }
+    } catch (Exception e) {
+      log.warn("Could not load streamer info for livestream {}: {}", res.getId(), e.getMessage());
+    }
     return res;
   }
 
@@ -316,4 +337,27 @@ public class LiveStreamService {
   public String generateStreamerToken(String roomName, Long userId) {
     return generateToken(roomName, "streamer_" + userId, true);
   }
+
+  private void startSubtitleWorker(LiveStream liveStream) {
+    try {
+      subtitleWorkerClient.start(
+        Map.of(
+          "liveStreamId", liveStream.getId(),
+          "roomName", liveStream.getRoomName(),
+          "spokenLanguage", liveStream.getSpokenLanguage().getCode()
+        )
+      );
+    } catch (Exception e) {
+      log.warn("Cannot start subtitle worker for livestream {}: {}", liveStream.getId(), e.getMessage());
+    }
+  }
+
+  private void stopSubtitleWorker(Long liveStreamId) {
+    try {
+      subtitleWorkerClient.stop(Map.of("liveStreamId", liveStreamId));
+    } catch (Exception e) {
+      log.warn("Cannot stop subtitle worker for livestream {}: {}", liveStreamId, e.getMessage());
+    }
+  }
+
 }
