@@ -67,9 +67,9 @@ def load_config() -> WorkerConfig:
         livekit_token=os.getenv("LIVEKIT_TOKEN"),
         livekit_api_key=os.getenv("LIVEKIT_API_KEY"),
         livekit_api_secret=os.getenv("LIVEKIT_API_SECRET"),
-        # Hai gia tri nay duoc backend truyen qua /start, khong can trong .env.
-        room_name=os.getenv("ROOM_NAME", ""),
-        live_stream_id=int(os.getenv("LIVE_STREAM_ID", "0")),
+        # Hai gia tri nay duoc backend truyen qua /start.
+        room_name="",
+        live_stream_id=0,
         reaction_base_url=required_env("REACTION_BASE_URL"),
         whisper_model_size=os.getenv("WHISPER_MODEL_SIZE", "base"),
         whisper_device=os.getenv("WHISPER_DEVICE", "cpu"),

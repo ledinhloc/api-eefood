@@ -97,7 +97,7 @@ public class LiveStreamService {
         // Nếu đang LIVE → trả về luôn
         if (live.getStatus() == LiveStreamStatus.LIVE) {
           startSubtitleWorker(live);
-          return buildLiveResponse(live, userId);
+          return buildLiveStartResponse(live, userId);
         }
         // Update lịch thành LIVE
         live.setStatus(LiveStreamStatus.LIVE);
@@ -116,7 +116,7 @@ public class LiveStreamService {
 
         if (live != null) {
           startSubtitleWorker(live);
-          return buildLiveResponse(live, userId);
+          return buildLiveStartResponse(live, userId);
         }
 
         // Tạo live mới
@@ -148,7 +148,7 @@ public class LiveStreamService {
       notifyFollowersLiveStarted(live);
       startSubtitleWorker(live);
 
-      return buildLiveResponse(live, userId);
+      return buildLiveStartResponse(live, userId);
     } catch (Exception e) {
       log.error("Error starting live stream", e);
       throw new RuntimeException("Cannot start live stream: " + e.getMessage());
@@ -181,7 +181,7 @@ public class LiveStreamService {
     broadcastStreamEnded(liveStreamId, liveStream.getEndedAt());
 
     log.info("Live stream ended: {}", liveStreamId);
-    return liveStreamMapper.toResponse(liveStream);
+    return addStreamerProfile(liveStreamMapper.toResponse(liveStream));
   }
 
   private void broadcastStreamEnded(Long liveStreamId, LocalDateTime endedAt) {
@@ -224,13 +224,7 @@ public class LiveStreamService {
     String viewerToken = generateViewerToken(liveStream.getRoomName(),userId);
     LiveStreamResponse res = liveStreamMapper.toResponse(liveStream);
     res.setLivekitToken(viewerToken);
-    UserInfo user = iamClient.getUserInfo(res.getUserId()).getData();
-    if(user != null) {
-      res.setUsername(user.getUsername());
-      res.setEmail(user.getEmail());
-      res.setAvatarUrl(user.getAvatarUrl());
-    }
-    return res;
+    return addStreamerProfile(res);
   }
 
   @Transactional(readOnly = true)
@@ -288,10 +282,24 @@ public class LiveStreamService {
     }
   }
 
-  private LiveStreamResponse buildLiveResponse(LiveStream live, Long userId) {
+  private LiveStreamResponse buildLiveStartResponse(LiveStream live, Long userId) {
     String token = generateStreamerToken(live.getRoomName(), userId);
     LiveStreamResponse res = liveStreamMapper.toResponse(live);
     res.setLivekitToken(token);
+    return addStreamerProfile(res);
+  }
+
+  private LiveStreamResponse addStreamerProfile(LiveStreamResponse res) {
+    try {
+      UserInfo user = iamClient.getUserInfo(res.getUserId()).getData();
+      if(user != null) {
+        res.setUsername(user.getUsername());
+        res.setEmail(user.getEmail());
+        res.setAvatarUrl(user.getAvatarUrl());
+      }
+    } catch (Exception e) {
+      log.warn("Could not load streamer info for livestream {}: {}", res.getId(), e.getMessage());
+    }
     return res;
   }
 
