@@ -2,6 +2,7 @@ package com.eefood.reactionservice.livestream.controller;
 
 import com.eefood.reactionservice.livestream.dto.response.LiveAudioTranscriptionResponse;
 import com.eefood.reactionservice.livestream.dto.request.LiveSubtitleTranscriptRequest;
+import com.eefood.reactionservice.livestream.dto.request.SubtitleWorkerStartRequest;
 import com.eefood.reactionservice.livestream.dto.response.LiveStreamResponse;
 import com.eefood.reactionservice.dto.response.ResponseData;
 import com.eefood.reactionservice.livestream.service.LiveStreamService;
@@ -59,7 +60,7 @@ public class LiveStreamController {
   }
 
   @GetMapping("/active")
-  public ResponseData<List<LiveStreamResponse>> getActiveLiveStreams() {
+  public ResponseData<List<SubtitleWorkerStartRequest>> getActiveLiveStreams() {
     return new ResponseData<>(
       HttpStatus.OK.value(),
       "success",

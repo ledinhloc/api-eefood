@@ -6,6 +6,7 @@ import com.eefood.reactionservice.livestream.dto.response.LiveStreamResponse;
 import com.eefood.reactionservice.enums.ErrorMessage;
 import com.eefood.reactionservice.enums.LiveStreamStatus;
 import com.eefood.reactionservice.exception.ExceptionUtil;
+import com.eefood.reactionservice.livestream.dto.request.SubtitleWorkerStartRequest;
 import com.eefood.reactionservice.livestream.dto.ws.LiveStreamEndMessage;
 import com.eefood.reactionservice.livestream.enums.SubtitleLanguage;
 import com.eefood.reactionservice.livestream.model.LiveStream;
@@ -84,9 +85,9 @@ public class LiveStreamService {
   }
 
   @Transactional(readOnly = true)
-  public List<LiveStreamResponse> getActiveLiveStreams() {
+  public List<SubtitleWorkerStartRequest> getActiveLiveStreams() {
     return liveStreamRepository.findByStatusOrderByStartedAtDesc(LiveStreamStatus.LIVE).stream()
-      .map(liveStreamMapper::toResponse)
+      .map(this::toSubtitleWorkerStartRequest)
       .toList();
   }
 
@@ -347,16 +348,18 @@ public class LiveStreamService {
 
   private void startSubtitleWorker(LiveStream liveStream) {
     try {
-      subtitleWorkerClient.start(
-        Map.of(
-          "liveStreamId", liveStream.getId(),
-          "roomName", liveStream.getRoomName(),
-          "spokenLanguage", liveStream.getSpokenLanguage().getCode()
-        )
-      );
+      subtitleWorkerClient.start(toSubtitleWorkerStartRequest(liveStream));
     } catch (Exception e) {
       log.warn("Cannot start subtitle worker for livestream {}: {}", liveStream.getId(), e.getMessage());
     }
+  }
+
+  private SubtitleWorkerStartRequest toSubtitleWorkerStartRequest(LiveStream liveStream) {
+    return SubtitleWorkerStartRequest.builder()
+      .liveStreamId(liveStream.getId())
+      .roomName(liveStream.getRoomName())
+      .spokenLanguage(liveStream.getSpokenLanguage().getCode())
+      .build();
   }
 
   private void stopSubtitleWorker(Long liveStreamId) {

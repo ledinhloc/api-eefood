@@ -44,6 +44,11 @@ class WorkerConfig:
         """Tạo URL backend để gửi transcript text."""
         return f"{self.reaction_base_url.rstrip('/')}/api/v1/livestreams/subtitles/transcripts"
 
+    @property
+    def active_livestreams_url(self) -> str:
+        """Tao URL backend de lay danh sach livestream dang LIVE."""
+        return f"{self.reaction_base_url.rstrip('/')}/api/v1/livestreams/active"
+
     def with_livestream(
         self,
         *,

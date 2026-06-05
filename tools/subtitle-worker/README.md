@@ -53,13 +53,6 @@ WORKER_CONTROL_PORT=9000
 ```
 
 ## Run
-
-Khuyen dung Uvicorn:
-
-```powershell
-uvicorn subtitle_worker.app:app --host 127.0.0.1 --port 9000
-```
-
 Neu muon auto reload khi sua code:
 
 ```powershell
