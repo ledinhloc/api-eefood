@@ -38,4 +38,7 @@ public class VnPayConfig {
 
     @Value("${vnpay.curr-code}")
     private String currCode = "VND";
+
+    @Value("${vnpay.ipn-url}")
+    private String ipnUrl;
 }

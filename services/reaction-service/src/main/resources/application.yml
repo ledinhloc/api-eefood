@@ -133,7 +133,8 @@ vnpay:
   tmn-code: ${TMN_CODE:code}
   hash-secret: ${HASH_SECRET:secret}
   pay-url: https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
-  return-url: http://localhost:8222/api/v1/payment/vnpay/callback
+  return-url: eefood://eefood.app/payment/result
+  ipn-url: ${IPN_URL:https://your-public-domain.com}/api/v1/payment/vnpay/ipn
   api-url: https://sandbox.vnpayment.vn/merchant_webapi/api/transaction
   version: "2.1.0"
   command: pay
@@ -141,15 +142,6 @@ vnpay:
   locale: vn
   curr-code: VND
 
-paypal:
-  client-id: ${PAYPAL_CLIENT_ID}
-  client-secret: ${PAYPAL_CLIENT_SECRET}
-  mode: sandbox
-  return-url: https://yourdomain.com/api/v1/payment/paypal/capture
-  cancel-url: myapp://payment/cancel
-  webhook-id: ${PAYPAL_WEBHOOK_ID}
-  currency: USD
-  usd-rate: 25000
 
 
 

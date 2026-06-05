@@ -10,6 +10,6 @@ import java.util.Optional;
 @Repository
 public interface DiamondPackageRepository extends JpaRepository<DiamondPackage, Long> {
     List<DiamondPackage> findByIsActiveTrue();
-
+    List<DiamondPackage> findByIsActiveTrueOrderByPriceAsc();
     Optional<DiamondPackage> findByIdAndIsActiveTrue(Long id);
 }
