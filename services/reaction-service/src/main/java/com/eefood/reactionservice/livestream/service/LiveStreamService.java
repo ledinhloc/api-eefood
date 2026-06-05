@@ -83,6 +83,13 @@ public class LiveStreamService {
     return liveStreamMapper.toResponse(liveStream);
   }
 
+  @Transactional(readOnly = true)
+  public List<LiveStreamResponse> getActiveLiveStreams() {
+    return liveStreamRepository.findByStatusOrderByStartedAtDesc(LiveStreamStatus.LIVE).stream()
+      .map(liveStreamMapper::toResponse)
+      .toList();
+  }
+
   @Transactional
   public LiveStreamResponse startLiveStream(Long userId, Long liveStreamId, String requestTitle, String spokenLanguage) {
     try {

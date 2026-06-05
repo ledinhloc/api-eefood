@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/livestreams")
@@ -55,6 +56,15 @@ public class LiveStreamController {
   public ResponseData<LiveStreamResponse> checkUserStream(@RequestParam Long userId) {
     var response = liveStreamService.checkUserStream(securityUtil.getCurrentUserId(), userId);
     return new ResponseData<>(HttpStatus.OK.value(), "success", response);
+  }
+
+  @GetMapping("/active")
+  public ResponseData<List<LiveStreamResponse>> getActiveLiveStreams() {
+    return new ResponseData<>(
+      HttpStatus.OK.value(),
+      "success",
+      liveStreamService.getActiveLiveStreams()
+    );
   }
 
   @PostMapping("/schedule")
