@@ -12,8 +12,9 @@ class Settings(BaseSettings):
     service_name: str = "ai-service"
     host: str = "0.0.0.0"
     port: int = 8099
-    model_path: Path = BASE_DIR / "assets" / "models" / "yolov8n_traicay.onnx"
-    classes_path: Path = BASE_DIR / "assets" / "classes" / "fruit_detection_classes_yolo.txt"
+    model_path: Path = BASE_DIR / "assets" / "models" / "ingredient.onnx"
+    classes_path: Path = BASE_DIR / "assets" / "classes" / "ingredient_classes.txt"
+    annotation_font_path: Path | None = None
     input_size: int = 640
     confidence_threshold: float = 0.5 #Ngưỡng confidence để giữ detection
     nms_threshold: float = 0.4 #Ngưỡng NMS để loại bớt box trùng nhau
