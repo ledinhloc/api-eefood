@@ -1,11 +1,17 @@
 package com.eefood.reactionservice.livestream.service;
 
+import com.eefood.reactionservice.enums.LiveStreamStatus;
+import com.eefood.reactionservice.livestream.dto.request.SubtitleWorkerStartRequest;
 import com.eefood.reactionservice.livestream.dto.ws.LiveSubtitleMessage;
 import com.eefood.reactionservice.livestream.dto.ws.SubtitleSubscriptionRequest;
 import com.eefood.reactionservice.livestream.enums.SubtitleLanguage;
+import com.eefood.reactionservice.livestream.model.LiveStream;
+import com.eefood.reactionservice.livestream.repository.LiveStreamRepository;
+import com.eefood.reactionservice.livestream.repository.httpclient.SubtitleWorkerClient;
 import lombok.Builder;
 import lombok.RequiredArgsConstructor;
 import lombok.Value;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -17,11 +23,14 @@ import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class LiveSubtitlePreferenceService {
 
   private final SimpMessagingTemplate messagingTemplate;
+  private final LiveStreamRepository liveStreamRepository;
+  private final SubtitleWorkerClient subtitleWorkerClient;
 
   private final Map<String, SubtitleSubscription> subscriptionsBySessionId = new ConcurrentHashMap<>();
 
@@ -39,7 +48,7 @@ public class LiveSubtitlePreferenceService {
 
     SubtitleLanguage targetLanguage = SubtitleLanguage.fromCode(request.getTargetLanguage());
 
-    subscriptionsBySessionId.put(
+    SubtitleSubscription previousSubscription = subscriptionsBySessionId.put(
       sessionId,
       SubtitleSubscription.builder()
         .sessionId(sessionId)
@@ -48,7 +57,33 @@ public class LiveSubtitlePreferenceService {
         .targetLanguage(targetLanguage)
         .build()
     );
+    if (previousSubscription != null) {
+      stopWorkerIfNoSubscribers(previousSubscription.getLiveStreamId(), previousSubscription.getTargetLanguage());
+    }
+    startWorkerIfNeeded(request.getLiveStreamId(), targetLanguage);
   }
+
+  public boolean hasSubscribers(Long liveStreamId, SubtitleLanguage spokenLanguage) {
+    if (liveStreamId == null || spokenLanguage == null) {
+      return false;
+    }
+    return subscriptionsBySessionId.values().stream()
+      .anyMatch(subscription ->
+        subscription.getLiveStreamId().equals(liveStreamId)
+          && subscription.getTargetLanguage() == spokenLanguage
+      );
+  }
+
+  public void unregister(String sessionId) {
+    if (sessionId == null || sessionId.isBlank()) {
+      return;
+    }
+    SubtitleSubscription subscription = subscriptionsBySessionId.remove(sessionId);
+    if (subscription != null) {
+      stopWorkerIfNoSubscribers(subscription.getLiveStreamId(), subscription.getTargetLanguage());
+    }
+  }
+
   //Push message qua WebSocket
   public void sendToSubscribers(Long liveStreamId, String spokenLanguageCode, LiveSubtitleMessage message) {
     SubtitleLanguage spokenLanguage = SubtitleLanguage.fromCode(spokenLanguageCode);
@@ -67,7 +102,42 @@ public class LiveSubtitlePreferenceService {
   //xóa subscription khi socket disconnect
   @EventListener
   public void handleSessionDisconnect(SessionDisconnectEvent event) {
-    subscriptionsBySessionId.remove(event.getSessionId());
+    unregister(event.getSessionId());
+  }
+
+  private void startWorkerIfNeeded(Long liveStreamId, SubtitleLanguage targetLanguage) {
+    liveStreamRepository.findByIdAndStatus(liveStreamId, LiveStreamStatus.LIVE)
+      .filter(liveStream -> liveStream.getSpokenLanguage() == targetLanguage)
+      .ifPresent(this::startSubtitleWorker);
+  }
+
+  private void stopWorkerIfNoSubscribers(Long liveStreamId, SubtitleLanguage targetLanguage) {
+    liveStreamRepository.findByIdAndStatus(liveStreamId, LiveStreamStatus.LIVE)
+      .filter(liveStream -> liveStream.getSpokenLanguage() == targetLanguage)
+      .filter(liveStream -> !hasSubscribers(liveStreamId, targetLanguage))
+      .ifPresent(liveStream -> stopSubtitleWorker(liveStream.getId()));
+  }
+
+  private void startSubtitleWorker(LiveStream liveStream) {
+    try {
+      subtitleWorkerClient.start(
+        SubtitleWorkerStartRequest.builder()
+          .liveStreamId(liveStream.getId())
+          .roomName(liveStream.getRoomName())
+          .spokenLanguage(liveStream.getSpokenLanguage().getCode())
+          .build()
+      );
+    } catch (Exception e) {
+      log.warn("Cannot start subtitle worker for livestream {}: {}", liveStream.getId(), e.getMessage());
+    }
+  }
+
+  private void stopSubtitleWorker(Long liveStreamId) {
+    try {
+      subtitleWorkerClient.stop(Map.of("liveStreamId", liveStreamId));
+    } catch (Exception e) {
+      log.warn("Cannot stop subtitle worker for livestream {}: {}", liveStreamId, e.getMessage());
+    }
   }
 
   private Map<String, Object> createHeaders(String sessionId) {

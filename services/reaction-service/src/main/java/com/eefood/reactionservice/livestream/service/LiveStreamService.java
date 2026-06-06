@@ -45,6 +45,7 @@ public class LiveStreamService {
   private final FollowRepository followRepository;
   private final NotificationUtils notificationUtils;
   private final SubtitleWorkerClient subtitleWorkerClient;
+  private final LiveSubtitlePreferenceService subtitlePreferenceService;
 
   @Transactional(readOnly = true)
   public LiveStreamResponse checkUserStream(Long currentUserId,Long userId) {
@@ -87,6 +88,11 @@ public class LiveStreamService {
   @Transactional(readOnly = true)
   public List<SubtitleWorkerStartRequest> getActiveLiveStreams() {
     return liveStreamRepository.findByStatusOrderByStartedAtDesc(LiveStreamStatus.LIVE).stream()
+    //kiem tra co viewer dang ki sub ko
+      .filter(liveStream -> subtitlePreferenceService.hasSubscribers(
+        liveStream.getId(),
+        liveStream.getSpokenLanguage()
+      ))
       .map(this::toSubtitleWorkerStartRequest)
       .toList();
   }
@@ -104,7 +110,7 @@ public class LiveStreamService {
 
         // Nếu đang LIVE → trả về luôn
         if (live.getStatus() == LiveStreamStatus.LIVE) {
-          startSubtitleWorker(live);
+          // startSubtitleWorker(live);
           return buildLiveStartResponse(live, userId);
         }
         // Update lịch thành LIVE
@@ -123,7 +129,7 @@ public class LiveStreamService {
         );
 
         if (live != null) {
-          startSubtitleWorker(live);
+          // startSubtitleWorker(live);
           return buildLiveStartResponse(live, userId);
         }
 
@@ -154,7 +160,7 @@ public class LiveStreamService {
       liveStreamRepository.save(live);
       log.info("Live stream started: {}", live.getId());
       notifyFollowersLiveStarted(live);
-      startSubtitleWorker(live);
+      // startSubtitleWorker(live);
 
       return buildLiveStartResponse(live, userId);
     } catch (Exception e) {
@@ -346,13 +352,13 @@ public class LiveStreamService {
     return generateToken(roomName, "streamer_" + userId, true);
   }
 
-  private void startSubtitleWorker(LiveStream liveStream) {
-    try {
-      subtitleWorkerClient.start(toSubtitleWorkerStartRequest(liveStream));
-    } catch (Exception e) {
-      log.warn("Cannot start subtitle worker for livestream {}: {}", liveStream.getId(), e.getMessage());
-    }
-  }
+  // private void startSubtitleWorker(LiveStream liveStream) {
+  //   try {
+  //     subtitleWorkerClient.start(toSubtitleWorkerStartRequest(liveStream));
+  //   } catch (Exception e) {
+  //     log.warn("Cannot start subtitle worker for livestream {}: {}", liveStream.getId(), e.getMessage());
+  //   }
+  // }
 
   private SubtitleWorkerStartRequest toSubtitleWorkerStartRequest(LiveStream liveStream) {
     return SubtitleWorkerStartRequest.builder()
