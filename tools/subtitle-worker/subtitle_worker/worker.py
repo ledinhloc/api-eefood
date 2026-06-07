@@ -3,7 +3,6 @@ import logging
 from datetime import datetime
 from typing import Optional
 
-from subtitle_worker.audio.chunker import AudioChunker
 from subtitle_worker.clients.backend import BackendClient
 from subtitle_worker.clients.livekit import LiveKitAudioClient
 from subtitle_worker.clients.whisper import WhisperClient
@@ -43,10 +42,11 @@ class SubtitleWorker:
 
     # Xu ly mot audio chunk.
     async def _process_chunk(self, wav_bytes: bytes, created_at: datetime) -> None:
-        if AudioChunker.is_blank_audio(wav_bytes):
-            logger.info("Bo qua blank audio, khong goi Whisper")
-            return
-
+        # logger.info(
+        #     "Dang gui audio sang Whisper - livestream=%s, ngon_ngu=%s",
+        #     self.config.live_stream_id,
+        #     self.config.language or "auto",
+        # )
         # Goi Whisper de nhan dien giong noi.
         text = (await self.whisper_client.transcribe_chunk(wav_bytes)).strip()
         if not text or text.upper() == "[BLANK_AUDIO]":

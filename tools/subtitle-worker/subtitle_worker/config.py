@@ -31,7 +31,8 @@ class WorkerConfig:
     bot_identity: str
     bot_name: str
     streamer_identity_prefix: str
-    chunk_seconds: int
+    chunk_seconds: float
+    chunk_overlap_seconds: float
     sample_rate: int
     num_channels: int
     language: Optional[str]
@@ -82,7 +83,8 @@ def load_config() -> WorkerConfig:
         bot_identity=os.getenv("BOT_IDENTITY", "subtitle-worker"),
         bot_name=os.getenv("BOT_NAME", "Subtitle Worker"),
         streamer_identity_prefix=os.getenv("STREAMER_IDENTITY_PREFIX", "streamer_"),
-        chunk_seconds=int(os.getenv("CHUNK_SECONDS", "2")),
+        chunk_seconds=float(os.getenv("CHUNK_SECONDS", "1.5")),
+        chunk_overlap_seconds=float(os.getenv("CHUNK_OVERLAP_SECONDS", "0.25")),
         sample_rate=int(os.getenv("AUDIO_SAMPLE_RATE", "16000")),
         num_channels=int(os.getenv("AUDIO_NUM_CHANNELS", "1")),
         language=os.getenv("SPOKEN_LANGUAGE"),

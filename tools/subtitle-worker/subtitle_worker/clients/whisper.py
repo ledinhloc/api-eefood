@@ -7,7 +7,7 @@ from faster_whisper import WhisperModel
 from subtitle_worker.config import WorkerConfig
 
 
-DEFAULT_BEAM_SIZE = 3
+DEFAULT_BEAM_SIZE = 2
 DEFAULT_CPU_THREADS = max(1, (os.cpu_count() or 4) - 1)
 
 
