@@ -6,7 +6,7 @@ from pathlib import Path
 
 import cv2
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 
 from app.core.config import settings
 from app.models.schemas import BoundingBox, DetectionItem, IngredientDetectionResponse
@@ -21,6 +21,7 @@ class IngredientDetectionService:
     _net = None
     _classes: list[str] | None = None
     _out_names: list[str] | None = None
+    _annotation_font = None
 
     def __init__(self) -> None:
         # Lay cau hinh model va threshold tu file config.
@@ -83,6 +84,85 @@ class IngredientDetectionService:
             detections=detections,
             imageWidth=frame_width,
             imageHeight=frame_height,
+        )
+
+    def detect_annotated_image(self, image_bytes: bytes) -> bytes:
+        # Doc anh goc va chay detection de lay nhan, confidence va bounding box.
+        frame = self._read_image(image_bytes)
+        result = self.detect(image_bytes)
+
+        # Chuyen sang Pillow de ve duoc nhan Unicode tieng Viet.
+        annotated_image = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+        draw = ImageDraw.Draw(annotated_image)
+        font = self._get_annotation_font()
+
+        for detection in result.detections:
+            box = detection.box
+
+            # Gioi han toa do trong kich thuoc anh, tranh ve box ra ngoai frame.
+            x1 = max(0, box.x)
+            y1 = max(0, box.y)
+            x2 = min(result.imageWidth - 1, box.x + box.width)
+            y2 = min(result.imageHeight - 1, box.y + box.height)
+            if x2 <= x1 or y2 <= y1:
+                continue
+
+            color = self._label_color(detection.label)
+            label = f"{detection.label} {detection.confidence:.1%}"
+
+            # Tinh kich thuoc label de tao nen mau vua du cho chu.
+            text_box = draw.textbbox((0, 0), label, font=font)
+            text_width = text_box[2] - text_box[0]
+            text_height = text_box[3] - text_box[1]
+            label_top = max(0, y1 - text_height - 10)
+            label_right = min(result.imageWidth - 1, x1 + text_width + 10)
+
+            # Ve bounding box, nen label va ten nhan kem phan tram tin cay.
+            draw.rectangle((x1, y1, x2, y2), outline=color, width=3)
+            draw.rectangle((x1, label_top, label_right, y1), fill=color)
+            draw.text(
+                (x1 + 5, label_top + 3),
+                label,
+                font=font,
+                fill=(255, 255, 255),
+            )
+
+        # Chuyen anh ve OpenCV BGR va encode thanh JPEG de tra qua HTTP.
+        frame = cv2.cvtColor(np.array(annotated_image), cv2.COLOR_RGB2BGR)
+        encoded, buffer = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 92])
+        if not encoded:
+            raise IngredientDetectionError("Cannot encode annotated image.")
+        return buffer.tobytes()
+
+# Hàm này tạo màu cho bounding box dựa trên tên nhãn
+    @staticmethod
+    def _label_color(label: str) -> tuple[int, int, int]:
+        seed = sum((index + 1) * ord(char) for index, char in enumerate(label))
+        return (
+            64 + seed % 160,
+            64 + (seed // 7) % 160,
+            64 + (seed // 13) % 160,
+        )
+
+# tìm và load font Unicode để vẽ được tiếng Việt 
+    @classmethod
+    def _get_annotation_font(cls):
+        if cls._annotation_font is not None:
+            return cls._annotation_font
+
+        candidates = [
+            settings.annotation_font_path,
+            Path("C:/Windows/Fonts/arial.ttf"),
+            Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
+            Path("/usr/share/fonts/dejavu/DejaVuSans.ttf"),
+        ]
+        for font_path in candidates:
+            if font_path is not None and font_path.exists():
+                cls._annotation_font = ImageFont.truetype(str(font_path), size=20)
+                return cls._annotation_font
+
+        raise IngredientDetectionError(
+            "Unicode font not found. Set AI_SERVICE_ANNOTATION_FONT_PATH."
         )
 
     def _read_image(self, image_bytes: bytes) -> np.ndarray:

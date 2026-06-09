@@ -27,4 +27,9 @@ public class LiveSubtitleSocketController {
       request
     );
   }
+
+  @MessageMapping("/live/subtitles/unregister")
+  public void unregisterSubtitle(SimpMessageHeaderAccessor headerAccessor) {
+    subtitlePreferenceService.unregister(headerAccessor.getSessionId());
+  }
 }

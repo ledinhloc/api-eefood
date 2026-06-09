@@ -137,6 +137,7 @@ class LiveKitAudioClient:
             sample_rate=self.config.sample_rate,
             num_channels=self.config.num_channels,
             chunk_seconds=self.config.chunk_seconds,
+            overlap_seconds=self.config.chunk_overlap_seconds,
         )
 
         audio_stream = rtc.AudioStream(

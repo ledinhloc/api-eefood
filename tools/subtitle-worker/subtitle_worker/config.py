@@ -31,7 +31,8 @@ class WorkerConfig:
     bot_identity: str
     bot_name: str
     streamer_identity_prefix: str
-    chunk_seconds: int
+    chunk_seconds: float
+    chunk_overlap_seconds: float
     sample_rate: int
     num_channels: int
     language: Optional[str]
@@ -43,6 +44,11 @@ class WorkerConfig:
     def transcript_url(self) -> str:
         """Tạo URL backend để gửi transcript text."""
         return f"{self.reaction_base_url.rstrip('/')}/api/v1/livestreams/subtitles/transcripts"
+
+    @property
+    def active_livestreams_url(self) -> str:
+        """Tao URL backend de lay danh sach livestream dang LIVE."""
+        return f"{self.reaction_base_url.rstrip('/')}/api/v1/livestreams/active"
 
     def with_livestream(
         self,
@@ -77,7 +83,8 @@ def load_config() -> WorkerConfig:
         bot_identity=os.getenv("BOT_IDENTITY", "subtitle-worker"),
         bot_name=os.getenv("BOT_NAME", "Subtitle Worker"),
         streamer_identity_prefix=os.getenv("STREAMER_IDENTITY_PREFIX", "streamer_"),
-        chunk_seconds=int(os.getenv("CHUNK_SECONDS", "2")),
+        chunk_seconds=float(os.getenv("CHUNK_SECONDS", "1.5")),
+        chunk_overlap_seconds=float(os.getenv("CHUNK_OVERLAP_SECONDS", "0.25")),
         sample_rate=int(os.getenv("AUDIO_SAMPLE_RATE", "16000")),
         num_channels=int(os.getenv("AUDIO_NUM_CHANNELS", "1")),
         language=os.getenv("SPOKEN_LANGUAGE"),
