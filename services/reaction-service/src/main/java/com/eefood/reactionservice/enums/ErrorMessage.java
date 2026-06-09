@@ -84,6 +84,7 @@ public enum ErrorMessage {
   LIVE_STREAM_NOT_FOUND("Livestream not found"),
 
   //block live
+  CANNOT_BLOCK_YOURSELF("You cannot block yourself"),
   USER_ALREADY_BLOCKED("This user is already blocked by you"),
   USER_NOT_BLOCKED("This user is not blocked"),
   USER_INFO_NOT_FOUND("User info not found"),

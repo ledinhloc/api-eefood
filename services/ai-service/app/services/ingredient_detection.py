@@ -17,6 +17,8 @@ class IngredientDetectionError(RuntimeError):
 
 
 class IngredientDetectionService:
+    """Service chay model nhan dien nguyen lieu va tao ket qua detection."""
+
     # Cache model, classes va output names de khong phai load lai moi request.
     _net = None
     _classes: list[str] | None = None
@@ -24,6 +26,7 @@ class IngredientDetectionService:
     _annotation_font = None
 
     def __init__(self) -> None:
+        """Khoi tao cau hinh model, threshold va tham so tien xu ly anh."""
         # Lay cau hinh model va threshold tu file config.
         self.model_path: Path = settings.model_path
         self.classes_path: Path = settings.classes_path
@@ -38,6 +41,7 @@ class IngredientDetectionService:
         self.postprocessing = "yolov8"
 
     def detect(self, image_bytes: bytes) -> IngredientDetectionResponse:
+        """Nhan bytes anh, chay model detection va tra ket qua dang schema."""
         # Nhan bytes anh tu API va chuyen sang dinh dang OpenCV BGR.
         frame = self._read_image(image_bytes)
         frame_height, frame_width = frame.shape[:2]
@@ -87,6 +91,7 @@ class IngredientDetectionService:
         )
 
     def detect_annotated_image(self, image_bytes: bytes) -> bytes:
+        """Nhan bytes anh, ve bounding box/label len anh va tra ve JPEG bytes."""
         # Doc anh goc va chay detection de lay nhan, confidence va bounding box.
         frame = self._read_image(image_bytes)
         result = self.detect(image_bytes)
@@ -137,6 +142,7 @@ class IngredientDetectionService:
 # Hàm này tạo màu cho bounding box dựa trên tên nhãn
     @staticmethod
     def _label_color(label: str) -> tuple[int, int, int]:
+        """Tao mau on dinh cho bounding box dua tren ten label."""
         seed = sum((index + 1) * ord(char) for index, char in enumerate(label))
         return (
             64 + seed % 160,
@@ -147,6 +153,7 @@ class IngredientDetectionService:
 # tìm và load font Unicode để vẽ được tiếng Việt 
     @classmethod
     def _get_annotation_font(cls):
+        """Tim va cache font Unicode de ve label tieng Viet len anh."""
         if cls._annotation_font is not None:
             return cls._annotation_font
 
@@ -166,6 +173,7 @@ class IngredientDetectionService:
         )
 
     def _read_image(self, image_bytes: bytes) -> np.ndarray:
+        """Decode bytes anh upload thanh OpenCV frame dinh dang BGR."""
         try:
             pil_image = Image.open(BytesIO(image_bytes))
         except Exception as exc:
@@ -178,6 +186,7 @@ class IngredientDetectionService:
 
     @classmethod
     def _get_net(cls):
+        """Load va cache model ONNX bang OpenCV DNN."""
         if cls._net is None:
             if not settings.model_path.exists():
                 raise IngredientDetectionError(
@@ -191,6 +200,7 @@ class IngredientDetectionService:
 
     @classmethod
     def _get_classes(cls) -> list[str]:
+        """Doc va cache danh sach ten class ma model co the nhan dien."""
         if cls._classes is None:
             if not settings.classes_path.exists():
                 raise IngredientDetectionError(
@@ -206,6 +216,7 @@ class IngredientDetectionService:
 
     @classmethod
     def _get_out_names(cls) -> list[str]:
+        """Lay va cache ten cac output layer de dung khi forward model."""
         if cls._out_names is None:
             # Lay ten cac output layer de dung cho forward(...).
             net = cls._get_net()
@@ -221,6 +232,7 @@ class IngredientDetectionService:
         out_names: list[str],
         net,
     ) -> list[DetectionItem]:
+        """Giai ma output model, loc theo confidence va ap dung NMS."""
         # Postprocess dua tren logic Streamlit goc: giai ma box, score va class.
         layer_names = net.getLayerNames()
         last_layer_id = net.getLayerId(layer_names[-1])
@@ -314,6 +326,7 @@ class IngredientDetectionService:
         out_names: list[str],
         last_layer_type: str,
     ) -> list[int]:
+        """Chay Non-Maximum Suppression theo tung class de loai box trung lap."""
         if not class_ids:
             return []
 

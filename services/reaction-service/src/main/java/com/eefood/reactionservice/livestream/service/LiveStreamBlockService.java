@@ -32,6 +32,10 @@ public class LiveStreamBlockService {
   private final LiveStreamService liveStreamService;
 
   public BlockUserResponse blockUser(Long streamerId, Long blockedUserId) {
+    if (streamerId.equals(blockedUserId)) {
+      throw ExceptionUtil.badRequest(ErrorMessage.CANNOT_BLOCK_YOURSELF);
+    }
+
     if (repo.existsByStreamerIdAndBlockedUserId(streamerId, blockedUserId)) {
       throw ExceptionUtil.conflict(ErrorMessage.USER_ALREADY_BLOCKED);
     }
