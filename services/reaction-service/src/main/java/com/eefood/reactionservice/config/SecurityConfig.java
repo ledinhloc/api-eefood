@@ -31,6 +31,7 @@ public class SecurityConfig {
               .requestMatchers(HttpMethod.GET, "/api/v1/posts/my").permitAll()
               .requestMatchers(HttpMethod.GET, "/api/v1/livestreams/check").permitAll()
               .requestMatchers(HttpMethod.GET, "/api/v1/livestreams/active").permitAll()
+              .requestMatchers(HttpMethod.GET, "/api/v1/payment/vnpay/ipn").permitAll()
               .requestMatchers(HttpMethod.POST, "/api/v1/livestreams/subtitles/transcripts").permitAll()
               .anyRequest().authenticated());
 
