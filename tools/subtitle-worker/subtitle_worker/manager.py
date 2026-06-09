@@ -12,6 +12,8 @@ logger = logging.getLogger("subtitle-worker")
 
 @dataclass
 class RunningLivestream:
+    """Luu worker, task va thong tin cua mot livestream dang duoc xu ly."""
+
     worker: SubtitleWorker
     task: asyncio.Task
     room_name: str
@@ -19,15 +21,20 @@ class RunningLivestream:
 
 
 class SubtitleWorkerManager:
+    """Quan ly cac subtitle worker dang chay theo tung livestream."""
+
     def __init__(self, config: WorkerConfig) -> None:
+        """Khoi tao manager voi cau hinh chung cua subtitle worker."""
         self.config = config
         # Luu trong RAM: liveStreamId -> worker dang nghe live do.
         self.active_workers: dict[int, RunningLivestream] = {}
 
     async def start_livestream(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Tao va chay worker nen cho livestream neu live do chua duoc xu ly."""
         live_config = self._build_livestream_config(payload)
         live_stream_id = live_config.live_stream_id
 
+        # Khong tao trung worker khi backend gui lai cung mot lenh start.
         if live_stream_id in self.active_workers:
             running = self.active_workers[live_stream_id]
             return {
@@ -65,6 +72,7 @@ class SubtitleWorkerManager:
         }
 
     async def stop_livestream(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Dung worker cua mot livestream va cho task ket thuc hoan toan."""
         live_stream_id = self._read_live_stream_id(payload)
         running = self.active_workers.pop(live_stream_id, None)
 
@@ -84,12 +92,14 @@ class SubtitleWorkerManager:
         }
 
     async def stop_all(self) -> None:
+        """Dung tat ca worker dang chay khi ung dung subtitle worker tat."""
         # Dung tat ca live khi process worker bi tat.
         live_stream_ids = list(self.active_workers)
         for live_stream_id in live_stream_ids:
             await self.stop_livestream({"liveStreamId": live_stream_id})
 
     def list_livestreams(self) -> list[dict[str, Any]]:
+        """Tra ve danh sach livestream ma manager dang lang nghe."""
         return [
             {
                 "liveStreamId": live_stream_id,
@@ -120,6 +130,7 @@ class SubtitleWorkerManager:
         return int(live_stream_id)
 
     def _remove_finished_worker(self, live_stream_id: int, task: asyncio.Task) -> None:
+        """Xoa worker da ket thuc khoi bo nho va ghi log neu task bi loi."""
         # Neu worker tu ket thuc do room disconnect, xoa khoi RAM state.
         running = self.active_workers.get(live_stream_id)
         if running is not None and running.task is task:

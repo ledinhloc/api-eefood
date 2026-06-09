@@ -2,6 +2,7 @@ package com.eefood.reactionservice.livestream.controller;
 
 import com.eefood.reactionservice.livestream.dto.response.LiveAudioTranscriptionResponse;
 import com.eefood.reactionservice.livestream.dto.request.LiveSubtitleTranscriptRequest;
+import com.eefood.reactionservice.livestream.dto.request.SubtitleWorkerStartRequest;
 import com.eefood.reactionservice.livestream.dto.response.LiveStreamResponse;
 import com.eefood.reactionservice.dto.response.ResponseData;
 import com.eefood.reactionservice.livestream.service.LiveStreamService;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/livestreams")
@@ -55,6 +57,15 @@ public class LiveStreamController {
   public ResponseData<LiveStreamResponse> checkUserStream(@RequestParam Long userId) {
     var response = liveStreamService.checkUserStream(securityUtil.getCurrentUserId(), userId);
     return new ResponseData<>(HttpStatus.OK.value(), "success", response);
+  }
+
+  @GetMapping("/active")
+  public ResponseData<List<SubtitleWorkerStartRequest>> getActiveLiveStreams() {
+    return new ResponseData<>(
+      HttpStatus.OK.value(),
+      "success",
+      liveStreamService.getActiveLiveStreams()
+    );
   }
 
   @PostMapping("/schedule")

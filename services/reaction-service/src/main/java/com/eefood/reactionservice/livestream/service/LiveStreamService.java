@@ -6,6 +6,7 @@ import com.eefood.reactionservice.livestream.dto.response.LiveStreamResponse;
 import com.eefood.reactionservice.enums.ErrorMessage;
 import com.eefood.reactionservice.enums.LiveStreamStatus;
 import com.eefood.reactionservice.exception.ExceptionUtil;
+import com.eefood.reactionservice.livestream.dto.request.SubtitleWorkerStartRequest;
 import com.eefood.reactionservice.livestream.dto.ws.LiveStreamEndMessage;
 import com.eefood.reactionservice.livestream.enums.SubtitleLanguage;
 import com.eefood.reactionservice.livestream.model.LiveStream;
@@ -44,6 +45,7 @@ public class LiveStreamService {
   private final FollowRepository followRepository;
   private final NotificationUtils notificationUtils;
   private final SubtitleWorkerClient subtitleWorkerClient;
+  private final LiveSubtitlePreferenceService subtitlePreferenceService;
 
   @Transactional(readOnly = true)
   public LiveStreamResponse checkUserStream(Long currentUserId,Long userId) {
@@ -83,6 +85,18 @@ public class LiveStreamService {
     return liveStreamMapper.toResponse(liveStream);
   }
 
+  @Transactional(readOnly = true)
+  public List<SubtitleWorkerStartRequest> getActiveLiveStreams() {
+    return liveStreamRepository.findByStatusOrderByStartedAtDesc(LiveStreamStatus.LIVE).stream()
+    //kiem tra co viewer dang ki sub ko
+      .filter(liveStream -> subtitlePreferenceService.hasSubscribers(
+        liveStream.getId(),
+        liveStream.getSpokenLanguage()
+      ))
+      .map(this::toSubtitleWorkerStartRequest)
+      .toList();
+  }
+
   @Transactional
   public LiveStreamResponse startLiveStream(Long userId, Long liveStreamId, String requestTitle, String spokenLanguage) {
     try {
@@ -96,7 +110,7 @@ public class LiveStreamService {
 
         // Nếu đang LIVE → trả về luôn
         if (live.getStatus() == LiveStreamStatus.LIVE) {
-          startSubtitleWorker(live);
+          // startSubtitleWorker(live);
           return buildLiveStartResponse(live, userId);
         }
         // Update lịch thành LIVE
@@ -115,7 +129,7 @@ public class LiveStreamService {
         );
 
         if (live != null) {
-          startSubtitleWorker(live);
+          // startSubtitleWorker(live);
           return buildLiveStartResponse(live, userId);
         }
 
@@ -146,7 +160,7 @@ public class LiveStreamService {
       liveStreamRepository.save(live);
       log.info("Live stream started: {}", live.getId());
       notifyFollowersLiveStarted(live);
-      startSubtitleWorker(live);
+      // startSubtitleWorker(live);
 
       return buildLiveStartResponse(live, userId);
     } catch (Exception e) {
@@ -338,18 +352,20 @@ public class LiveStreamService {
     return generateToken(roomName, "streamer_" + userId, true);
   }
 
-  private void startSubtitleWorker(LiveStream liveStream) {
-    try {
-      subtitleWorkerClient.start(
-        Map.of(
-          "liveStreamId", liveStream.getId(),
-          "roomName", liveStream.getRoomName(),
-          "spokenLanguage", liveStream.getSpokenLanguage().getCode()
-        )
-      );
-    } catch (Exception e) {
-      log.warn("Cannot start subtitle worker for livestream {}: {}", liveStream.getId(), e.getMessage());
-    }
+  // private void startSubtitleWorker(LiveStream liveStream) {
+  //   try {
+  //     subtitleWorkerClient.start(toSubtitleWorkerStartRequest(liveStream));
+  //   } catch (Exception e) {
+  //     log.warn("Cannot start subtitle worker for livestream {}: {}", liveStream.getId(), e.getMessage());
+  //   }
+  // }
+
+  private SubtitleWorkerStartRequest toSubtitleWorkerStartRequest(LiveStream liveStream) {
+    return SubtitleWorkerStartRequest.builder()
+      .liveStreamId(liveStream.getId())
+      .roomName(liveStream.getRoomName())
+      .spokenLanguage(liveStream.getSpokenLanguage().getCode())
+      .build();
   }
 
   private void stopSubtitleWorker(Long liveStreamId) {

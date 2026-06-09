@@ -72,3 +72,17 @@ Response:
   "imageHeight": 720
 }
 ```
+
+### Detect ingredients and return annotated image
+
+`POST /api/v1/vision/ingredients/detect/annotated`
+
+Body:
+
+- `file`: image upload
+
+Response: `image/jpeg` with bounding boxes, labels, and confidence percentages.
+
+```env
+AI_SERVICE_ANNOTATION_FONT_PATH=/path/to/font.ttf
+```

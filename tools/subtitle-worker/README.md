@@ -46,6 +46,9 @@ LIVEKIT_API_SECRET=secret
 REACTION_BASE_URL=http://127.0.0.1:8095
 
 AUDIO_NUM_CHANNELS=1
+WHISPER_MODEL_SIZE=base
+CHUNK_SECONDS=1.5
+CHUNK_OVERLAP_SECONDS=0.25
 SPOKEN_LANGUAGE=vi
 
 WORKER_CONTROL_HOST=127.0.0.1
@@ -53,13 +56,6 @@ WORKER_CONTROL_PORT=9000
 ```
 
 ## Run
-
-Khuyen dung Uvicorn:
-
-```powershell
-uvicorn subtitle_worker.app:app --host 127.0.0.1 --port 9000
-```
-
 Neu muon auto reload khi sua code:
 
 ```powershell

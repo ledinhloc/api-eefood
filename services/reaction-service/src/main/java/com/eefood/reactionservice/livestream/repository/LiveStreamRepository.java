@@ -13,5 +13,7 @@ public interface LiveStreamRepository extends JpaRepository<LiveStream, Long> {
 
   LiveStream findTopByUserIdAndStatusInOrderByIdDesc(Long userId, List<LiveStreamStatus> scheduled);
 
+  List<LiveStream> findByStatusOrderByStartedAtDesc(LiveStreamStatus status);
+
   Optional<LiveStream> findByIdAndStatus(Long id, LiveStreamStatus status);
 }
