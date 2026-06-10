@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   discovery-server:
     image: ledinhloc/discovery:latest
@@ -16,7 +14,6 @@ services:
       - env.discovery.eureka.client.service-url.defaultZone=http://discovery-server:8761/eureka
       - env.global.jwt.issuer-uri=https://keycloak.codespace.io.vn/realms/eefood-realm
       - env.global.config-server=http://config-service:8888
-
     networks:
       - microservices-net
 
@@ -50,7 +47,6 @@ services:
       - env.discovery.eureka.client.service-url.defaultZone=http://discovery-server:8761/eureka
       - env.global.jwt.issuer-uri=https://keycloak.codespace.io.vn/realms/eefood-realm
       - env.global.config-server=http://config-service:8888
-
       - env.global.keycloak.base-url=http://keycloak:9098
       - env.global.kafka.bootstrap-servers=kafka:29092
       - env.ai-service.base-url=http://ai-service:8099
@@ -65,16 +61,15 @@ services:
       config-service:
         condition: service_healthy
     environment:
-#      - GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       - env.discovery.eureka.hostname=discovery-server
       - env.discovery.eureka.client.service-url.defaultZone=http://discovery-server:8761/eureka
       - env.global.jwt.issuer-uri=https://keycloak.codespace.io.vn/realms/eefood-realm
       - env.global.config-server=http://config-service:8888
-#      iam
+
       - env.global.idp.url=https://keycloak.codespace.io.vn
       - env.global.realm=eefood-realm
-      - env.global.idp.client-id=client_backend
-      - env.global.idp.client-secret=R74ss8ZtsZ0T8FWCkMJBsu6ut9PxR0jr
+      - env.global.idp.client-id=${KEYCLOAK_CLIENT_ID}
+      - env.global.idp.client-secret=${KEYCLOAK_CLIENT_SECRET}
 
       - env.iam.datasource.url=jdbc:postgresql://postgresql:5432/iam_service
       - env.global.redis.host=redis
@@ -116,7 +111,6 @@ services:
       config-service:
         condition: service_healthy
     environment:
-#      GEMINI_API_KEY: ${GEMINI_API_KEY}
       - env.discovery.eureka.hostname=discovery-server
       - env.discovery.eureka.client.service-url.defaultZone=http://discovery-server:8761/eureka
       - env.global.jwt.issuer-uri=https://keycloak.codespace.io.vn/realms/eefood-realm
@@ -125,12 +119,23 @@ services:
       - GEMINI_API_KEY=${GEMINI_API_KEY}
       - ES_HOST=elasticsearch
       - ES_PORT=9200
+      - ES_USERNAME=${ES_USERNAME}
+      - ES_PASSWORD=${ES_PASSWORD}
+
+      - env.global.redis.host=redis
+      - env.global.redis.port=6379
+
+      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
+      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET}
       - LIVEKIT_WS_URL=ws://livekit:7880
       - LIVEKIT_HTTP_URL=http://livekit:7880
+
       - SUBTITLE_WORKER_BASE_URL=http://subtitle-worker:9000
-      - TMN_CODE=${TMN_CODE:-code}
-      - HASH_SECRET=${HASH_SECRET:-secret}
-      - IPN_URL=${IPN_URL:-https://your-public-domain.com}
+
+      - TMN_CODE=${TMN_CODE}
+      - HASH_SECRET=${HASH_SECRET}
+      - IPN_URL=${IPN_URL}
+
       - env.global.kafka.bootstrap-servers=kafka:29092
       - env.global.kafka.schema-registry-url=http://schema-registry:8081
       - env.reaction.datasource.url=jdbc:postgresql://postgresql:5432/reaction_service
@@ -166,16 +171,18 @@ services:
       - "9000:9000"
     environment:
       - LIVEKIT_WS_URL=ws://livekit:7880
-      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY:-devkey}
-      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET:-secret}
+      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
+      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET}
       - REACTION_BASE_URL=http://reaction-service:8095
-      - AUDIO_NUM_CHANNELS=${AUDIO_NUM_CHANNELS:-1}
-      - WHISPER_MODEL_SIZE=${WHISPER_MODEL_SIZE:-base}
-      - WHISPER_DEVICE=${WHISPER_DEVICE:-cpu}
-      - WHISPER_COMPUTE_TYPE=${WHISPER_COMPUTE_TYPE:-int8}
-      - CHUNK_SECONDS=${CHUNK_SECONDS:-1}
-      - CHUNK_OVERLAP_SECONDS=${CHUNK_OVERLAP_SECONDS:-0.25}
-      - SPOKEN_LANGUAGE=${SPOKEN_LANGUAGE:-en}
+
+      - AUDIO_NUM_CHANNELS=${AUDIO_NUM_CHANNELS}
+      - WHISPER_MODEL_SIZE=${WHISPER_MODEL_SIZE}
+      - WHISPER_DEVICE=${WHISPER_DEVICE}
+      - WHISPER_COMPUTE_TYPE=${WHISPER_COMPUTE_TYPE}
+      - CHUNK_SECONDS=${CHUNK_SECONDS}
+      - CHUNK_OVERLAP_SECONDS=${CHUNK_OVERLAP_SECONDS}
+      - SPOKEN_LANGUAGE=${SPOKEN_LANGUAGE}
+
       - WORKER_CONTROL_HOST=0.0.0.0
       - WORKER_CONTROL_PORT=9000
     healthcheck:
@@ -209,11 +216,11 @@ services:
 
       - EMAIL_USERNAME=${EMAIL_USERNAME}
       - EMAIL_PASSWORD=${EMAIL_PASSWORD}
+
       - env.global.kafka.bootstrap-servers=kafka:29092
       - env.global.kafka.schema-registry-url=http://schema-registry:8081
       - env.notification.datasource.url=jdbc:postgresql://postgresql:5432/notification_service
 
-#      - JAVA_OPTS=-Djava.security.egd=file:/dev/./urandom -cp /app:/app/app.jar
       - LOADER_PATH=/app/config
     volumes:
       - ./firebase/serviceAccountKey.json:/app/config/serviceAccountKey.json
