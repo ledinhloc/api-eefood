@@ -53,6 +53,7 @@ services:
 
       - env.global.keycloak.base-url=http://keycloak:9098
       - env.global.kafka.bootstrap-servers=kafka:29092
+      - env.ai-service.base-url=http://ai-service:8099
     networks:
       - microservices-net
 
@@ -126,9 +127,70 @@ services:
       - ES_PORT=9200
       - LIVEKIT_WS_URL=ws://livekit:7880
       - LIVEKIT_HTTP_URL=http://livekit:7880
+      - SUBTITLE_WORKER_BASE_URL=http://subtitle-worker:9000
+      - TMN_CODE=${TMN_CODE:-code}
+      - HASH_SECRET=${HASH_SECRET:-secret}
+      - IPN_URL=${IPN_URL:-https://your-public-domain.com}
       - env.global.kafka.bootstrap-servers=kafka:29092
       - env.global.kafka.schema-registry-url=http://schema-registry:8081
       - env.reaction.datasource.url=jdbc:postgresql://postgresql:5432/reaction_service
+    networks:
+      - microservices-net
+
+  ai-service:
+    image: ledinhloc/ai-service:latest
+    ports:
+      - "8099:8099"
+    environment:
+      - AI_SERVICE_HOST=0.0.0.0
+      - AI_SERVICE_PORT=8099
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:8099/health')",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+    networks:
+      - microservices-net
+
+  subtitle-worker:
+    image: ledinhloc/subtitle-worker:latest
+    ports:
+      - "9000:9000"
+    environment:
+      - LIVEKIT_WS_URL=ws://livekit:7880
+      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY:-devkey}
+      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET:-secret}
+      - REACTION_BASE_URL=http://reaction-service:8095
+      - AUDIO_NUM_CHANNELS=${AUDIO_NUM_CHANNELS:-1}
+      - WHISPER_MODEL_SIZE=${WHISPER_MODEL_SIZE:-base}
+      - WHISPER_DEVICE=${WHISPER_DEVICE:-cpu}
+      - WHISPER_COMPUTE_TYPE=${WHISPER_COMPUTE_TYPE:-int8}
+      - CHUNK_SECONDS=${CHUNK_SECONDS:-1}
+      - CHUNK_OVERLAP_SECONDS=${CHUNK_OVERLAP_SECONDS:-0.25}
+      - SPOKEN_LANGUAGE=${SPOKEN_LANGUAGE:-en}
+      - WORKER_CONTROL_HOST=0.0.0.0
+      - WORKER_CONTROL_PORT=9000
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:9000/health')",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
     networks:
       - microservices-net
 
