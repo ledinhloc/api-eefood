@@ -2,10 +2,8 @@ package com.eefood.notificationservice.kafka;
 
 import com.eefood.common.avro.OtpCreateEvent;
 import com.eefood.common.avro.OtpType;
-import com.eefood.notificationservice.dto.response.OtpResponse;
 import com.eefood.notificationservice.service.OtpEmailService;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
