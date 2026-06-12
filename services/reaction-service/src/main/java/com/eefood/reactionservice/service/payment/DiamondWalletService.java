@@ -1,5 +1,6 @@
 package com.eefood.reactionservice.service.payment;
 
+import com.eefood.reactionservice.dto.response.WalletHistoryResponse;
 import com.eefood.reactionservice.dto.response.payment.DiamondPackageResponse;
 import com.eefood.reactionservice.enums.WalletHistoryType;
 import com.eefood.reactionservice.model.payment.UserWallet;
@@ -9,6 +10,10 @@ import com.eefood.reactionservice.repository.payment.UserWalletRepository;
 import com.eefood.reactionservice.repository.payment.WalletHistoryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
@@ -25,6 +30,41 @@ public class DiamondWalletService {
     private final WalletHistoryRepository walletHistoryRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final DiamondPackageRepository diamondPackageRepository;
+
+    @Transactional(readOnly = true)
+    public Page<WalletHistoryResponse> getWalletHistory(
+            Long userId, String type, String sort, int page, int size) {
+
+        Sort sortOrder = "oldest".equalsIgnoreCase(sort)
+                ? Sort.by("createdAt").ascending()
+                : Sort.by("createdAt").descending();
+
+        Pageable pageable = PageRequest.of(page-1, size, sortOrder);
+
+        Page<WalletHistory> historyPage;
+
+        if (type == null || type.isBlank()) {
+            historyPage = walletHistoryRepository.findByUserId(userId, pageable);
+        } else {
+            try {
+                WalletHistoryType walletType = WalletHistoryType.valueOf(type.toUpperCase());
+                historyPage = walletHistoryRepository.findByUserIdAndType(userId, walletType, pageable);
+            } catch (IllegalArgumentException e) {
+                return Page.empty(pageable);
+            }
+        }
+
+        return historyPage.map(w -> WalletHistoryResponse.builder()
+                .id(w.getId())
+                .userId(w.getUserId())
+                .transactionId(w.getTransactionId())
+                .type(w.getType())
+                .amount(w.getAmount())
+                .balanceBefore(w.getBalanceBefore())
+                .balanceAfter(w.getBalanceAfter())
+                .createdAt(w.getCreatedAt())
+                .build());
+    }
 
     @Transactional(readOnly = true)
     public List<DiamondPackageResponse> getAllPackages() {
@@ -141,5 +181,4 @@ public class DiamondWalletService {
             log.warn("Failed to push wallet balance update for userId={}", userId, e);
         }
     }
-
 }

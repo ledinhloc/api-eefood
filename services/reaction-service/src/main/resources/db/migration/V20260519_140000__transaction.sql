@@ -104,3 +104,5 @@ VALUES
     (NOW(), NOW(), 24, 0 ,0 ,0),
     (NOW(), NOW(), 25, 0 ,0 ,0),
     (NOW(), NOW(), 26, 0 ,0 ,0);
+
+CREATE INDEX idx_wallet_history_user_type ON wallet_histories (user_id, type);
