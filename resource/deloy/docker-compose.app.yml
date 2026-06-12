@@ -72,8 +72,8 @@ services:
       - env.global.idp.client-secret=${KEYCLOAK_CLIENT_SECRET}
 
       - env.iam.datasource.url=jdbc:postgresql://postgresql:5432/iam_service
-      - env.iam.datasource.username=${POSTGRES_USER:-postgres}
-      - env.iam.datasource.password=${POSTGRES_PASSWORD:-postgres}
+      - env.iam.datasource.username=${POSTGRES_USER}
+      - env.iam.datasource.password=${POSTGRES_PASSWORD}
       - env.global.redis.host=redis
       - env.global.kafka.bootstrap-servers=kafka:29092
       - env.global.kafka.schema-registry-url=http://schema-registry:8081
@@ -102,8 +102,8 @@ services:
       - env.global.kafka.bootstrap-servers=kafka:29092
       - env.global.kafka.schema-registry-url=http://schema-registry:8081
       - env.recipe.datasource.url=jdbc:postgresql://postgresql:5432/recipe_service
-      - env.recipe.datasource.username=${POSTGRES_USER:-postgres}
-      - env.recipe.datasource.password=${POSTGRES_PASSWORD:-postgres}
+      - env.recipe.datasource.username=${POSTGRES_USER}
+      - env.recipe.datasource.password=${POSTGRES_PASSWORD}
     networks:
       - microservices-net
 
@@ -146,8 +146,8 @@ services:
       - env.global.kafka.bootstrap-servers=kafka:29092
       - env.global.kafka.schema-registry-url=http://schema-registry:8081
       - env.reaction.datasource.url=jdbc:postgresql://postgresql:5432/reaction_service
-      - env.reaction.datasource.username=${POSTGRES_USER:-postgres}
-      - env.reaction.datasource.password=${POSTGRES_PASSWORD:-postgres}
+      - env.reaction.datasource.username=${POSTGRES_USER}
+      - env.reaction.datasource.password=${POSTGRES_PASSWORD}
     networks:
       - microservices-net
 
@@ -229,8 +229,8 @@ services:
       - env.global.kafka.bootstrap-servers=kafka:29092
       - env.global.kafka.schema-registry-url=http://schema-registry:8081
       - env.notification.datasource.url=jdbc:postgresql://postgresql:5432/notification_service
-      - env.notification.datasource.username=${POSTGRES_USER:-postgres}
-      - env.notification.datasource.password=${POSTGRES_PASSWORD:-postgres}
+      - env.notification.datasource.username=${POSTGRES_USER}
+      - env.notification.datasource.password=${POSTGRES_PASSWORD}
 
       - LOADER_PATH=/app/config
     volumes:
