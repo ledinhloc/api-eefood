@@ -2,6 +2,7 @@ package com.eefood.reactionservice.repository.httpclient;
 
 import com.eefood.reactionservice.dto.response.CategoryResponse;
 import com.eefood.reactionservice.dto.response.RecipeSummaryResponse;
+import com.eefood.reactionservice.dto.response.RecipeIngredientsResponse;
 import com.eefood.reactionservice.dto.response.ResponseData;
 import com.eefood.reactionservice.dto.response.ShoppingItemDto;
 import com.eefood.reactionservice.mealplan.dto.response.NutritionAnalysisResponse;
@@ -24,6 +25,9 @@ public interface RecipeClient {
 
   @GetMapping("/api/v1/recipes/summary/{id}")
   ResponseData<RecipeSummaryResponse> getRecipeSummary(@PathVariable("id") Long id);
+
+  @GetMapping("/api/v1/recipes/{id}")
+  ResponseData<RecipeIngredientsResponse> getRecipeIngredients(@PathVariable("id") Long id);
 
   @GetMapping("/api/v1/categories/all")
   ResponseData<List<CategoryResponse>> getListOfCategories();
