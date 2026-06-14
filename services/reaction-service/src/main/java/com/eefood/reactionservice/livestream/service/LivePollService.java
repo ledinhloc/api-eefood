@@ -221,6 +221,7 @@ public class LivePollService {
           pollId,
           Map.of(optionId, 1L)
         );
+        //sk update
         publishVoteEvent(liveStreamId, pollId, userId, List.of(optionId), List.of());
         livePollBroadcastService.broadcastPollResult(liveStreamId, result);
         return result;

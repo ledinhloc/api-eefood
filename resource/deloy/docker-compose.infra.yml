@@ -1,4 +1,21 @@
+version: '3.8'
+
 services:
+  chroma:
+    image: chromadb/chroma:0.4.24
+    container_name: chroma
+    ports:
+      - "8010:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+    environment:
+      - IS_PERSISTENT=TRUE
+      - PERSIST_DIRECTORY=/chroma/chroma
+    mem_limit: 512m
+    mem_reservation: 256m
+    networks:
+      - microservices-net
+
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.1
     container_name: elasticsearch
@@ -6,7 +23,8 @@ services:
       - discovery.type=single-node
       - xpack.security.enabled=true
       - ELASTIC_PASSWORD=elastic123
-      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - ES_JAVA_OPTS=-Xms256m -Xmx256m
+    mem_limit: 1g
     ports:
       - "9200:9200"
     volumes:
@@ -14,114 +32,74 @@ services:
     networks:
       - microservices-net
     healthcheck:
-      test: ["CMD-SHELL", "nc -z localhost 9200 || exit 1"]
+      test: curl -u elastic:elastic123 -f http://localhost:9200 || exit 1
       interval: 30s
       timeout: 10s
       retries: 5
-      start_period: 60s
-
-  kibana:
-    image: docker.elastic.co/kibana/kibana:8.11.1
-    container_name: kibana
-    depends_on:
-      elasticsearch:
-        condition: service_healthy
-    environment:
-      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-      - ELASTICSEARCH_USERNAME=kibana_system
-      - ELASTICSEARCH_PASSWORD=kibana123
-    ports:
-      - "5601:5601"
-    networks:
-      - microservices-net
 
   livekit:
     image: livekit/livekit-server:latest
     container_name: livekit
     environment:
-      # Port
       LIVEKIT_PORT: "7880"
 
-      # RTC Configuration - IP máy thật
-      LIVEKIT_RTC_NODE_IP: "192.168.4.134"
-      LIVEKIT_RTC_ANNOUNCE_IP: "192.168.4.134"
+      LIVEKIT_RTC_NODE_IP: "103.82.24.53"
+      LIVEKIT_RTC_ANNOUNCE_IP: "103.82.24.53"
 
-      # Port range cho RTC (UDP)
-      LIVEKIT_RTC_PORT_RANGE_START: "50000"
-      LIVEKIT_RTC_PORT_RANGE_END: "50100"
+      LIVEKIT_RTC_PORT_RANGE_START: "50100"
+      LIVEKIT_RTC_PORT_RANGE_END: "50119"
 
-      # ICE Configuration
       LIVEKIT_RTC_USE_ICE_LITE: "false"
-
-      # API keys
       LIVEKIT_KEYS: "devkey: secret"
-
-      # Room settings
       LIVEKIT_ROOM_AUTO_CREATE: "true"
-      LIVEKIT_ROOM_EMPTY_TIMEOUT: "300"
-      LIVEKIT_ROOM_MAX_PARTICIPANTS: "100"
-
+    mem_limit: 512m
     ports:
-      - "7880:7880"                    # WebSocket
-      - "50000-50100:50000-50100/udp"  # RTC ports
-
-    restart: unless-stopped
+      - "7880:7880"
+      - "50100-50119:50100-50119/udp"
     networks:
       - microservices-net
-
 
   postgresql:
     container_name: pg_sql
     image: postgres
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       PGDATA: /data/postgres
+    mem_limit: 512m
     volumes:
       - postgres:/data/postgres
-#      - ./init-multiple-db.sh:/docker-entrypoint-initdb.d/init-multiple-db.sh
+      # - ./init-multiple-db.sh:/docker-entrypoint-initdb.d/init-multiple-db.sh
     ports:
       - "5435:5432"
     networks:
       - microservices-net
-    restart: unless-stopped
-
-  zookeeper:
-    image: confluentinc/cp-zookeeper:latest
-    container_name: zookeeper
-    environment:
-      ZOOKEEPER_SERVER_ID: 1
-      ZOOKEEPER_CLIENT_PORT: 2181
-      ZOOKEEPER_TICK_TIME: 2000
-    ports:
-      - "22181:2181"
-    networks:
-      - microservices-net
-    healthcheck:
-      test: echo srvr | nc localhost 2181 || exit 1
-      interval: 10s
-      timeout: 5s
-      retries: 5
+    # restart: unless-stopped # Bỏ giống file 2
 
   kafka:
     image: confluentinc/cp-kafka:7.4.3
     container_name: kafka
-    depends_on:
-      zookeeper:
-        condition: service_healthy
     ports:
       - "9092:9092"
       - "9093:9093"
     environment:
-      KAFKA_BROKER_ID: 2
-      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:29093'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_LISTENERS: PLAINTEXT_INTERNAL://0.0.0.0:29092,PLAINTEXT_C://0.0.0.0:9093,PLAINTEXT_L://0.0.0.0:9092
+
+      KAFKA_LISTENERS: PLAINTEXT_INTERNAL://0.0.0.0:29092,PLAINTEXT_C://0.0.0.0:9093,PLAINTEXT_L://0.0.0.0:9092,CONTROLLER://0.0.0.0:29093
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT_INTERNAL://kafka:29092,PLAINTEXT_L://localhost:9092,PLAINTEXT_C://kafka:9093
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT_INTERNAL:PLAINTEXT,PLAINTEXT_L:PLAINTEXT,PLAINTEXT_C:PLAINTEXT
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT_INTERNAL:PLAINTEXT,PLAINTEXT_L:PLAINTEXT,PLAINTEXT_C:PLAINTEXT,CONTROLLER:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
+
+      KAFKA_HEAP_OPTS: "-Xms256m -Xmx256m"
+    mem_limit: 1g
     networks:
       - microservices-net
     healthcheck:
@@ -142,43 +120,31 @@ services:
       SCHEMA_REGISTRY_HOST_NAME: schema-registry
       SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: 'kafka:29092'
       SCHEMA_REGISTRY_LISTENERS: http://schema-registry:8081
+      SCHEMA_REGISTRY_HEAP_OPTS: "-Xms256m -Xmx256m"
+    mem_limit: 512m
     networks:
       - microservices-net
     healthcheck:
-      test: ["CMD", "cub", "sr-ready", "0.0.0.0", "8081", "20"]
+      test: curl -f http://localhost:8081/ || exit 1
       interval: 10s
       timeout: 5s
       retries: 5
-
-  kafka-ui:
-    image: provectuslabs/kafka-ui:latest
-    container_name: kafka_ui
-    depends_on:
-      - kafka
-    ports:
-      - "9010:8080"
-    environment:
-      - KAFKA_CLUSTERS_0_NAME=kafka
-      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9093
-      - KAFKA_CLUSTERS_0_ZOOKEEPER=zookeeper:2181
-      - KAFKA_CLUSTERS_0_SCHEMAREGISTRY=http://schema-registry:8081
-    restart: always
-    networks:
-      - microservices-net
 
   keycloak:
     container_name: keycloak
     image: quay.io/keycloak/keycloak:26.3.1
     ports:
-      - 9098:9098
+      - "9098:9098"
     environment:
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
+
       KC_DB: postgres
       KC_DB_URL_HOST: pg_sql
       KC_DB_URL_DATABASE: keycloak
-      KC_DB_USERNAME: postgres
-      KC_DB_PASSWORD: postgres
+      KC_DB_USERNAME: ${POSTGRES_USER}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
+
       KC_HTTP_PORT: 9098
 
       KC_PROXY_HEADERS: xforwarded
@@ -187,6 +153,8 @@ services:
       KC_HOSTNAME_STRICT_ISSUER: "false"
 
       KC_HOSTNAME_URL: https://keycloak.codespace.io.vn
+      JAVA_OPTS_APPEND: "-Xms128m -Xmx384m"
+    mem_limit: 768m
     networks:
       - microservices-net
     command:
@@ -195,59 +163,13 @@ services:
   redis:
     image: redis:latest
     container_name: redis-server
-    restart: always
+    mem_limit: 256m
     ports:
       - "6379:6379"
-    #    command: [ "redis-server", "--requirepass", "12345678" ]
+    # command: [ "redis-server", "--requirepass", "12345678" ]
     networks:
       - microservices-net
 
-  redisinsight:
-    image: redis/redisinsight:latest
-    container_name: redis-ui
-    restart: always
-    ports:
-      - "5540:5540"
-    depends_on:
-      - redis
-    networks:
-      - microservices-net
-
-#  loki:
-#    container_name: loki
-#    image: grafana/loki:latest
-#    command: [ '-config.file=/etc/loki/local-config.yaml' ]
-#    ports:
-#      - '3100:3100'
-#    networks:
-#      - microservices-net
-#
-#  prometheus:
-#    container_name: prometheus
-#    image: prom/prometheus:latest
-#    command:
-#      - --enable-feature=exemplar-storage
-#      - --config.file=/etc/prometheus/prometheus.yml
-#    volumes:
-#      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-#    ports:
-#      - '9090:9090'
-#    networks:
-#      - microservices-net
-#
-#  grafana:
-#    container_name: grafana
-#    image: grafana/grafana:10.1.0
-#    volumes:
-#      - ./docker/grafana:/etc/grafana/provisioning/datasources:ro
-#    environment:
-#      - GF_AUTH_ANONYMOUS_ENABLED=true
-#      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
-#      - GF_AUTH_DISABLE_LOGIN_FORM=true
-#    ports:
-#      - '3000:3000'
-#    networks:
-#      - microservices-net
 networks:
   microservices-net:
     driver: bridge
@@ -256,3 +178,4 @@ volumes:
   postgres:
   pgadmin:
   elasticsearch-data:
+  chroma_data:

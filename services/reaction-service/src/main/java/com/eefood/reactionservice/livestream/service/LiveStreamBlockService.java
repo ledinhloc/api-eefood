@@ -32,10 +32,15 @@ public class LiveStreamBlockService {
   private final LiveStreamService liveStreamService;
 
   public BlockUserResponse blockUser(Long streamerId, Long blockedUserId) {
+    if (streamerId.equals(blockedUserId)) {
+      throw ExceptionUtil.badRequest(ErrorMessage.CANNOT_BLOCK_YOURSELF);
+    }
+
     if (repo.existsByStreamerIdAndBlockedUserId(streamerId, blockedUserId)) {
       throw ExceptionUtil.conflict(ErrorMessage.USER_ALREADY_BLOCKED);
     }
 
+    //block user
     LiveStreamBlock block = LiveStreamBlock.builder()
       .streamerId(streamerId)
       .blockedUserId(blockedUserId)
@@ -49,6 +54,7 @@ public class LiveStreamBlockService {
       throw ExceptionUtil.notFound(ErrorMessage.USER_INFO_NOT_FOUND);
     }
 
+    //kiểm tra đang xem live user này thì đuổi ra
     try {
       var activeView = liveViewerService.findActiveViewByUserId(blockedUserId);
       if (activeView.isPresent()) {
