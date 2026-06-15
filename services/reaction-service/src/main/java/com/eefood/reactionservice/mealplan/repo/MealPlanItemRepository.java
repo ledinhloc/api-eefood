@@ -1,6 +1,7 @@
 package com.eefood.reactionservice.mealplan.repo;
 
 import com.eefood.reactionservice.mealplan.enums.MealSlot;
+import com.eefood.reactionservice.mealplan.enums.MealPlanItemStatus;
 import com.eefood.reactionservice.mealplan.model.MealPlanItem;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -14,6 +15,8 @@ public interface MealPlanItemRepository extends JpaRepository<MealPlanItem, Long
     List<MealPlanItem> findAllByMealPlanIdOrderByPlanDateAscMealSlotAscItemOrderAsc(Long mealPlanId);
 
     List<MealPlanItem> findAllByMealPlanIdAndPlanDate(Long mealPlanId, LocalDate planDate);
+
+    List<MealPlanItem> findAllByPlanDateAndMealSlotAndStatus(LocalDate planDate, MealSlot mealSlot, MealPlanItemStatus status);
 
     void deleteAllByMealPlanId(Long mealPlanId);
 
