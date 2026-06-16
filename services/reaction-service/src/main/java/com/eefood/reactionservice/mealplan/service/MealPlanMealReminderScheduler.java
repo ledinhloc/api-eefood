@@ -35,19 +35,19 @@ public class MealPlanMealReminderScheduler {
     private final MealPlanRepository mealPlanRepository;
     private final NotificationProducer notificationProducer;
     //second minute hour day month weekday
-    @Scheduled(cron = "0 0 7 * * *", zone = TIME_ZONE)
+    @Scheduled(cron = "0 0 6 * * *", zone = TIME_ZONE)
     @Transactional(readOnly = true)
     public void remindBreakfast() {
         sendMealReminder(MealSlot.BREAKFAST);
     }
 
-    @Scheduled(cron = "0 30 11 * * *", zone = TIME_ZONE)
+    @Scheduled(cron = "0 30 10 * * *", zone = TIME_ZONE)
     @Transactional(readOnly = true)
     public void remindLunch() {
         sendMealReminder(MealSlot.LUNCH);
     }
 
-    @Scheduled(cron = "0 0 18 * * *", zone = TIME_ZONE)
+    @Scheduled(cron = "0 0 17 * * *", zone = TIME_ZONE)
     @Transactional(readOnly = true)
     public void remindDinner() {
         sendMealReminder(MealSlot.DINNER);
@@ -124,10 +124,10 @@ public class MealPlanMealReminderScheduler {
 
     private String getTitle(MealSlot mealSlot) {
         return switch (mealSlot) {
-            case BREAKFAST -> "Den gio an sang";
-            case LUNCH -> "Den gio an trua";
-            case DINNER -> "Den gio an toi";
-            case SNACK -> "Den gio an nhe";
+            case BREAKFAST -> "Đến giờ ăn sáng";
+            case LUNCH -> "Đến giờ ăn trưa";
+            case DINNER -> "Đến giờ ăn tối";
+            case SNACK -> "Đến giờ ăn nhé";
         };
     }
 }
