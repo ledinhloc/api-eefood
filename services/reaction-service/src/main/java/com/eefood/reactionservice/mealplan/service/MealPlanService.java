@@ -330,11 +330,19 @@ public class MealPlanService {
     }
 
     private void saveGeneratedItems(Long mealPlanId, List<GeneratedMealItem> generatedItems) {
-        mealPlanItemRepository.saveAll(
+        List<MealPlanItem> savedItems = mealPlanItemRepository.saveAll(
                 generatedItems.stream()
                         .map(item -> mealPlanItemMapper.toEntity(item, mealPlanId))
                         .toList()
         );
+
+        for (int index = 0; index < savedItems.size(); index++) {
+            // Tao snapshot nguyen lieu cho item do AI sinh ra.
+            mealPlanIngredientService.replaceIngredientsFromRecipe(
+                    savedItems.get(index).getId(),
+                    savedItems.get(index).getRecipeId()
+            );
+        }
     }
 
     private String buildUserHealthNote(UserResponse user, UserBodyMetricsResponse bodyMetrics) {

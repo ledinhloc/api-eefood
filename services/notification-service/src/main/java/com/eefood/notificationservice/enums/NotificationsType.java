@@ -11,5 +11,6 @@ public enum NotificationsType {
     WELCOME,
     RECOMMEND_RECIPE,
     REPORT,
-    RECIPE_OF_THE_DAY
+    RECIPE_OF_THE_DAY,
+    MEAL_PLAN
 }

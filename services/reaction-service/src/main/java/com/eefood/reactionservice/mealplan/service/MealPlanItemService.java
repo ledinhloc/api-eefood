@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -51,12 +52,18 @@ public class MealPlanItemService {
         validateItemUpsertRequest(userId, request, item);
         validatePlanDateWithinMealPlan(mealPlan, request.getPlanDate() != null ? request.getPlanDate() : item.getPlanDate());
 
+        Long previousRecipeId = item.getRecipeId();
         applyItemRequest(item, request);
+        validateDuplicateItem(item);
         MealPlanItem savedItem = mealPlanItemRepository.save(item);
 
         // Nếu client gửi ingredients thì coi như muốn đồng bộ lại toàn bộ danh sách nguyên liệu.
         if (request.getIngredients() != null) {
             mealPlanIngredientService.replaceIngredients(savedItem.getId(), request.getIngredients());
+        } else if (savedItem.getItemSource() == MealPlanItemSource.RECIPE
+                && !Objects.equals(previousRecipeId, savedItem.getRecipeId())) {
+            // Tao snapshot nguyen lieu khi them moi hoac doi recipe.
+            mealPlanIngredientService.replaceIngredientsFromRecipe(savedItem.getId(), savedItem.getRecipeId());
         }
 
         return buildItemResponse(savedItem);
@@ -239,6 +246,24 @@ public class MealPlanItemService {
         if (planDate.isBefore(mealPlan.getStartDate()) || planDate.isAfter(mealPlan.getEndDate())) {
             throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
         }
+    }
+
+    private void validateDuplicateItem(MealPlanItem item) {
+        if (item.getItemSource() != MealPlanItemSource.RECIPE || item.getRecipeId() == null) {
+            return;
+        }
+
+        mealPlanItemRepository
+                .findFirstByMealPlanIdAndPlanDateAndMealSlotAndRecipeId(
+                        item.getMealPlanId(),
+                        item.getPlanDate(),
+                        item.getMealSlot(),
+                        item.getRecipeId()
+                )
+                .filter(existing -> !existing.getId().equals(item.getId()))
+                .ifPresent(existing -> {
+                    throw ExceptionUtil.conflict(ErrorMessage.MEAL_PLAN_ITEM_DUPLICATE);
+                });
     }
 
     private boolean isBlank(String value) {
