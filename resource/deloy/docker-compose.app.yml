@@ -10,6 +10,7 @@ services:
       retries: 5
       start_period: 20s
     environment:
+      - TZ=Asia/Ho_Chi_Minh
       - env.discovery.eureka.hostname=discovery-server
       - env.discovery.eureka.client.service-url.defaultZone=http://discovery-server:8761/eureka
       - env.global.jwt.issuer-uri=https://keycloak.codespace.io.vn/realms/eefood-realm
@@ -25,6 +26,7 @@ services:
       discovery-server:
         condition: service_healthy
     environment:
+      - TZ=Asia/Ho_Chi_Minh
       - env.discovery.eureka.client.service-url.defaultZone=http://discovery-server:8761/eureka
     healthcheck:
       test: [ "CMD-SHELL", "nc -z localhost 8888 || exit 1" ]
@@ -43,6 +45,7 @@ services:
       config-service:
         condition: service_healthy
     environment:
+      - TZ=Asia/Ho_Chi_Minh
       - env.discovery.eureka.hostname=discovery-server
       - env.discovery.eureka.client.service-url.defaultZone=http://discovery-server:8761/eureka
       - env.global.jwt.issuer-uri=https://keycloak.codespace.io.vn/realms/eefood-realm
@@ -61,6 +64,7 @@ services:
       config-service:
         condition: service_healthy
     environment:
+      - TZ=Asia/Ho_Chi_Minh
       - env.discovery.eureka.hostname=discovery-server
       - env.discovery.eureka.client.service-url.defaultZone=http://discovery-server:8761/eureka
       - env.global.jwt.issuer-uri=https://keycloak.codespace.io.vn/realms/eefood-realm
@@ -91,6 +95,7 @@ services:
       config-service:
         condition: service_healthy
     environment:
+      - TZ=Asia/Ho_Chi_Minh
       - env.discovery.eureka.hostname=discovery-server
       - env.discovery.eureka.client.service-url.defaultZone=http://discovery-server:8761/eureka
       - env.global.jwt.issuer-uri=https://keycloak.codespace.io.vn/realms/eefood-realm
@@ -115,6 +120,7 @@ services:
       config-service:
         condition: service_healthy
     environment:
+      - TZ=Asia/Ho_Chi_Minh
       - env.discovery.eureka.hostname=discovery-server
       - env.discovery.eureka.client.service-url.defaultZone=http://discovery-server:8761/eureka
       - env.global.jwt.issuer-uri=https://keycloak.codespace.io.vn/realms/eefood-realm
@@ -156,6 +162,7 @@ services:
     ports:
       - "8099:8099"
     environment:
+      - TZ=Asia/Ho_Chi_Minh
       - AI_SERVICE_HOST=0.0.0.0
       - AI_SERVICE_PORT=8099
     healthcheck:
@@ -179,6 +186,7 @@ services:
     ports:
       - "9000:9000"
     environment:
+      - TZ=Asia/Ho_Chi_Minh
       - LIVEKIT_WS_URL=ws://livekit:7880
       - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
       - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET}
@@ -218,6 +226,7 @@ services:
       config-service:
         condition: service_healthy
     environment:
+      - TZ=Asia/Ho_Chi_Minh
       - env.discovery.eureka.hostname=discovery-server
       - env.discovery.eureka.client.service-url.defaultZone=http://discovery-server:8761/eureka
       - env.global.jwt.issuer-uri=https://keycloak.codespace.io.vn/realms/eefood-realm
