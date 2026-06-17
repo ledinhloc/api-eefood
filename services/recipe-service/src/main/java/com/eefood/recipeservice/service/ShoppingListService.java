@@ -69,7 +69,7 @@ public class ShoppingListService {
 
     for(var ri: listIngredient){
       IngredientAlterResponse ingredientAlterResponse = alternateIngredientService
-              .getIngredientAlterResponse(recipe.getId(),ri.getIngredient().getId());
+              .getIngredientAlterResponse(recipe.getId(),ri.getIngredient().getId(), userId);
 
       if(ingredientAlterResponse.getSelectedSubstitute()!=null) {
         item.getIngredients().add(

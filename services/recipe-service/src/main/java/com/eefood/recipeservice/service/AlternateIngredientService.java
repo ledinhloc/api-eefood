@@ -34,8 +34,7 @@ public class AlternateIngredientService {
     private final RecipeMapper recipeMapper;
     private final SecurityUtil securityUtil;
 
-    public IngredientAlterResponse getIngredientAlterResponse(Long recipeId, Long ingredientId) {
-        Long userId = securityUtil.getCurrentUserId();
+    public IngredientAlterResponse getIngredientAlterResponse(Long recipeId, Long ingredientId, Long userId) {
 
         RecipeIngredient ri = recipeIngredientRepository
                 .findByRecipeIdAndIngredientIdAndIsDeletedFalse(recipeId, ingredientId)
@@ -59,7 +58,11 @@ public class AlternateIngredientService {
                 ingredientSubstituteRepository.findSubstitutesByIngredientId(ingredient.getId());
         log.info("List substitutes: {}", substitutes);
         if (substitutes.isEmpty()) {
-            return null;
+            return IngredientAlterResponse.builder()
+                    .ingredient(recipeMapper.toDetailResponse(ingredient))
+                    .selectedSubstitute(null)
+                    .substitute(List.of())
+                    .build();
         }
 
         UserIngredientSubstitution userSub = userSubMap.get(ri.getId());
