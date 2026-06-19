@@ -1,9 +1,14 @@
 package com.eefood.reactionservice.mealplan.service;
 
+import com.eefood.reactionservice.dto.response.UserBodyMetricsResponse;
+import com.eefood.reactionservice.dto.response.UserResponse;
 import com.eefood.reactionservice.enums.ErrorMessage;
 import com.eefood.reactionservice.enums.PostStatus;
 import com.eefood.reactionservice.exception.ExceptionUtil;
+import com.eefood.reactionservice.mealplan.dto.ai.GeneratedMealReplacement;
+import com.eefood.reactionservice.mealplan.dto.ai.MealPlanAiCandidate;
 import com.eefood.reactionservice.mealplan.dto.request.MealPlanItemUpsertRequest;
+import com.eefood.reactionservice.mealplan.dto.request.MealPlanRegenerateItemsRequest;
 import com.eefood.reactionservice.mealplan.dto.response.MealPlanItemResponse;
 import com.eefood.reactionservice.mealplan.dto.response.MealPlanResponse;
 import com.eefood.reactionservice.mealplan.dto.response.NutritionAnalysisResponse;
@@ -15,6 +20,7 @@ import com.eefood.reactionservice.mealplan.model.MealPlanItem;
 import com.eefood.reactionservice.mealplan.repo.MealPlanItemRepository;
 import com.eefood.reactionservice.mealplan.repo.MealPlanRepository;
 import com.eefood.reactionservice.model.Post;
+import com.eefood.reactionservice.repository.httpclient.IamClient;
 import com.eefood.reactionservice.repository.httpclient.RecipeClient;
 import com.eefood.reactionservice.repository.post.PostRepository;
 import jakarta.transaction.Transactional;
@@ -23,11 +29,20 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class MealPlanItemService {
+    private static final int MAX_REASON_LENGTH = 500;
 
     private final MealPlanRepository mealPlanRepository;
     private final MealPlanItemRepository mealPlanItemRepository;
@@ -36,6 +51,9 @@ public class MealPlanItemService {
     private final MealPlanItemMapper mealPlanItemMapper;
     private final MealPlanService mealPlanService;
     private final MealPlanIngredientService mealPlanIngredientService;
+    private final MealPlanCandidateService mealPlanCandidateService;
+    private final MealPlanAiPlannerService mealPlanAiPlannerService;
+    private final IamClient iamClient;
 
     @Transactional
     public MealPlanItemResponse upsertMealPlanItem(Long userId, MealPlanItemUpsertRequest request) {
@@ -67,6 +85,135 @@ public class MealPlanItemService {
         }
 
         return buildItemResponse(savedItem);
+    }
+
+    @Transactional
+    public List<MealPlanItemResponse> regenerateMealPlanItems(
+            Long userId,
+            MealPlanRegenerateItemsRequest request
+    ) {
+        if (userId == null || request == null || request.getItemIds() == null
+                || request.getItemIds().isEmpty()
+                || request.getItemIds().stream().anyMatch(Objects::isNull)
+                || request.getItemIds().stream().distinct().count() != request.getItemIds().size()
+                || request.getReason() != null && request.getReason().length() > MAX_REASON_LENGTH) {
+            throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
+        }
+
+        MealPlan mealPlan = mealPlanRepository.findByUserId(userId)
+                .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.MEAL_PLAN_NOT_FOUND));
+        //lấy các item cần đổi
+        List<MealPlanItem> replacedItems = mealPlanItemRepository
+                .findAllByIdInAndMealPlanId(request.getItemIds(), mealPlan.getId());
+        if (replacedItems.size() != request.getItemIds().size()) {
+            throw ExceptionUtil.notFound(ErrorMessage.MEAL_PLAN_ITEM_NOT_FOUND);
+        }
+        //món có trạng thái done ko được đổi
+        if (replacedItems.stream().anyMatch(item -> item.getStatus() == MealPlanItemStatus.DONE)) {
+            throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
+        }
+        //lấy recipe đang sử dụng
+        Set<Long> existingRecipeIds = mealPlanItemRepository
+                .findAllByMealPlanIdOrderByPlanDateAscMealSlotAscItemOrderAsc(mealPlan.getId())
+                .stream()
+                .map(MealPlanItem::getRecipeId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        //data user
+        UserResponse user = iamClient.getUserById(userId).getData();
+        UserBodyMetricsResponse bodyMetrics = iamClient.getUserBodyMetrics(userId).getData();
+
+        //chon candidate
+        List<MealPlanAiCandidate> candidates = mealPlanCandidateService.loadReplacementCandidates(
+                userId,
+                user,
+                mealPlan.getGoal(),
+                request.getReason(),
+                existingRecipeIds,
+                replacedItems.stream()
+                        .map(MealPlanItem::getMealSlot)
+                        .filter(Objects::nonNull)
+                        .distinct()
+                        .toList(),
+                replacedItems.size()
+        );
+        if (candidates.size() < replacedItems.size()) {
+            throw ExceptionUtil.notFound(ErrorMessage.RECIPE_NOT_FOUND);
+        }
+
+        //goi ai chon mon
+        List<GeneratedMealReplacement> aiReplacements = mealPlanAiPlannerService.generateReplacements(
+                user,
+                bodyMetrics,
+                mealPlan.getGoal(),
+                request.getReason(),
+                replacedItems,
+                candidates
+        );
+        Set<Long> requestedItemIds = new HashSet<>(request.getItemIds());
+        Set<Long> candidateRecipeIds = candidates.stream()
+                .map(MealPlanAiCandidate::getRecipeId)
+                .collect(Collectors.toSet());
+        Set<Long> usedRecipeIds = new HashSet<>();
+        Map<Long, GeneratedMealReplacement> replacementsByItemId = new HashMap<>();
+        //kiểm tra kết quả AI
+        for (GeneratedMealReplacement replacement : aiReplacements) {
+            if (replacement == null || replacement.getMealPlanItemId() == null || replacement.getCandidate() == null
+                    || !requestedItemIds.contains(replacement.getMealPlanItemId())
+                    || !candidateRecipeIds.contains(replacement.getCandidate().getRecipeId())
+                    || replacementsByItemId.containsKey(replacement.getMealPlanItemId())
+                    || !usedRecipeIds.add(replacement.getCandidate().getRecipeId())) {
+                continue;
+            }
+            //nếu có lỗi bỏ qua
+            replacementsByItemId.put(replacement.getMealPlanItemId(), replacement);
+        }
+        //Fallback cho kết quả bị thiếu
+        for (MealPlanItem item : replacedItems) {
+            if (replacementsByItemId.containsKey(item.getId())) {
+                continue;
+            }
+            MealPlanAiCandidate fallbackCandidate = candidates.stream()
+                    .filter(candidate -> usedRecipeIds.add(candidate.getRecipeId()))
+                    .findFirst()
+                    .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.RECIPE_NOT_FOUND));
+
+            //tạo kết quả thay món cho item bị AI bỏ sót
+            replacementsByItemId.put(item.getId(), GeneratedMealReplacement.builder()
+                    .mealPlanItemId(item.getId())
+                    .servings(item.getPlannedServings() == null ? 1 : item.getPlannedServings())
+                    .note("Món thay thế được hệ thống đề xuất")
+                    .candidate(fallbackCandidate)
+                    .build());
+        }
+
+        //cập nhật các item
+        Map<Long, MealPlanItem> itemsById = replacedItems.stream()
+                .collect(Collectors.toMap(MealPlanItem::getId, Function.identity()));
+        List<MealPlanItem> updatedItems = new ArrayList<>();
+        for (Long itemId : request.getItemIds()) {
+            MealPlanItem item = itemsById.get(itemId);
+            GeneratedMealReplacement replacement = replacementsByItemId.get(itemId);
+            MealPlanAiCandidate candidate = replacement.getCandidate();
+
+            applyRecipeCandidate(item, candidate);
+            item.setPlannedServings(replacement.getServings() == null || replacement.getServings() <= 0
+                    ? 1
+                    : replacement.getServings());
+            item.setNote(replacement.getNote());
+            updatedItems.add(item);
+        }
+
+        //lưu db
+        List<MealPlanItem> savedItems = mealPlanItemRepository.saveAll(updatedItems);
+        savedItems.forEach(item ->
+                mealPlanIngredientService.replaceIngredientsFromRecipe(item.getId(), item.getRecipeId())
+        );
+        List<MealPlanItemResponse> responses = savedItems.stream()
+                .map(mealPlanItemMapper::toScaledResponse)
+                .toList();
+        mealPlanIngredientService.hydrateIngredients(responses);
+        return responses;
     }
 
     @Transactional
@@ -172,20 +319,30 @@ public class MealPlanItemService {
             throw ExceptionUtil.notFound(ErrorMessage.RECIPE_NOT_FOUND);
         }
 
+        applyRecipeCandidate(item, MealPlanAiCandidate.builder()
+                .recipeId(post.getRecipeId())
+                .postId(post.getId())
+                .title(post.getTitle())
+                .imageUrl(post.getImageUrl())
+                .nutrition(nutrition)
+                .build());
+    }
+
+    private void applyRecipeCandidate(MealPlanItem item, MealPlanAiCandidate candidate) {
         item.setItemSource(MealPlanItemSource.RECIPE);
-        item.setRecipeId(post.getRecipeId());
-        item.setPostId(post.getId());
+        item.setRecipeId(candidate.getRecipeId());
+        item.setPostId(candidate.getPostId());
         item.setCustomMealName(null);
-        item.setRecipeTitle(post.getTitle());
-        item.setImageUrl(post.getImageUrl());
-        item.setCalories(toBigDecimal(nutrition.getTotalCalories()));
-        item.setProtein(toBigDecimal(nutrition.getTotalProtein()));
-        item.setCarbs(toBigDecimal(nutrition.getTotalCarb()));
-        item.setFat(toBigDecimal(nutrition.getTotalFat()));
-        item.setFiber(toBigDecimal(nutrition.getTotalFiber()));
-        item.setSugar(toBigDecimal(nutrition.getTotalSugar()));
-        item.setCalcium(toBigDecimal(nutrition.getTotalCalcium()));
-        item.setSodium(toBigDecimal(nutrition.getTotalSodium()));
+        item.setRecipeTitle(candidate.getTitle());
+        item.setImageUrl(candidate.getImageUrl());
+        item.setCalories(toBigDecimal(candidate.getNutrition().getTotalCalories()));
+        item.setProtein(toBigDecimal(candidate.getNutrition().getTotalProtein()));
+        item.setCarbs(toBigDecimal(candidate.getNutrition().getTotalCarb()));
+        item.setFat(toBigDecimal(candidate.getNutrition().getTotalFat()));
+        item.setFiber(toBigDecimal(candidate.getNutrition().getTotalFiber()));
+        item.setSugar(toBigDecimal(candidate.getNutrition().getTotalSugar()));
+        item.setCalcium(toBigDecimal(candidate.getNutrition().getTotalCalcium()));
+        item.setSodium(toBigDecimal(candidate.getNutrition().getTotalSodium()));
     }
 
     private Post resolveRecipePost(MealPlanItemUpsertRequest request) {
