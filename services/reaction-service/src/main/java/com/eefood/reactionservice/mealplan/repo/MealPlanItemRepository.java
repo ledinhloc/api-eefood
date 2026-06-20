@@ -16,6 +16,8 @@ public interface MealPlanItemRepository extends JpaRepository<MealPlanItem, Long
 
     List<MealPlanItem> findAllByMealPlanIdAndPlanDate(Long mealPlanId, LocalDate planDate);
 
+    List<MealPlanItem> findAllByIdInAndMealPlanId(List<Long> ids, Long mealPlanId);
+
     List<MealPlanItem> findAllByPlanDateAndMealSlotAndStatus(LocalDate planDate, MealSlot mealSlot, MealPlanItemStatus status);
 
     void deleteAllByMealPlanId(Long mealPlanId);

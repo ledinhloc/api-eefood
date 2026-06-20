@@ -22,7 +22,7 @@ UI end live
 Chay trong thu muc nay:
 
 ```powershell
-cd D:\tlcn_v2\api-eefood\tools\subtitle-worker
+cd tools\subtitle-worker
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
@@ -31,7 +31,7 @@ pip install -r requirements.txt
 Neu da tao `.venv` roi thi lan sau chi can:
 
 ```powershell
-cd D:\tlcn_v2\api-eefood\tools\subtitle-worker
+cd tools\subtitle-worker
 .\.venv\Scripts\Activate.ps1
 ```
 

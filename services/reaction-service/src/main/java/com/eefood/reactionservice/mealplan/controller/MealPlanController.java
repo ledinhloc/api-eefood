@@ -3,6 +3,7 @@ package com.eefood.reactionservice.mealplan.controller;
 import com.eefood.reactionservice.dto.response.ResponseData;
 import com.eefood.reactionservice.mealplan.dto.request.MealPlanGenerateRequest;
 import com.eefood.reactionservice.mealplan.dto.request.MealPlanItemUpsertRequest;
+import com.eefood.reactionservice.mealplan.dto.request.MealPlanRegenerateItemsRequest;
 import com.eefood.reactionservice.mealplan.dto.request.MealPlanUpsertRequest;
 import com.eefood.reactionservice.mealplan.dto.response.MealPlanDailySummaryResponse;
 import com.eefood.reactionservice.mealplan.dto.response.MealPlanItemResponse;
@@ -98,6 +99,18 @@ public class MealPlanController {
                 HttpStatus.OK.value(),
                 "Update Meal Plan Item Success",
                 mealPlanItemService.upsertMealPlanItem(userId, request)
+        );
+    }
+
+    @PostMapping("/items/regenerate")
+    public ResponseData<List<MealPlanItemResponse>> regenerateMealPlanItems(
+            @RequestBody MealPlanRegenerateItemsRequest request
+    ) {
+        Long userId = securityUtil.getCurrentUserId();
+        return new ResponseData<>(
+                HttpStatus.OK.value(),
+                "Regenerate Meal Plan Items Success",
+                mealPlanItemService.regenerateMealPlanItems(userId, request)
         );
     }
 

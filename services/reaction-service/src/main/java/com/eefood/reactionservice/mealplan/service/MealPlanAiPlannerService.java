@@ -3,9 +3,11 @@ package com.eefood.reactionservice.mealplan.service;
 import com.eefood.reactionservice.dto.response.UserBodyMetricsResponse;
 import com.eefood.reactionservice.dto.response.UserResponse;
 import com.eefood.reactionservice.mealplan.dto.ai.GeneratedMealItem;
+import com.eefood.reactionservice.mealplan.dto.ai.GeneratedMealReplacement;
 import com.eefood.reactionservice.mealplan.dto.ai.MealPlanAiCandidate;
 import com.eefood.reactionservice.mealplan.dto.request.MealPlanGenerateRequest;
 import com.eefood.reactionservice.mealplan.enums.MealSlot;
+import com.eefood.reactionservice.mealplan.model.MealPlanItem;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.data.message.UserMessage;
@@ -51,6 +53,26 @@ public class MealPlanAiPlannerService {
             return parseGeneratedItems(chatResponse.aiMessage().text(), request.getStartDate(), candidates);
         } catch (Exception e) {
             log.warn("Meal plan AI generation failed: {}", e.getMessage());
+            return List.of();
+        }
+    }
+
+    public List<GeneratedMealReplacement> generateReplacements(
+            UserResponse user,
+            UserBodyMetricsResponse bodyMetrics,
+            String goal,
+            String reason,
+            List<MealPlanItem> replacedItems,
+            List<MealPlanAiCandidate> candidates
+    ) {
+        try {
+            String prompt = buildReplacementPrompt(user, bodyMetrics, goal, reason, replacedItems, candidates);
+            ChatResponse chatResponse = geminiChatModel.chat(ChatRequest.builder()
+                    .messages(UserMessage.from(prompt))
+                    .build());
+            return parseGeneratedReplacements(chatResponse.aiMessage().text(), replacedItems, candidates);
+        } catch (Exception e) {
+            log.warn("Meal plan AI replacement failed: {}", e.getMessage());
             return List.of();
         }
     }
@@ -136,6 +158,67 @@ public class MealPlanAiPlannerService {
         );
     }
 
+    private String buildReplacementPrompt(
+            UserResponse user,
+            UserBodyMetricsResponse bodyMetrics,
+            String goal,
+            String reason,
+            List<MealPlanItem> replacedItems,
+            List<MealPlanAiCandidate> candidates
+    ) throws Exception {
+        String replacedItemsJson = objectMapper.writeValueAsString(replacedItems.stream()
+                .map(item -> Map.ofEntries(
+                        Map.entry("mealPlanItemId", item.getId()),
+                        Map.entry("planDate", item.getPlanDate().toString()),
+                        Map.entry("mealSlot", item.getMealSlot().name()),
+                        Map.entry("recipeId", item.getRecipeId() == null ? 0L : item.getRecipeId()),
+                        Map.entry("recipeTitle", item.getRecipeTitle() == null ? "" : item.getRecipeTitle()),
+                        Map.entry("servings", item.getPlannedServings() == null ? 1 : item.getPlannedServings()),
+                        Map.entry("calories", item.getCalories() == null ? 0 : item.getCalories()),
+                        Map.entry("protein", item.getProtein() == null ? 0 : item.getProtein()),
+                        Map.entry("carbs", item.getCarbs() == null ? 0 : item.getCarbs()),
+                        Map.entry("fat", item.getFat() == null ? 0 : item.getFat()),
+                        Map.entry("sugar", item.getSugar() == null ? 0 : item.getSugar()),
+                        Map.entry("sodium", item.getSodium() == null ? 0 : item.getSodium())
+                ))
+                .toList());
+        String candidateJson = objectMapper.writeValueAsString(candidates.stream()
+                .map(this::toPromptCandidate)
+                .toList());
+
+        return """
+                Bạn là chuyên gia dinh dưỡng. Chọn món thay thế theo các quy tắc:
+                - Dùng đúng mỗi mealPlanItemId trong replaced_items một lần.
+                - Chỉ dùng recipeId trong candidate_recipes và không trùng món.
+                - Ưu tiên lý do người dùng, sau đó đến dị ứng, sức khỏe, mục tiêu và dinh dưỡng gần món cũ.
+                - Đánh giá món theo ngữ cảnh ẩm thực thông thường.
+                - note phải nêu rõ đặc điểm đáp ứng yêu cầu.
+                - Chỉ trả JSON hợp lệ, không markdown hoặc giải thích.
+                Cấu trúc:
+                {
+                  "replacements": [
+                    {
+                      "mealPlanItemId": 101,
+                      "recipeId": 205,
+                      "servings": 1,
+                      "note": "Lý do chọn món ngắn gọn bằng tiếng Việt"
+                    }
+                  ]
+                }
+                user_profile: %s
+                goal: %s
+                user_reason: %s
+                replaced_items: %s
+                candidate_recipes: %s
+                """.formatted(
+                buildUserProfileSummary(user, bodyMetrics, goal),
+                goal,
+                reason == null ? "" : reason.trim(),
+                replacedItemsJson,
+                candidateJson
+        );
+    }
+
     private List<GeneratedMealItem> parseGeneratedItems(
             String raw,
             LocalDate startDate,
@@ -182,6 +265,45 @@ public class MealPlanAiPlannerService {
         return result.stream()
                 .filter(item -> !item.getPlanDate().isBefore(startDate))
                 .toList();
+    }
+
+    private List<GeneratedMealReplacement> parseGeneratedReplacements(
+            String raw,
+            List<MealPlanItem> replacedItems,
+            List<MealPlanAiCandidate> candidates
+    ) throws Exception {
+        JsonNode replacementsNode = objectMapper.readTree(stripMarkdownCodeFence(raw)).path("replacements");
+        if (!replacementsNode.isArray()) {
+            return List.of();
+        }
+
+        Set<Long> itemIds = replacedItems.stream()
+                .map(MealPlanItem::getId)
+                .collect(Collectors.toSet());
+        Map<Long, MealPlanAiCandidate> candidatesByRecipeId = candidates.stream()
+                .collect(Collectors.toMap(MealPlanAiCandidate::getRecipeId, candidate -> candidate));
+        List<GeneratedMealReplacement> result = new ArrayList<>();
+
+        for (JsonNode replacementNode : replacementsNode) {
+            Long itemId = replacementNode.path("mealPlanItemId").isNumber()
+                    ? replacementNode.path("mealPlanItemId").asLong()
+                    : null;
+            Long recipeId = replacementNode.path("recipeId").isNumber()
+                    ? replacementNode.path("recipeId").asLong()
+                    : null;
+            if (itemId == null || recipeId == null || !itemIds.contains(itemId)
+                    || !candidatesByRecipeId.containsKey(recipeId)) {
+                continue;
+            }
+
+            result.add(GeneratedMealReplacement.builder()
+                    .mealPlanItemId(itemId)
+                    .servings(Math.max(1, replacementNode.path("servings").asInt(1)))
+                    .note(replacementNode.path("note").asText(null))
+                    .candidate(candidatesByRecipeId.get(recipeId))
+                    .build());
+        }
+        return result;
     }
 
     // Tóm tắt user profile thành các field cần thiết để AI lên kế hoạch.

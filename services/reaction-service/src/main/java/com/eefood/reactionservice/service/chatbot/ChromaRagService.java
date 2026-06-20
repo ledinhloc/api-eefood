@@ -3,11 +3,11 @@ package com.eefood.reactionservice.service.chatbot;
 import com.eefood.reactionservice.dto.response.PostResponse;
 import com.eefood.reactionservice.mapper.PostMapper;
 import com.eefood.reactionservice.model.Post;
+import com.eefood.reactionservice.repository.chatbot.PostChromaEmbeddingRepository;
 import com.eefood.reactionservice.repository.post.PostRepository;
 import com.eefood.reactionservice.service.chatbot.cache.EmbeddingCacheService;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
-import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingSearchRequest;
 import dev.langchain4j.store.embedding.EmbeddingSearchResult;
 import dev.langchain4j.store.embedding.EmbeddingStore;
@@ -30,6 +30,7 @@ public class ChromaRagService {
     private final PostRepository postRepo;
     private final PostMapper postMapper;
     private final EmbeddingCacheService embeddingCacheService;
+    private final PostChromaEmbeddingRepository postChromaEmbeddingRepository;
 
     @Transactional(readOnly = true)
     public List<PostResponse> retrieveTopKSimilarPosts(
@@ -41,6 +42,30 @@ public class ChromaRagService {
         if (candidatePostIds == null || candidatePostIds.isEmpty()) {
             return List.of();
         }
+
+        List<Long> matchedIds = retrieveTopKSimilarPostIds(candidatePostIds, query, ingredients, k);
+        if (matchedIds.isEmpty()) {
+            log.warn("Chroma semantic search returned no post IDs, using first-posts fallback");
+            return fallbackToFirstKPosts(candidatePostIds, k);
+        }
+        return postRepo.findAllById(matchedIds).stream()
+                .sorted(Comparator.comparingInt(p -> matchedIds.indexOf(p.getId())))
+                .map(postMapper::toResponse)
+                .toList();
+    }
+
+    public List<Long> retrieveTopKSimilarPostIds(
+            List<Long> candidatePostIds,
+            String query,
+            List<String> ingredients,
+            int k
+    ) {
+        if (candidatePostIds == null || candidatePostIds.isEmpty()) {
+            return List.of();
+        }
+
+        log.info("Chroma semantic search: totalStoredPosts={}, searchablePosts={}, requestedTopK={}",
+                postChromaEmbeddingRepository.count(), candidatePostIds.size(), k);
 
         String enhancedQuery = buildRagQuery(
                 query == null || query.isBlank() ? String.join(" ", ingredients != null ? ingredients : List.of()) : query,
@@ -56,13 +81,10 @@ public class ChromaRagService {
             }
         });
 
-        CompletableFuture<List<PostResponse>> fallbackFuture = CompletableFuture.supplyAsync(() ->
-                fallbackToFirstKPosts(candidatePostIds, k)
-        );
-
         float[] vector = embeddingFuture.join();
         if (vector == null) {
-            return fallbackFuture.join();
+            log.warn("Chroma semantic search fallback: query embedding is unavailable");
+            return List.of();
         }
 
 
@@ -82,11 +104,12 @@ public class ChromaRagService {
             result = chromaStore.search(searchRequest);
         } catch (Exception e) {
             log.error("ChromaDB search failed, using fallback", e);
-            return fallbackToFirstKPosts(candidatePostIds, k);
+            return List.of();
         }
 
         if (result.matches().isEmpty()) {
-            return fallbackToFirstKPosts(candidatePostIds, k);
+            log.warn("Chroma semantic search fallback: no vector matches found for requestedTopK={}", k);
+            return List.of();
         }
 
         List<Long> matchedIds = result.matches().stream()
@@ -95,13 +118,9 @@ public class ChromaRagService {
                 .limit(k)
                 .toList();
 
-        log.info("ChromaDB search result: {}", matchedIds);
-
-
-        return postRepo.findAllById(matchedIds).stream()
-                .sorted(Comparator.comparingInt(p -> matchedIds.indexOf(p.getId())))
-                .map(postMapper::toResponse)
-                .toList();
+        log.info("Chroma semantic search result: matchedPosts={}, requestedTopK={}, postIds={}",
+                matchedIds.size(), k, matchedIds);
+        return matchedIds;
     }
 
     private Filter createPostIdFilter(List<Long> candidatePostIds) {

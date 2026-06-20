@@ -95,7 +95,7 @@ public class MealPlanMealReminderScheduler {
 
                     NotificationEvent notification = NotificationEvent.newBuilder()
                             .setTitle(getTitle(mealSlot))
-                            .setBody("Mon an: " + dishNames)
+                            .setBody(dishNames)
                             .setPath("/meal-plan?date=" + today)
                             .setAvatarUrl(null)
                             .setPostImageUrl(null)

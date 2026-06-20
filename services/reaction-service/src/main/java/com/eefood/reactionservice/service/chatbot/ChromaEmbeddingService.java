@@ -5,6 +5,7 @@ import com.eefood.reactionservice.model.chatbot.PostChromaEmbedding;
 import com.eefood.reactionservice.repository.chatbot.PostChromaEmbeddingRepository;
 import com.eefood.reactionservice.repository.post.PostRepository;
 import com.eefood.reactionservice.service.chatbot.cache.EmbeddingCacheService;
+import com.eefood.reactionservice.enums.PostStatus;
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
@@ -28,7 +29,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 public class ChromaEmbeddingService {
-    private final EmbeddingModel embeddingModel;
     private final EmbeddingStore<TextSegment> chromaStore;
     private final PostRepository postRepo;
     private final PostChromaEmbeddingRepository chromaRepo;
@@ -41,6 +41,32 @@ public class ChromaEmbeddingService {
                 .orElseThrow(() -> new RuntimeException("Post not found with id: " + postId));
 
         syncOnePostToChroma(post);
+    }
+
+    @Transactional
+    public Map<String, Long> syncApprovedPostsToChroma() {
+        List<Post> posts = postRepo.findByStatusAndIsDeletedFalse(PostStatus.APPROVED).stream()
+                .filter(post -> post.getRecipeId() != null)
+                .toList();
+        long failed = 0;
+
+        for (Post post : posts) {
+            try {
+                syncOnePostToChroma(post);
+            } catch (Exception e) {
+                failed++;
+                log.error("Failed to sync post {} to ChromaDB", post.getId(), e);
+            }
+        }
+
+        long stored = chromaRepo.count();
+        log.info("Chroma post backfill completed: eligiblePosts={}, failedPosts={}, totalStoredPosts={}",
+                posts.size(), failed, stored);
+        return Map.of(
+                "eligiblePosts", (long) posts.size(),
+                "failedPosts", failed,
+                "totalStoredPosts", stored
+        );
     }
 
     private void syncOnePostToChroma(Post post) {
@@ -115,9 +141,9 @@ public class ChromaEmbeddingService {
     private String buildEmbeddingContent(Post p) {
         return String.format(
                 "%s. %s. %s",
-                p.getTitle(),
-                p.getDescription(),
-                String.join(", ", p.getRecipeIngredientKeywords())
+                p.getTitle() == null ? "" : p.getTitle(),
+                p.getDescription() == null ? "" : p.getDescription(),
+                String.join(", ", p.getRecipeIngredientKeywords() == null ? List.of() : p.getRecipeIngredientKeywords())
         );
     }
 
