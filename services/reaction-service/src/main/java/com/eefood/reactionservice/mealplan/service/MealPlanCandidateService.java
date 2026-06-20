@@ -37,7 +37,7 @@ public class MealPlanCandidateService {
     private static final int APPROVED_POST_SCAN_LIMIT = 200;
     private static final int POST_LIMIT = 15;
     private static final int CANDIDATE_LIMIT = 12;
-    private static final int REPLACEMENT_SEMANTIC_LIMIT = 15;
+    private static final int SEMANTIC_LIMIT = 15;
 
     private final PostRepository postRepository;
     private final RecipeClient recipeClient;
@@ -49,7 +49,10 @@ public class MealPlanCandidateService {
     private final Executor applicationTaskExecutor;
 
     public List<MealPlanAiCandidate> loadCandidates(Long userId, UserResponse user, String goal) {
-        return loadCandidates(userId, user, goal, Set.of(), POST_LIMIT, CANDIDATE_LIMIT);
+        String semanticQuery = goal == null || goal.isBlank()
+                ? null
+                : "Tìm món ăn phù hợp mục tiêu: " + goal.trim();
+        return loadCandidates(userId, user, goal, Set.of(), POST_LIMIT, CANDIDATE_LIMIT, semanticQuery);
     }
 
     public List<MealPlanAiCandidate> loadReplacementCandidates(
@@ -62,6 +65,15 @@ public class MealPlanCandidateService {
             int replacementCount
     ) {
         int candidateLimit = replacementCount + 3;
+        String semanticQuery = reason == null || reason.isBlank()
+                ? null
+                : "Tìm món ăn thay thế. Yêu cầu: " + reason.trim()
+                + ". Mục tiêu: " + normalize(goal)
+                + ". Bữa ăn: " + (mealSlots == null ? "" : mealSlots.stream()
+                .filter(Objects::nonNull)
+                .map(Enum::name)
+                .distinct()
+                .collect(Collectors.joining(", ")));
         return loadCandidates(
                 userId,
                 user,
@@ -69,8 +81,7 @@ public class MealPlanCandidateService {
                 excludedRecipeIds == null ? Set.of() : excludedRecipeIds,
                 candidateLimit,
                 candidateLimit,
-                reason,
-                mealSlots
+                semanticQuery
         );
     }
 
@@ -80,20 +91,8 @@ public class MealPlanCandidateService {
             String goal,
             Set<Long> excludedRecipeIds,
             int postLimit,
-            int candidateLimit
-    ) {
-        return loadCandidates(userId, user, goal, excludedRecipeIds, postLimit, candidateLimit, null, List.of());
-    }
-
-    private List<MealPlanAiCandidate> loadCandidates(
-            Long userId,
-            UserResponse user,
-            String goal,
-            Set<Long> excludedRecipeIds,
-            int postLimit,
             int candidateLimit,
-            String reason,
-            List<MealSlot> mealSlots
+            String semanticQuery
     ) {
         List<Post> approvedPosts = postRepository.findByStatusAndIsDeletedFalse(
                 PostStatus.APPROVED,
@@ -115,24 +114,17 @@ public class MealPlanCandidateService {
                 .filter(post -> !violatesAllergiesByKeywords(post, allergies))
                 .toList();
 
-        if (reason != null && !reason.isBlank()) {
-            String semanticQuery = "Tìm món ăn thay thế. Yêu cầu: " + reason.trim()
-                    + ". Mục tiêu: " + normalize(goal)
-                    + ". Bữa ăn: " + (mealSlots == null ? "" : mealSlots.stream()
-                    .filter(Objects::nonNull)
-                    .map(Enum::name)
-                    .distinct()
-                    .collect(Collectors.joining(", ")));
+        if (semanticQuery != null && !semanticQuery.isBlank()) {
             semanticPostIds = chromaRagService.retrieveTopKSimilarPostIds(
                     preFilteredPosts.stream()
                             .map(Post::getId)
                             .toList(),
                     semanticQuery,
                     List.of(),
-                    REPLACEMENT_SEMANTIC_LIMIT
+                    SEMANTIC_LIMIT
             );
             if (semanticPostIds.isEmpty()) {
-                log.warn("Meal plan replacement fallback: no Chroma matches, using default candidate ranking");
+                log.warn("Meal plan candidate fallback: no Chroma matches, using default candidate ranking");
             }
         }
         List<Long> rankedSemanticPostIds = semanticPostIds;
@@ -145,7 +137,6 @@ public class MealPlanCandidateService {
                                 : Integer.MAX_VALUE)
                         .thenComparing(Comparator.comparingInt((Post post) -> scorePostForInitialSelection(
                                 post,
-                                goal,
                                 eatingPreferences,
                                 dietaryPreferences,
                                 userCity,
@@ -216,78 +207,13 @@ public class MealPlanCandidateService {
 
     private int scorePostForInitialSelection(
             Post post,
-            String goal,
             List<String> eatingPreferences,
             List<String> dietaryPreferences,
             String userCity,
             Set<Long> recentRecipeIds
     ) {
-        return scoreGoal(post, goal)
-                + scorePreferences(post, eatingPreferences, dietaryPreferences, userCity)
+        return scorePreferences(post, eatingPreferences, dietaryPreferences, userCity)
                 + (post.getRecipeId() != null && recentRecipeIds.contains(post.getRecipeId()) ? -30 : 0);
-    }
-
-    private int scoreGoal(Post post, String goal) {
-        String normalizedGoal = normalize(goal);
-        if (normalizedGoal.isBlank()) {
-            return 0;
-        }
-
-        String searchableText = String.join(" ",
-                normalize(post.getTitle()),
-                normalize(post.getDescription()),
-                String.join(" ", normalizeList(post.getRecipeCategories() == null ? List.of() : new ArrayList<>(post.getRecipeCategories()))),
-                String.join(" ", normalizeList(post.getRecipeIngredientKeywords() == null ? List.of() : new ArrayList<>(post.getRecipeIngredientKeywords())))
-        );
-
-        List<String> positiveKeywords = List.of();
-        List<String> negativeKeywords = List.of();
-
-        if (List.of("giảm cân", "giam can", "eat clean", "healthy", "ăn kiêng", "an kieng")
-                .stream()
-                .anyMatch(keyword -> isTextMatch(normalizedGoal, keyword))) {
-            positiveKeywords = List.of("salad", "luộc", "luoc", "hấp", "hap", "rau", "healthy", "clean", "canh");
-            negativeKeywords = List.of("chiên", "chien", "rán", "ran", "bánh ngọt", "banh ngot", "ngọt", "ngot", "dessert");
-        } else if (List.of("tăng cơ", "tang co", "protein", "muscle")
-                .stream()
-                .anyMatch(keyword -> isTextMatch(normalizedGoal, keyword))) {
-            positiveKeywords = List.of("gà", "ga", "bò", "bo", "trứng", "trung", "cá", "ca", "đậu", "dau", "protein");
-        } else if (List.of("ít đường", "it duong", "tiểu đường", "tieu duong", "low sugar")
-                .stream()
-                .anyMatch(keyword -> isTextMatch(normalizedGoal, keyword))) {
-            positiveKeywords = List.of("ít đường", "it duong", "không đường", "khong duong", "healthy");
-            negativeKeywords = List.of("chè", "che", "bánh", "banh", "kẹo", "keo", "ngọt", "ngot", "dessert");
-        }
-
-        int positiveMatches = 0;
-        for (String keyword : positiveKeywords) {
-            if (isTextMatch(searchableText, keyword)) {
-                positiveMatches++;
-            }
-        }
-
-        int negativeMatches = 0;
-        for (String keyword : negativeKeywords) {
-            if (isTextMatch(searchableText, keyword)) {
-                negativeMatches++;
-            }
-        }
-
-        int weightedScore = positiveMatches - (negativeMatches * 2);
-
-        if (weightedScore <= -2) {
-            return -20;
-        }
-        if (weightedScore == -1 || weightedScore == 0) {
-            return 0;
-        }
-        if (weightedScore == 1) {
-            return 10;
-        }
-        if (weightedScore == 2) {
-            return 20;
-        }
-        return 30;
     }
 
     private int scorePreferences(
