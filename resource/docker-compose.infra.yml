@@ -57,12 +57,12 @@ services:
       LIVEKIT_PORT: "7880"
 
       # RTC Configuration - IP máy thật
-      LIVEKIT_RTC_NODE_IP: "192.168.2.11"
-      LIVEKIT_RTC_ANNOUNCE_IP: "192.168.2.11"
+      LIVEKIT_RTC_NODE_IP: "192.168.0.102"
+      LIVEKIT_RTC_ANNOUNCE_IP: "192.168.0.102"
 
       # Port range cho RTC (UDP)
-      LIVEKIT_RTC_PORT_RANGE_START: "50100"
-      LIVEKIT_RTC_PORT_RANGE_END: "50119"
+      LIVEKIT_RTC_PORT_RANGE_START: "20000"
+      LIVEKIT_RTC_PORT_RANGE_END: "20019"
 
       # ICE Configuration
       LIVEKIT_RTC_USE_ICE_LITE: "false"
@@ -75,7 +75,7 @@ services:
     mem_limit: 512m
     ports:
       - "7880:7880"                    # WebSocket
-      - "50100-50119:50100-50119/udp"  # RTC ports
+      - "20000-20019:20000-20019/udp"  # RTC ports
 
 #    restart: unless-stopped
     networks:
@@ -150,22 +150,22 @@ services:
       timeout: 5s
       retries: 5
 
-#  kafka-ui:
-#    image: provectuslabs/kafka-ui:latest
-#    container_name: kafka_ui
-#    depends_on:
-#      - kafka
-#    ports:
-#      - "9010:8080"
-#    environment:
-#      - KAFKA_CLUSTERS_0_NAME=kafka
-#      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9093
-#      - KAFKA_CLUSTERS_0_SCHEMAREGISTRY=http://schema-registry:8081
-#      - JAVA_OPTS=-Xms128m -Xmx256m
-#    mem_limit: 512m
-##    restart: always
-#    networks:
-#      - microservices-net
+  # kafka-ui:
+  #   image: provectuslabs/kafka-ui:v0.7.2
+  #   container_name: kafka_ui
+  #   depends_on:
+  #     kafka:
+  #       condition: service_healthy
+  #   ports:
+  #     - "9010:8080"
+  #   environment:
+  #     KAFKA_CLUSTERS_0_NAME: kafka
+  #     KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+  #     KAFKA_CLUSTERS_0_SCHEMAREGISTRY: http://schema-registry:8081
+  #     JAVA_OPTS: "-Xms128m -Xmx256m"
+  #   mem_limit: 512m
+  #   networks:
+  #     - microservices-net
 
   keycloak:
     container_name: keycloak
