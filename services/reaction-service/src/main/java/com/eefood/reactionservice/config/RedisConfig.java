@@ -7,6 +7,7 @@ import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
+import org.springframework.data.redis.serializer.JdkSerializationRedisSerializer;
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
@@ -32,11 +33,19 @@ public class RedisConfig {
   @Bean
   public RedisCacheManager cacheManager(RedisConnectionFactory factory) {
     RedisCacheConfiguration defaultConfig = cacheConfiguration();
+
+    RedisCacheConfiguration embeddingConfig = RedisCacheConfiguration.defaultCacheConfig()
+            .entryTtl(Duration.ofHours(6))
+            .disableCachingNullValues()
+            .serializeValuesWith(
+                    RedisSerializationContext.SerializationPair.fromSerializer(
+                            new JdkSerializationRedisSerializer()
+                    )
+            );
     // Tách TTL theo từng loại cache để poll state/result hết hạn phù hợp hơn.
     Map<String, RedisCacheConfiguration> configs = Map.of(
             "rag-embeddings",
-            defaultConfig
-                    .entryTtl(Duration.ofHours(6)),
+            embeddingConfig,
             "poll-vote-metadata",
             defaultConfig
                     .entryTtl(Duration.ofMinutes(10)),
