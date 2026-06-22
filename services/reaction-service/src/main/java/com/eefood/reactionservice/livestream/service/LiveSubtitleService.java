@@ -65,9 +65,12 @@ public class LiveSubtitleService {
       .orElseThrow(() -> new RuntimeException("Live stream not found"));
 
     String spokenLanguage = resolveSpokenLanguage(request.getSpokenLanguage(), liveStream);
+    String targetLanguage = request.getTargetLanguage() == null || request.getTargetLanguage().isBlank()
+      ? spokenLanguage
+      : SubtitleLanguage.fromCode(request.getTargetLanguage()).getCode();
     LocalDateTime createdAt = request.getCreatedAt() == null ? LocalDateTime.now() : request.getCreatedAt();
 
-    return broadcastSubtitle(request.getLiveStreamId(), spokenLanguage, request.getText().trim(), createdAt);
+    return broadcastSubtitle(request.getLiveStreamId(), targetLanguage, request.getText().trim(), createdAt);
   }
 
   private String resolveSpokenLanguage(String language, LiveStream liveStream) {
@@ -81,18 +84,18 @@ public class LiveSubtitleService {
 
   private LiveSubtitleMessage broadcastSubtitle(
     Long liveStreamId,
-    String spokenLanguage,
+    String targetLanguage,
     String text,
     LocalDateTime createdAt
   ) {
     LiveSubtitleMessage message = LiveSubtitleMessage.builder()
       .liveStreamId(liveStreamId)
-      .targetLanguage(spokenLanguage)
+      .targetLanguage(targetLanguage)
       .text(text)
       .createdAt(createdAt)
       .build();
 
-    subtitlePreferenceService.sendToSubscribers(liveStreamId, spokenLanguage, message);
+    subtitlePreferenceService.sendToSubscribers(liveStreamId, targetLanguage, message);
     return message;
   }
 }

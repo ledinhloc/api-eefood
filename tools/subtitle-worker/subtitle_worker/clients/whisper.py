@@ -27,7 +27,13 @@ class WhisperClient:
     def _transcribe_chunk_blocking(self, wav_bytes: bytes) -> str:
         segments, _ = self.model.transcribe(
             io.BytesIO(wav_bytes),
-            language=self.config.language,
+            language=self.config.spoken_language,
+            task=(
+                "translate"
+                if self.config.spoken_language == "vi"
+                and self.config.target_language == "en"
+                else "transcribe"
+            ),
             beam_size=DEFAULT_BEAM_SIZE,
             condition_on_previous_text=False,
             vad_filter=True,

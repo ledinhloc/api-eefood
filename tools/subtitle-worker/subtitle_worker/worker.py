@@ -45,7 +45,7 @@ class SubtitleWorker:
         # logger.info(
         #     "Dang gui audio sang Whisper - livestream=%s, ngon_ngu=%s",
         #     self.config.live_stream_id,
-        #     self.config.language or "auto",
+        #     self.config.spoken_language or "auto",
         # )
         # Goi Whisper de nhan dien giong noi.
         text = (await self.whisper_client.transcribe_chunk(wav_bytes)).strip()
@@ -54,9 +54,15 @@ class SubtitleWorker:
             return
 
         logger.info(
-            "Text nhan dien duoc - livestream=%s, ngon_ngu=%s, noi_dung=%s",
+            "Whisper result - mode=%s livestream=%s spoken=%s target=%s text=%s",
+            (
+                "SUBTITLE"
+                if self.config.spoken_language == self.config.target_language
+                else "TRANSLATE"
+            ),
             self.config.live_stream_id,
-            self.config.language or "auto",
+            self.config.spoken_language or "auto",
+            self.config.target_language or self.config.spoken_language or "auto",
             text,
         )
         # Neu co noi dung, log transcript roi gui len backend.

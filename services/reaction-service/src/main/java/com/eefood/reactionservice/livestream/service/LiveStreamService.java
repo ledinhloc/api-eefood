@@ -89,11 +89,15 @@ public class LiveStreamService {
   public List<SubtitleWorkerStartRequest> getActiveLiveStreams() {
     return liveStreamRepository.findByStatusOrderByStartedAtDesc(LiveStreamStatus.LIVE).stream()
     //kiem tra co viewer dang ki sub ko
-      .filter(liveStream -> subtitlePreferenceService.hasSubscribers(
-        liveStream.getId(),
-        liveStream.getSpokenLanguage()
-      ))
-      .map(this::toSubtitleWorkerStartRequest)
+      .flatMap(liveStream -> subtitlePreferenceService
+        .getSubscribedTargetLanguages(liveStream.getId())
+        .stream()
+        .filter(targetLanguage ->
+          liveStream.getSpokenLanguage() == targetLanguage
+            || liveStream.getSpokenLanguage() == SubtitleLanguage.VI
+            && targetLanguage == SubtitleLanguage.EN
+        )
+        .map(targetLanguage -> toSubtitleWorkerStartRequest(liveStream, targetLanguage)))
       .toList();
   }
 
@@ -360,11 +364,15 @@ public class LiveStreamService {
   //   }
   // }
 
-  private SubtitleWorkerStartRequest toSubtitleWorkerStartRequest(LiveStream liveStream) {
+  private SubtitleWorkerStartRequest toSubtitleWorkerStartRequest(
+    LiveStream liveStream,
+    SubtitleLanguage targetLanguage
+  ) {
     return SubtitleWorkerStartRequest.builder()
       .liveStreamId(liveStream.getId())
       .roomName(liveStream.getRoomName())
       .spokenLanguage(liveStream.getSpokenLanguage().getCode())
+      .targetLanguage(targetLanguage.getCode())
       .build();
   }
 
