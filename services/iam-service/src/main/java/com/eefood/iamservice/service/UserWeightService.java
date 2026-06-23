@@ -31,6 +31,17 @@ public class UserWeightService {
         .toList();
   }
 
+  public List<UserWeightResponse> getWeights(Long userId, LocalDate from, LocalDate to) {
+    if (userId == null || from == null || to == null || to.isBefore(from)) {
+      throw ExceptionUtil.badRequest(ErrorMessage.INVALID_PARAMETER_TYPE);
+    }
+    return userWeightRepository
+        .findAllByUser_IdAndRecordedDateBetweenOrderByRecordedDateAsc(userId, from, to)
+        .stream()
+        .map(userBodyMapper::toWeightResponse)
+        .toList();
+  }
+
   @Transactional
   public UserWeightResponse createMyWeight(UserWeightRequest request) {
     User user = getCurrentUser();

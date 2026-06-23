@@ -1,7 +1,9 @@
 package com.eefood.reactionservice.mealplan.service;
 
 import com.eefood.reactionservice.dto.response.UserBodyMetricsResponse;
+import com.eefood.reactionservice.dto.response.UserHeightResponse;
 import com.eefood.reactionservice.dto.response.UserResponse;
+import com.eefood.reactionservice.dto.response.UserWeightResponse;
 import com.eefood.reactionservice.enums.ErrorMessage;
 import com.eefood.reactionservice.exception.ExceptionUtil;
 import com.eefood.reactionservice.mealplan.dto.ai.GeneratedMealItem;
@@ -117,7 +119,7 @@ public class MealPlanService {
 
         int resolvedDays = resolveDays(request);
 
-        List<GeneratedMealItem> generatedItems = mealPlanAiPlannerService.generatePlan(
+        List<GeneratedMealItem> generatedItems = mealPlanAiPlannerService.generateInitialMealPlan(
                 user,
                 bodyMetrics,
                 request,
@@ -172,6 +174,15 @@ public class MealPlanService {
         LocalDate nextEndDate = nextStartDate.plusDays(resolvedDays - 1L);
         UserResponse user = iamClient.getUserById(userId).getData();
         UserBodyMetricsResponse bodyMetrics = iamClient.getUserBodyMetrics(userId).getData();
+        LocalDate historyEndDate = LocalDate.now().isBefore(mealPlan.getStartDate())
+                ? mealPlan.getStartDate()
+                : LocalDate.now();
+        List<UserWeightResponse> weightHistory = iamClient
+                .getUserWeights(userId, mealPlan.getStartDate(), historyEndDate)
+                .getData();
+        List<UserHeightResponse> heightHistory = iamClient
+                .getUserHeights(userId, mealPlan.getStartDate(), historyEndDate)
+                .getData();
         List<MealPlanAiCandidate> candidates = mealPlanCandidateService.loadCandidates(userId, user, mealPlan.getGoal());
 
         if (candidates.isEmpty()) {
@@ -184,12 +195,14 @@ public class MealPlanService {
                 .days(resolvedDays)
                 .build();
 
-        List<GeneratedMealItem> generatedItems = mealPlanAiPlannerService.generatePlan(
+        List<GeneratedMealItem> generatedItems = mealPlanAiPlannerService.generateMealPlanContinuation(
                 user,
                 bodyMetrics,
                 continueRequest,
                 candidates,
-                resolvedDays
+                resolvedDays,
+                weightHistory == null ? List.of() : weightHistory,
+                heightHistory == null ? List.of() : heightHistory
         );
         if (generatedItems.isEmpty()) {
             generatedItems = fallbackGenerate(continueRequest, candidates);
