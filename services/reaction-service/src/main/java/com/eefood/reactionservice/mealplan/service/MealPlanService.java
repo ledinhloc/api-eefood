@@ -166,6 +166,9 @@ public class MealPlanService {
         int resolvedDays = days == null ? DEFAULT_DAYS : days;
 
         LocalDate nextStartDate = startDate != null ? startDate : mealPlan.getEndDate().plusDays(1);
+        if (!nextStartDate.isAfter(mealPlan.getEndDate())) {
+            throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
+        }
         LocalDate nextEndDate = nextStartDate.plusDays(resolvedDays - 1L);
         UserResponse user = iamClient.getUserById(userId).getData();
         UserBodyMetricsResponse bodyMetrics = iamClient.getUserBodyMetrics(userId).getData();

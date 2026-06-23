@@ -2,6 +2,12 @@
 
 Worker nay nhan lenh tu `reaction-service`, join LiveKit room, nghe audio cua streamer, goi Whisper de tao transcript, roi gui subtitle ve backend.
 
+Worker ho tro:
+
+- Phu de cung ngon ngu: `vi -> vi`, `en -> en`.
+- Dich truc tiep bang Whisper: `vi -> en`.
+- Chua ho tro `en -> vi`.
+
 ## Flow
 
 ```text
@@ -97,7 +103,8 @@ Body:
 {
   "liveStreamId": 43,
   "roomName": "live_2_1779379611589",
-  "spokenLanguage": "vi"
+  "spokenLanguage": "vi",
+  "targetLanguage": "en"
 }
 ```
 
@@ -107,7 +114,8 @@ Response:
 {
   "status": "started",
   "liveStreamId": 43,
-  "roomName": "live_2_1779379611589"
+  "roomName": "live_2_1779379611589",
+  "targetLanguage": "en"
 }
 ```
 
@@ -137,7 +145,8 @@ Body:
 
 ```json
 {
-  "liveStreamId": 43
+  "liveStreamId": 43,
+  "targetLanguage": "en"
 }
 ```
 
@@ -168,13 +177,13 @@ curl http://127.0.0.1:9000/health
 ```powershell
 curl -X POST http://127.0.0.1:9000/start `
   -H "Content-Type: application/json" `
-  -d "{\"liveStreamId\":43,\"roomName\":\"live_2_1779379611589\",\"spokenLanguage\":\"vi\"}"
+  -d "{\"liveStreamId\":43,\"roomName\":\"live_2_1779379611589\",\"spokenLanguage\":\"vi\",\"targetLanguage\":\"en\"}"
 ```
 
 ```powershell
 curl -X POST http://127.0.0.1:9000/stop `
   -H "Content-Type: application/json" `
-  -d "{\"liveStreamId\":43}"
+  -d "{\"liveStreamId\":43,\"targetLanguage\":\"en\"}"
 ```
 
 ## Reaction Service

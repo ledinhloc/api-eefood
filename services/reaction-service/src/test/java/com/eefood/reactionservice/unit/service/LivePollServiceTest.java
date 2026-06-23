@@ -1,7 +1,7 @@
 package com.eefood.reactionservice.unit.service;
 
 import com.eefood.reactionservice.livestream.dto.cache.PollVoteMetadata;
-import com.eefood.reactionservice.livestream.dto.event.LivePollVoteStreamEvent;
+import com.eefood.common.avro.LivePollVoteEvent;
 import com.eefood.reactionservice.livestream.dto.request.CreateLivePollRequest;
 import com.eefood.reactionservice.livestream.dto.response.LivePollResponse;
 import com.eefood.reactionservice.livestream.dto.response.PollResultResponse;
@@ -22,7 +22,7 @@ import com.eefood.reactionservice.livestream.service.LivePollMetadataCacheServic
 import com.eefood.reactionservice.livestream.service.LivePollResultCacheService;
 import com.eefood.reactionservice.livestream.service.LivePollService;
 import com.eefood.reactionservice.livestream.service.LivePollVoteStateCacheService;
-import com.eefood.reactionservice.livestream.service.LivePollVoteStreamProducer;
+import com.eefood.reactionservice.livestream.service.LivePollVoteKafkaProducer;
 import com.eefood.reactionservice.repository.httpclient.IamClient;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -73,7 +73,7 @@ class LivePollServiceTest {
   private LivePollVoteStateCacheService livePollVoteStateCacheService;
 
   @Mock
-  private LivePollVoteStreamProducer livePollVoteStreamProducer;
+  private LivePollVoteKafkaProducer livePollVoteKafkaProducer;
 
   @Mock
   private LivePollMapper pollMapper;
@@ -124,7 +124,7 @@ class LivePollServiceTest {
       livePollMetadataCacheService,
       livePollResultCacheService,
       livePollVoteStateCacheService,
-      livePollVoteStreamProducer,
+      livePollVoteKafkaProducer,
       pollMapper,
       livePollBroadcastService,
       iamClient
@@ -209,7 +209,7 @@ class LivePollServiceTest {
       livePollMetadataCacheService,
       livePollResultCacheService,
       livePollVoteStateCacheService,
-      livePollVoteStreamProducer,
+      livePollVoteKafkaProducer,
       livePollBroadcastService,
       iamClient
     );
@@ -236,7 +236,7 @@ class LivePollServiceTest {
       livePollMetadataCacheService,
       livePollResultCacheService,
       livePollVoteStateCacheService,
-      livePollVoteStreamProducer,
+      livePollVoteKafkaProducer,
       pollMapper,
       livePollBroadcastService,
       iamClient
@@ -273,7 +273,7 @@ class LivePollServiceTest {
     verifyNoInteractions(
       livePollResultCacheService,
       livePollVoteStateCacheService,
-      livePollVoteStreamProducer,
+      livePollVoteKafkaProducer,
       livePollBroadcastService
     );
   }
@@ -320,17 +320,17 @@ class LivePollServiceTest {
       .applyVoteDelta(eq(pollId), deltaCaptor.capture());
     assertEquals(Map.of(optionId, 1L), deltaCaptor.getValue());
 
-    ArgumentCaptor<LivePollVoteStreamEvent> eventCaptor =
-      ArgumentCaptor.forClass(LivePollVoteStreamEvent.class);
-    verify(livePollVoteStreamProducer).publishVoteEvent(eventCaptor.capture());
-    LivePollVoteStreamEvent event = eventCaptor.getValue();
+    ArgumentCaptor<LivePollVoteEvent> eventCaptor =
+      ArgumentCaptor.forClass(LivePollVoteEvent.class);
+    verify(livePollVoteKafkaProducer).publishVoteEvent(eventCaptor.capture());
+    LivePollVoteEvent event = eventCaptor.getValue();
     assertNotNull(event.getEventId());
     assertEquals(liveStreamId, event.getLiveStreamId());
     assertEquals(pollId, event.getPollId());
     assertEquals(userId, event.getUserId());
     assertEquals(List.of(optionId), event.getToAdd());
     assertEquals(List.of(), event.getToRemove());
-    assertNotNull(event.getOccurredAt());
+    assertEquals(true, event.getOccurredAt() > 0);
 
     verify(livePollBroadcastService)
       .broadcastPollResult(liveStreamId, expectedResult);

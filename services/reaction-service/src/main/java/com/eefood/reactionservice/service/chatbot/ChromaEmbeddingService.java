@@ -13,6 +13,8 @@ import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,19 +22,23 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class ChromaEmbeddingService {
+    private static final int EMBEDDING_BATCH_SIZE = 100;
+
     private final EmbeddingStore<TextSegment> chromaStore;
     private final PostRepository postRepo;
     private final PostChromaEmbeddingRepository chromaRepo;
     private final EmbeddingCacheService embeddingCacheService;
+    private final EmbeddingModel embeddingModel;
+    private final CacheManager cacheManager;
 
     @Transactional
     public void syncSinglePostToChroma(Long postId) {
@@ -45,17 +51,50 @@ public class ChromaEmbeddingService {
 
     @Transactional
     public Map<String, Long> syncApprovedPostsToChroma() {
+        long deleted = chromaRepo.count();
+        chromaStore.removeAll();
+        chromaRepo.deleteAllInBatch();
+
+        Cache embeddingCache = cacheManager.getCache("rag-embeddings");
+        if (embeddingCache != null) {
+            embeddingCache.clear();
+        }
+
         List<Post> posts = postRepo.findByStatusAndIsDeletedFalse(PostStatus.APPROVED).stream()
                 .filter(post -> post.getRecipeId() != null)
                 .toList();
         long failed = 0;
 
-        for (Post post : posts) {
+        for (int start = 0; start < posts.size(); start += EMBEDDING_BATCH_SIZE) {
+            List<Post> batch = posts.subList(start, Math.min(start + EMBEDDING_BATCH_SIZE, posts.size()));
             try {
-                syncOnePostToChroma(post);
+                List<String> hashes = new ArrayList<>(batch.size());
+                List<TextSegment> segments = new ArrayList<>(batch.size());
+                for (Post post : batch) {
+                    String content = buildEmbeddingContent(post);
+                    String contentHash = hash(content);
+                    hashes.add(contentHash);
+                    segments.add(buildTextSegment(post, content, contentHash));
+                }
+                List<Embedding> embeddings = embeddingModel.embedAll(segments).content();
+                List<String> embeddingIds = chromaStore.addAll(embeddings, segments);
+                LocalDateTime now = LocalDateTime.now();
+                List<PostChromaEmbedding> records = new ArrayList<>(batch.size());
+
+                for (int i = 0; i < batch.size(); i++) {
+                    records.add(PostChromaEmbedding.builder()
+                            .postId(batch.get(i).getId())
+                            .chromaEmbeddingId(embeddingIds.get(i))
+                            .contentHash(hashes.get(i))
+                            .createdAt(now)
+                            .updatedAt(now)
+                            .build());
+                }
+                chromaRepo.saveAll(records);
+                log.info("Chroma batch synced: {}/{}", Math.min(start + batch.size(), posts.size()), posts.size());
             } catch (Exception e) {
-                failed++;
-                log.error("Failed to sync post {} to ChromaDB", post.getId(), e);
+                failed += batch.size();
+                log.error("Failed to sync Chroma batch from index {} with {} posts", start, batch.size(), e);
             }
         }
 
@@ -63,6 +102,7 @@ public class ChromaEmbeddingService {
         log.info("Chroma post backfill completed: eligiblePosts={}, failedPosts={}, totalStoredPosts={}",
                 posts.size(), failed, stored);
         return Map.of(
+                "deletedPosts", deleted,
                 "eligiblePosts", (long) posts.size(),
                 "failedPosts", failed,
                 "totalStoredPosts", stored
@@ -96,16 +136,8 @@ public class ChromaEmbeddingService {
         Embedding embedding = Embedding.from(vector);
 
         // 2) Tạo metadata
-        Metadata metadata = Metadata.from(
-                Map.of(
-                        "postId", post.getId().toString(),
-                        "contentHash", newHash,
-                        "updatedAt", post.getUpdatedAt().toString()
-                )
-        );
-
         // Tạo TextSegment
-        TextSegment segment = TextSegment.from(content, metadata);
+        TextSegment segment = buildTextSegment(post, content, newHash);
 
         // Upsert vào Chroma (add = upsert)
         String embeddingId = chromaStore.add(embedding, segment);
@@ -140,11 +172,30 @@ public class ChromaEmbeddingService {
 
     private String buildEmbeddingContent(Post p) {
         return String.format(
-                "%s. %s. %s",
+                "Tên món: %s. Mô tả: %s. Danh mục: %s. Khu vực: %s. Nguyên liệu: %s",
                 p.getTitle() == null ? "" : p.getTitle(),
                 p.getDescription() == null ? "" : p.getDescription(),
-                String.join(", ", p.getRecipeIngredientKeywords() == null ? List.of() : p.getRecipeIngredientKeywords())
+                String.join(", ", p.getRecipeCategories() == null
+                        ? List.of()
+                        : p.getRecipeCategories().stream().sorted().toList()),
+                p.getRegion() == null ? "" : p.getRegion(),
+                String.join(", ", p.getRecipeIngredientKeywords() == null
+                        ? List.of()
+                        : p.getRecipeIngredientKeywords().stream().sorted().toList())
         );
+    }
+
+    private TextSegment buildTextSegment(Post post, String content, String contentHash) {
+        Map<String, String> metadataValues = new LinkedHashMap<>();
+        metadataValues.put("postId", post.getId().toString());
+        metadataValues.put("recipeId", post.getRecipeId().toString());
+        metadataValues.put("categories", String.join(", ", post.getRecipeCategories() == null
+                ? List.of()
+                : post.getRecipeCategories().stream().sorted().toList()));
+        metadataValues.put("region", post.getRegion() == null ? "" : post.getRegion());
+        metadataValues.put("contentHash", contentHash);
+        metadataValues.put("updatedAt", post.getUpdatedAt().toString());
+        return TextSegment.from(content, Metadata.from(metadataValues));
     }
 
     private String hash(String input) {

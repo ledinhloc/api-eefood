@@ -16,7 +16,6 @@ import com.eefood.reactionservice.repository.post.PostRepository;
 import com.eefood.reactionservice.service.chatbot.ChromaRagService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -34,7 +33,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Slf4j
 public class MealPlanCandidateService {
-    private static final int APPROVED_POST_SCAN_LIMIT = 200;
     private static final int POST_LIMIT = 15;
     private static final int CANDIDATE_LIMIT = 12;
     private static final int SEMANTIC_LIMIT = 15;
@@ -94,10 +92,7 @@ public class MealPlanCandidateService {
             int candidateLimit,
             String semanticQuery
     ) {
-        List<Post> approvedPosts = postRepository.findByStatusAndIsDeletedFalse(
-                PostStatus.APPROVED,
-                PageRequest.of(0, APPROVED_POST_SCAN_LIMIT)
-        );
+        List<Post> approvedPosts = postRepository.findByStatusAndIsDeletedFalse(PostStatus.APPROVED);
 
         List<String> allergies = normalizeList(user != null ? user.getAllergies() : List.of());
         List<String> eatingPreferences = normalizeList(user != null ? user.getEatingPreferences() : List.of());

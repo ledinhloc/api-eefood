@@ -5,12 +5,14 @@ import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
-import dev.langchain4j.model.googleai.GoogleAiGeminiChatModel;
+import dev.langchain4j.model.openai.OpenAiChatModel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+
 import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
 import javax.imageio.ImageWriteParam;
@@ -20,15 +22,14 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.util.Base64;
 
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class GeminiService {
+public class OpenAIImageService {
 
-    private final GoogleAiGeminiChatModel geminiModel;
+    private final OpenAiChatModel openAiModel;
 
-    @Cacheable(value = "gemini-keyword-cache", key = "T(org.apache.commons.codec.digest.DigestUtils).md5Hex(#imageFile.bytes)")
+    @Cacheable(value = "openai-keyword-cache", key = "T(org.apache.commons.codec.digest.DigestUtils).md5Hex(#imageFile.bytes)")
     public String extractKeywordsFromImage(MultipartFile imageFile) {
         return extractKeywordsFromImageInternal(imageFile);
     }
@@ -37,7 +38,7 @@ public class GeminiService {
     private String extractKeywordsFromImageInternal(MultipartFile imageFile) {
         try {
             byte[] resizedBytes = resizeImageIfNeeded(imageFile);
-            String base64Image = Base64.getEncoder().withoutPadding().encodeToString(resizedBytes);
+            String base64Image = Base64.getEncoder().encodeToString(resizedBytes);
 
             String prompt = """
                     Bạn là chuyên gia nhận diện món ăn Việt Nam.
@@ -48,7 +49,7 @@ public class GeminiService {
 
             UserMessage userMessage = UserMessage.from(
                     TextContent.from(prompt),
-                    ImageContent.from(base64Image, imageFile.getContentType())
+                    ImageContent.from(base64Image, MediaType.IMAGE_JPEG_VALUE)
             );
 
             ChatRequest chatRequest = ChatRequest.builder()
@@ -56,16 +57,16 @@ public class GeminiService {
                     .build();
 
             long start = System.currentTimeMillis();
-            ChatResponse chatResponse = geminiModel.chat(chatRequest);
+            ChatResponse chatResponse = openAiModel.chat(chatRequest);
             long duration = System.currentTimeMillis() - start;
 
             String result = chatResponse.aiMessage().text();
-            log.info("Gemini response ({} ms): {}", duration, result);
+            log.info("OpenAI image response ({} ms): {}", duration, result);
 
             return cleanAiResponse(result);
 
         } catch (Exception e) {
-            log.error("Lỗi khi phân tích ảnh bằng Gemini: {}", e.getMessage(), e);
+            log.error("Lỗi khi phân tích ảnh bằng OpenAI: {}", e.getMessage(), e);
             return null;
         }
     }
@@ -80,13 +81,14 @@ public class GeminiService {
             int width = originalImage.getWidth();
             int height = originalImage.getHeight();
 
-            if (width <= maxSize && height <= maxSize) {
-                return imageFile.getBytes();
-            }
+            int newWidth = width;
+            int newHeight = height;
 
-            double scale = Math.min((double) maxSize / width, (double) maxSize / height);
-            int newWidth = (int) (width * scale);
-            int newHeight = (int) (height * scale);
+            if (width > maxSize || height > maxSize) {
+                double scale = Math.min((double) maxSize / width, (double) maxSize / height);
+                newWidth = (int) (width * scale);
+                newHeight = (int) (height * scale);
+            }
 
             BufferedImage resizedImage = new BufferedImage(newWidth, newHeight, BufferedImage.TYPE_INT_RGB);
             resizedImage.getGraphics().drawImage(originalImage, 0, 0, newWidth, newHeight, null);

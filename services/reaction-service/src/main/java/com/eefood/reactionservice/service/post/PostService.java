@@ -16,7 +16,6 @@ import com.eefood.reactionservice.repository.httpclient.IamClient;
 import com.eefood.reactionservice.repository.httpclient.RecipeClient;
 import com.eefood.reactionservice.service.chatbot.ChromaEmbeddingService;
 import com.eefood.reactionservice.service.follow.FollowService;
-import com.eefood.reactionservice.service.ai.GeminiService;
 import com.eefood.reactionservice.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -56,7 +55,6 @@ public class PostService {
   private final PostSearchService postSearchService;
   private final RecipeClient recipeClient;
   private final SecurityUtil securityUtil;
-  private final GeminiService geminiService;
   private final FollowService followService;
   private final PostAdminSearchService postAdminSearchService;
   private final NotificationProducer notificationProducer;

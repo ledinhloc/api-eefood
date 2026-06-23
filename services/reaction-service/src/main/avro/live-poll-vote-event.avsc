@@ -1,0 +1,14 @@
+{
+  "type": "record",
+  "name": "LivePollVoteEvent",
+  "namespace": "com.eefood.common.avro",
+  "fields": [
+    { "name": "eventId", "type": "string" },
+    { "name": "liveStreamId", "type": "long" },
+    { "name": "pollId", "type": "long" },
+    { "name": "userId", "type": "long" },
+    { "name": "toAdd", "type": { "type": "array", "items": "long" }, "default": [] },
+    { "name": "toRemove", "type": { "type": "array", "items": "long" }, "default": [] },
+    { "name": "occurredAt", "type": "long" }
+  ]
+}
