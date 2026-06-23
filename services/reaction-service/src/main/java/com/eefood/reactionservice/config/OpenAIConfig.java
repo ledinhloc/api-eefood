@@ -22,6 +22,7 @@ public class OpenAIConfig {
         return OpenAiEmbeddingModel.builder()
                 .apiKey(apiKey)
                 .modelName(model)
+                .maxSegmentsPerBatch(100)
                 .maxRetries(3)
                 .build();
     }
