@@ -36,7 +36,13 @@ class SubtitleWorker:
                 if item is None:
                     return
                 wav_bytes, created_at = item
-                await self._process_chunk(wav_bytes, created_at)
+                try:
+                    await self._process_chunk(wav_bytes, created_at)
+                except Exception:
+                    logger.exception(
+                        "Failed to process audio chunk - livestream=%s",
+                        self.config.live_stream_id,
+                    )
             finally:
                 self.chunk_queue.task_done()
 
