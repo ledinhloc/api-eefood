@@ -37,7 +37,7 @@ public class CollectionService {
 
   public CollectionResponse getCollectionByName(String name) {
     return collectionRepo
-            .findByNameAndIsDeletedFalse(name)
+            .findByNameWithPosts(name)
             .map(mapper::toDto)
             .orElse(null);
   }

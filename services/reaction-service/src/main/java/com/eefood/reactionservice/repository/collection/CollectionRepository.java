@@ -26,4 +26,12 @@ public interface CollectionRepository extends JpaRepository<Collection, Long> {
     WHERE c.id = :id AND c.isDeleted = false
     """)
   Optional<Collection> findByIdWithPosts(@Param("id") Long id);
+
+  @Query("""
+    SELECT c FROM Collection c
+    LEFT JOIN FETCH c.collectionPosts cp
+    LEFT JOIN FETCH cp.post
+    WHERE c.name = :name AND c.isDeleted = false
+    """)
+  Optional<Collection> findByNameWithPosts(@Param("name") String name);
 }

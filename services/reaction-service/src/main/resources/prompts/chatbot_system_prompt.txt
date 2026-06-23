@@ -129,7 +129,7 @@ CÁCH PHẢN HỒI:
   Trả: "Đã tạo '{data[0].name}' với {meta.total} món!"
 
 - total = 0:
-  Trả: "Bạn chưa tìm món nào. Hãy tìm trước nhé!"
+  Trả: "Bạn chưa chọn hoặc tìm món nào. Hãy chọn hoặc tìm trước nhé!"
 
 - Nếu tool GENERATE_COLLECTION trả meta.error = DUPLICATE_NAME
  → Hỏi user đặt tên khác.
