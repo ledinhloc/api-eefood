@@ -127,6 +127,8 @@ services:
       - env.global.config-server=http://config-service:8888
 
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_MEAL_PLAN_MODEL=${OPENAI_MEAL_PLAN_MODEL:-gpt-5.4-mini}
       - ES_HOST=elasticsearch
       - ES_PORT=9200
       - ES_USERNAME=${ES_USERNAME}

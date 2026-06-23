@@ -43,7 +43,8 @@ class BackendClient:
         """POST payload transcript lên API backend."""
         payload = {
             "liveStreamId": self.config.live_stream_id,
-            "spokenLanguage": self.config.language,
+            "spokenLanguage": self.config.spoken_language,
+            "targetLanguage": self.config.target_language,
             "text": text,
             "createdAt": created_at.replace(microsecond=0).isoformat(),
         }
