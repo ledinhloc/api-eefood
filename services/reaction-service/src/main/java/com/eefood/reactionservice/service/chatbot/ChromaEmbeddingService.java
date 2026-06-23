@@ -9,21 +9,21 @@ import com.eefood.reactionservice.enums.PostStatus;
 import dev.langchain4j.data.document.Metadata;
 import dev.langchain4j.data.embedding.Embedding;
 import dev.langchain4j.data.segment.TextSegment;
-import dev.langchain4j.model.embedding.EmbeddingModel;
 import dev.langchain4j.store.embedding.EmbeddingStore;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -33,6 +33,7 @@ public class ChromaEmbeddingService {
     private final PostRepository postRepo;
     private final PostChromaEmbeddingRepository chromaRepo;
     private final EmbeddingCacheService embeddingCacheService;
+    private final CacheManager cacheManager;
 
     @Transactional
     public void syncSinglePostToChroma(Long postId) {
@@ -45,6 +46,15 @@ public class ChromaEmbeddingService {
 
     @Transactional
     public Map<String, Long> syncApprovedPostsToChroma() {
+        long deleted = chromaRepo.count();
+        chromaStore.removeAll();
+        chromaRepo.deleteAllInBatch();
+
+        Cache embeddingCache = cacheManager.getCache("rag-embeddings");
+        if (embeddingCache != null) {
+            embeddingCache.clear();
+        }
+
         List<Post> posts = postRepo.findByStatusAndIsDeletedFalse(PostStatus.APPROVED).stream()
                 .filter(post -> post.getRecipeId() != null)
                 .toList();
@@ -63,6 +73,7 @@ public class ChromaEmbeddingService {
         log.info("Chroma post backfill completed: eligiblePosts={}, failedPosts={}, totalStoredPosts={}",
                 posts.size(), failed, stored);
         return Map.of(
+                "deletedPosts", deleted,
                 "eligiblePosts", (long) posts.size(),
                 "failedPosts", failed,
                 "totalStoredPosts", stored
@@ -96,13 +107,16 @@ public class ChromaEmbeddingService {
         Embedding embedding = Embedding.from(vector);
 
         // 2) Tạo metadata
-        Metadata metadata = Metadata.from(
-                Map.of(
-                        "postId", post.getId().toString(),
-                        "contentHash", newHash,
-                        "updatedAt", post.getUpdatedAt().toString()
-                )
-        );
+        Map<String, String> metadataValues = new LinkedHashMap<>();
+        metadataValues.put("postId", post.getId().toString());
+        metadataValues.put("recipeId", post.getRecipeId().toString());
+        metadataValues.put("categories", String.join(", ", post.getRecipeCategories() == null
+                ? List.of()
+                : post.getRecipeCategories().stream().sorted().toList()));
+        metadataValues.put("region", post.getRegion() == null ? "" : post.getRegion());
+        metadataValues.put("contentHash", newHash);
+        metadataValues.put("updatedAt", post.getUpdatedAt().toString());
+        Metadata metadata = Metadata.from(metadataValues);
 
         // Tạo TextSegment
         TextSegment segment = TextSegment.from(content, metadata);
@@ -140,10 +154,16 @@ public class ChromaEmbeddingService {
 
     private String buildEmbeddingContent(Post p) {
         return String.format(
-                "%s. %s. %s",
+                "Tên món: %s. Mô tả: %s. Danh mục: %s. Khu vực: %s. Nguyên liệu: %s",
                 p.getTitle() == null ? "" : p.getTitle(),
                 p.getDescription() == null ? "" : p.getDescription(),
-                String.join(", ", p.getRecipeIngredientKeywords() == null ? List.of() : p.getRecipeIngredientKeywords())
+                String.join(", ", p.getRecipeCategories() == null
+                        ? List.of()
+                        : p.getRecipeCategories().stream().sorted().toList()),
+                p.getRegion() == null ? "" : p.getRegion(),
+                String.join(", ", p.getRecipeIngredientKeywords() == null
+                        ? List.of()
+                        : p.getRecipeIngredientKeywords().stream().sorted().toList())
         );
     }
 

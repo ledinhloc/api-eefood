@@ -1,7 +1,5 @@
 package com.eefood.reactionservice.config;
 
-import dev.langchain4j.model.embedding.EmbeddingModel;
-import dev.langchain4j.model.googleai.GoogleAiEmbeddingModel;
 import dev.langchain4j.model.googleai.GoogleAiGeminiChatModel;
 import dev.langchain4j.model.googleai.GoogleAiGeminiStreamingChatModel;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,9 +16,6 @@ public class GoogleAIGeminiConfig {
 
     @Value("${google.ai.gemini.temperature:0.1}")
     private Double geminiTemperature;
-
-    @Value("${google.ai.gemini.embedding-model:text-embedding-004}")
-    private String embeddingModel;
 
     @Bean
     public GoogleAiGeminiStreamingChatModel geminiStreamingChatModel() {
@@ -41,11 +36,4 @@ public class GoogleAIGeminiConfig {
                 .build();
     }
 
-    @Bean
-    public EmbeddingModel embeddingModel() {
-        return GoogleAiEmbeddingModel.builder()
-                .apiKey(geminiApiKey)
-                .modelName(embeddingModel)
-                .build();
-    }
 }
