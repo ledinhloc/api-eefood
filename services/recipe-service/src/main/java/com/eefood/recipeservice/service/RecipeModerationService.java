@@ -15,7 +15,7 @@ import dev.langchain4j.data.message.TextContent;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
-import dev.langchain4j.model.googleai.GoogleAiGeminiChatModel;
+import dev.langchain4j.model.openai.OpenAiChatModel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -35,7 +35,7 @@ import java.util.List;
 @Slf4j
 public class RecipeModerationService {
 
-  private final GoogleAiGeminiChatModel geminiChatModel;
+  private final OpenAiChatModel openAiChatModel;
   private final ObjectMapper objectMapper;
   private final RecipeRepository recipeRepository;
 
@@ -50,7 +50,7 @@ public class RecipeModerationService {
 
       String prompt = buildModerationPrompt(recipe, postContent);
 //      log.info("Moderation prompt: {}", prompt);
-      String aiResponse = callGeminiAPI(prompt, recipe);
+      String aiResponse = callOpenAI(prompt, recipe);
       ModerationResult result = parseAIResponse(aiResponse);
 
       log.info("Moderation completed for recipe: {} - Status: {}",
@@ -74,7 +74,7 @@ public class RecipeModerationService {
     return recipe;
   }
 
-  private String  callGeminiAPI(String textPrompt, Recipe recipe) {
+  private String callOpenAI(String textPrompt, Recipe recipe) {
     List<Content> contents = new ArrayList<>();
     //Thêm text prompt
     contents.add(TextContent.from(textPrompt));
@@ -123,7 +123,7 @@ public class RecipeModerationService {
       .messages(dev.langchain4j.data.message.UserMessage.from(contents))
       .build();
 
-    ChatResponse response = geminiChatModel.chat(request);
+    ChatResponse response = openAiChatModel.chat(request);
     return response.aiMessage().text();
   }
 

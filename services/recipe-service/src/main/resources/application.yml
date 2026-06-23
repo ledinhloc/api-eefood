@@ -101,12 +101,9 @@ logging:
     feign: DEBUG
     feign.client: DEBUG
 
-google:
-  ai:
-    gemini:
-      api-key: ${GEMINI_API_KEY}
-      model: gemini-2.5-flash
-      temperature: 0.1
+openai:
+  api-key: ${OPENAI_API_KEY}
+  model: ${OPENAI_RECIPE_MODEL:gpt-5.4-mini}
 
 #LANGSMITH_TRACING: "true"
 #LANGSMITH_ENDPOINT: "https://api.smith.langchain.com"

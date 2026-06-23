@@ -21,7 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
-import dev.langchain4j.model.googleai.GoogleAiGeminiChatModel;
+import dev.langchain4j.model.openai.OpenAiChatModel;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -53,7 +53,7 @@ public class RecipeService {
   private final RecipeIndexer recipeIndexer;
   private final RecipeProducer recipeProducer;
   private final SecurityUtil securityUtil;
-  private final GoogleAiGeminiChatModel gemini;
+  private final OpenAiChatModel openAiChatModel;
   private final ObjectMapper objectMapper = new ObjectMapper();
   private final AlternateIngredientService alternateIngredientService;
 
@@ -315,7 +315,7 @@ NOW ANALYZE THE FOLLOWING HTML AND RETURN ONLY JSON:
     ChatRequest request = ChatRequest.builder()
       .messages(UserMessage.from(prompt))
       .build();
-    ChatResponse response = gemini.chat(request);
+    ChatResponse response = openAiChatModel.chat(request);
     String aiJson = extractJson(response.aiMessage().text());
 
 //    log.info("------------ AiJson: "+ aiJson);
