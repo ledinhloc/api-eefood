@@ -13,7 +13,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.langchain4j.data.message.UserMessage;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
-import dev.langchain4j.model.googleai.GoogleAiGeminiChatModel;
+import dev.langchain4j.model.openai.OpenAiChatModel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class MealPlanAiPlannerService {
 
-    private final GoogleAiGeminiChatModel geminiChatModel;
+    private final OpenAiChatModel openAiModel;
     private final ObjectMapper objectMapper;
 
     public List<GeneratedMealItem> generatePlan(
@@ -49,7 +49,9 @@ public class MealPlanAiPlannerService {
                     .messages(UserMessage.from(prompt))
                     .build();
 
-            ChatResponse chatResponse = geminiChatModel.chat(chatRequest);
+            long startTime = System.currentTimeMillis();
+            ChatResponse chatResponse = openAiModel.chat(chatRequest);
+            log.info("OpenAI meal plan generation completed in {} ms", System.currentTimeMillis() - startTime);
             return parseGeneratedItems(chatResponse.aiMessage().text(), request.getStartDate(), candidates);
         } catch (Exception e) {
             log.warn("Meal plan AI generation failed: {}", e.getMessage());
@@ -67,9 +69,11 @@ public class MealPlanAiPlannerService {
     ) {
         try {
             String prompt = buildReplacementPrompt(user, bodyMetrics, goal, reason, replacedItems, candidates);
-            ChatResponse chatResponse = geminiChatModel.chat(ChatRequest.builder()
+            long startTime = System.currentTimeMillis();
+            ChatResponse chatResponse = openAiModel.chat(ChatRequest.builder()
                     .messages(UserMessage.from(prompt))
                     .build());
+            log.info("OpenAI meal plan replacement completed in {} ms", System.currentTimeMillis() - startTime);
             return parseGeneratedReplacements(chatResponse.aiMessage().text(), replacedItems, candidates);
         } catch (Exception e) {
             log.warn("Meal plan AI replacement failed: {}", e.getMessage());

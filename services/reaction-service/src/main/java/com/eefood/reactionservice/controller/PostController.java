@@ -4,7 +4,7 @@ import com.eefood.reactionservice.dto.response.PostPublishResponse;
 import com.eefood.reactionservice.dto.response.PostResponse;
 import com.eefood.reactionservice.dto.response.ResponseData;
 import com.eefood.reactionservice.dto.response.SimilarPostResponse;
-import com.eefood.reactionservice.service.ai.GeminiService;
+import com.eefood.reactionservice.service.ai.OpenAIImageService;
 import com.eefood.reactionservice.service.post.PostService;
 import com.eefood.reactionservice.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +27,7 @@ import java.util.Map;
 @Slf4j
 public class PostController {
   private final PostService postService;
-  private final GeminiService geminiService;
+  private final OpenAIImageService openAIImageService;
   private final SecurityUtil securityUtil;
 
   @PostMapping("/import")
@@ -56,7 +56,7 @@ public class PostController {
 
   @PostMapping(value = "/get-keyword", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ResponseData<String> getKeyword(@RequestParam MultipartFile image) {
-    String result = geminiService.extractKeywordsFromImage(image);
+    String result = openAIImageService.extractKeywordsFromImage(image);
     return new ResponseData<>(
             HttpStatus.OK.value(),
             "Success",

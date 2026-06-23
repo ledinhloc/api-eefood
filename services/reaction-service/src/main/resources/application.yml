@@ -125,6 +125,9 @@ google:
       model: gemini-2.5-flash
       embedding-model: gemini-embedding-001
       temperature: 0.1
+openai:
+  api-key: ${OPENAI_API_KEY}
+  meal-plan-model: ${OPENAI_MEAL_PLAN_MODEL:gpt-5.4-mini}
 chroma:
   host: ${CHROMA_HOST:localhost}
   port: ${CHROMA_PORT:8010}

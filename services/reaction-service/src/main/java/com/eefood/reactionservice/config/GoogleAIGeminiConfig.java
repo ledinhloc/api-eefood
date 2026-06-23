@@ -1,6 +1,5 @@
 package com.eefood.reactionservice.config;
 
-import com.eefood.reactionservice.service.ai.GeminiService;
 import com.eefood.reactionservice.service.chatbot.ChatbotAIService;
 import com.eefood.reactionservice.service.chatbot.tools.ChatbotTools;
 import dev.langchain4j.model.embedding.EmbeddingModel;
