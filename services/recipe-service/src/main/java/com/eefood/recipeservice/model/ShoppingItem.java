@@ -26,8 +26,11 @@ public class ShoppingItem extends BaseEntity {
   private Long userId;
 
   @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "recipe_id", nullable = false)
+  @JoinColumn(name = "recipe_id")
   private Recipe recipe;
+
+  @Column(name = "recipe_title_snapshot")
+  private String recipeTitleSnapshot;
 
   @Column(nullable = false)
   private Integer servings = 1;

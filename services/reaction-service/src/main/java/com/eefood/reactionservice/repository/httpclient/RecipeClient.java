@@ -1,10 +1,12 @@
 package com.eefood.reactionservice.repository.httpclient;
 
 import com.eefood.reactionservice.dto.response.CategoryResponse;
+import com.eefood.reactionservice.dto.request.ShoppingMealPlanItemRequest;
 import com.eefood.reactionservice.dto.response.RecipeSummaryResponse;
 import com.eefood.reactionservice.dto.response.RecipeIngredientsResponse;
 import com.eefood.reactionservice.dto.response.ResponseData;
 import com.eefood.reactionservice.dto.response.ShoppingItemDto;
+import org.springframework.web.bind.annotation.RequestBody;
 import com.eefood.reactionservice.mealplan.dto.response.NutritionAnalysisResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -49,6 +51,12 @@ public interface RecipeClient {
           @RequestParam Long recipeId,
           @RequestParam Long userId,
           @RequestParam(defaultValue = "1") Integer servings
+  );
+
+  @PostMapping("/api/v1/shopping/meal-plan/add")
+  ResponseData<List<ShoppingItemDto>> addMealPlanItemsToShopping(
+          @RequestParam Long userId,
+          @RequestBody List<ShoppingMealPlanItemRequest> request
   );
 
   @GetMapping("/api/v1/nutrition/recipe/{recipeId}/chatbot")

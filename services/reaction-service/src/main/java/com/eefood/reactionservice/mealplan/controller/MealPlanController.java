@@ -8,6 +8,7 @@ import com.eefood.reactionservice.mealplan.dto.request.MealPlanUpsertRequest;
 import com.eefood.reactionservice.mealplan.dto.response.MealPlanDailySummaryResponse;
 import com.eefood.reactionservice.mealplan.dto.response.MealPlanItemResponse;
 import com.eefood.reactionservice.mealplan.dto.response.MealPlanResponse;
+import com.eefood.reactionservice.dto.response.ShoppingItemDto;
 import com.eefood.reactionservice.mealplan.service.MealPlanItemService;
 import com.eefood.reactionservice.mealplan.service.MealPlanService;
 import com.eefood.reactionservice.util.SecurityUtil;
@@ -111,6 +112,16 @@ public class MealPlanController {
                 HttpStatus.OK.value(),
                 "Regenerate Meal Plan Items Success",
                 mealPlanItemService.regenerateMealPlanItems(userId, request)
+        );
+    }
+
+    @PostMapping("/items/shopping")
+    public ResponseData<List<ShoppingItemDto>> addMealPlanItemsToShopping(@RequestParam List<Long> itemIds) {
+        Long userId = securityUtil.getCurrentUserId();
+        return new ResponseData<>(
+                HttpStatus.OK.value(),
+                "Add Meal Plan Items To Shopping Success",
+                mealPlanItemService.addMealPlanItemsToShopping(userId, itemIds)
         );
     }
 
