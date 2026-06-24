@@ -129,7 +129,7 @@ public class ShoppingListService {
           item.getIngredients().add(ShoppingIngredient.builder()
             .shoppingItem(item)
             .ingredientNameSnapshot(ingredient.getName().trim())
-            .quantity(parseQuantity(ingredient.getQuantity()) * servings)
+            .quantity((ingredient.getQuantity() == null ? 0D : ingredient.getQuantity()) * servings)
             .unit(ingredient.getUnit() == null ? "" : ingredient.getUnit().trim())
             .purchased(false)
             .isDeleted(false)
@@ -279,14 +279,4 @@ public class ShoppingListService {
       ).toList();
   }
 
-  private Double parseQuantity(String value) {
-    if (value == null || value.isBlank()) {
-      return 0D;
-    }
-    try {
-      return Double.parseDouble(value.trim().replace(",", "."));
-    } catch (NumberFormatException ex) {
-      return 0D;
-    }
-  }
 }

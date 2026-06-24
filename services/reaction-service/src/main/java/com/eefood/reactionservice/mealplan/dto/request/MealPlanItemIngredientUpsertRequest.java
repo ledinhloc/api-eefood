@@ -13,7 +13,7 @@ import lombok.Setter;
 @Builder
 public class MealPlanItemIngredientUpsertRequest {
     private String name;
-    private String quantity;
+    private Double quantity;
     private String unit;
     private String note;
 }

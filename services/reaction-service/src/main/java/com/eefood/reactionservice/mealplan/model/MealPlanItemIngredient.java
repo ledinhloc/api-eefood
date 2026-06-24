@@ -26,8 +26,7 @@ public class MealPlanItemIngredient {
     @Column(nullable = false, length = 255)
     private String name;
 
-    @Column(length = 100)
-    private String quantity;
+    private Double quantity;
 
     @Column(length = 50)
     private String unit;

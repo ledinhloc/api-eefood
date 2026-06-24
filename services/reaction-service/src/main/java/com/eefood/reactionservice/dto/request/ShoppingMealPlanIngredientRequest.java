@@ -11,6 +11,6 @@ import lombok.NoArgsConstructor;
 @Builder
 public class ShoppingMealPlanIngredientRequest {
   private String name;
-  private String quantity;
+  private Double quantity;
   private String unit;
 }

@@ -13,7 +13,6 @@ import com.eefood.reactionservice.repository.httpclient.RecipeClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
@@ -84,7 +83,7 @@ public class MealPlanIngredientService {
                         .filter(ingredient -> ingredient.getIngredient() != null)
                         .map(ingredient -> MealPlanItemIngredientUpsertRequest.builder()
                                 .name(ingredient.getIngredient().getName())
-                                .quantity(formatQuantity(ingredient.getQuantity()))
+                                .quantity(ingredient.getQuantity())
                                 .unit(ingredient.getUnit())
                                 .build())
                         .toList()
@@ -119,12 +118,5 @@ public class MealPlanIngredientService {
         if (itemIds != null && !itemIds.isEmpty()) {
             mealPlanItemIngredientRepository.deleteAllByMealPlanItemIdIn(itemIds);
         }
-    }
-
-    private String formatQuantity(Double quantity) {
-        // Chuyen so luong sang chuoi gon, vi custom item cho phep nhap tu do.
-        return quantity == null
-                ? null
-                : BigDecimal.valueOf(quantity).stripTrailingZeros().toPlainString();
     }
 }
