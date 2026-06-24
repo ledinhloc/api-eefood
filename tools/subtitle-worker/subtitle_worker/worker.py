@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import time
 from datetime import datetime
 from typing import Optional
 
@@ -20,13 +21,26 @@ class SubtitleWorker:
         self.whisper_client = WhisperClient(self.config)
         self.backend_client = BackendClient(self.config)
         self.livekit_client = LiveKitAudioClient(self.config, self.handle_chunk)
-        # Chua cac audio chunk can xu ly.
-        self.chunk_queue: asyncio.Queue[Optional[QueueItem]] = asyncio.Queue(maxsize=8)
+        # Giu backlog nho de subtitle live uu tien audio moi hon audio cu.
+        self.chunk_queue: asyncio.Queue[Optional[QueueItem]] = asyncio.Queue(
+            maxsize=self.config.chunk_queue_size
+        )
         self.processor_task: Optional[asyncio.Task] = None
 
     # Audio chunk duoc dua vao queue.
     async def handle_chunk(self, wav_bytes: bytes) -> None:
-        await self.chunk_queue.put((wav_bytes, datetime.now().replace(tzinfo=None)))
+        item = (wav_bytes, datetime.now().replace(tzinfo=None))
+        if self.chunk_queue.full():
+            try:
+                self.chunk_queue.get_nowait()
+                self.chunk_queue.task_done()
+                logger.warning(
+                    "Dropped queued audio chunk to keep subtitle current - livestream=%s",
+                    self.config.live_stream_id,
+                )
+            except asyncio.QueueEmpty:
+                pass
+        self.chunk_queue.put_nowait(item)
 
     # Lay tung chunk tu queue ra xu ly.
     async def _process_chunks(self) -> None:
@@ -36,6 +50,13 @@ class SubtitleWorker:
                 if item is None:
                     return
                 wav_bytes, created_at = item
+                if self._is_stale(created_at):
+                    logger.warning(
+                        "Skipped stale audio chunk before transcription - livestream=%s age=%.2fs",
+                        self.config.live_stream_id,
+                        self._age_seconds(created_at),
+                    )
+                    continue
                 try:
                     await self._process_chunk(wav_bytes, created_at)
                 except Exception:
@@ -54,13 +75,23 @@ class SubtitleWorker:
         #     self.config.spoken_language or "auto",
         # )
         # Goi Whisper de nhan dien giong noi.
+        started_at = time.perf_counter()
         text = (await self.whisper_client.transcribe_chunk(wav_bytes)).strip()
+        processing_seconds = time.perf_counter() - started_at
+        if self._is_stale(created_at):
+            logger.warning(
+                "Dropped late Whisper result - livestream=%s processing=%.2fs age=%.2fs",
+                self.config.live_stream_id,
+                processing_seconds,
+                self._age_seconds(created_at),
+            )
+            return
         if not text or text.upper() == "[BLANK_AUDIO]":
             logger.info("Khong nhan dien duoc text tu chunk audio nay")
             return
 
         logger.info(
-            "Whisper result - mode=%s livestream=%s spoken=%s target=%s text=%s",
+            "Whisper result - mode=%s livestream=%s spoken=%s target=%s processing=%.2fs text=%s",
             (
                 "SUBTITLE"
                 if self.config.spoken_language == self.config.target_language
@@ -69,10 +100,21 @@ class SubtitleWorker:
             self.config.live_stream_id,
             self.config.spoken_language or "auto",
             self.config.target_language or self.config.spoken_language or "auto",
+            processing_seconds,
             text,
         )
         # Neu co noi dung, log transcript roi gui len backend.
         await self.backend_client.publish_transcript(text=text, created_at=created_at)
+
+    def _age_seconds(self, created_at: datetime) -> float:
+        return max(
+            0.0,
+            (datetime.now().replace(tzinfo=None) - created_at).total_seconds(),
+        )
+
+    def _is_stale(self, created_at: datetime) -> bool:
+        max_latency = self.config.max_transcript_latency_seconds
+        return max_latency > 0 and self._age_seconds(created_at) > max_latency
 
     async def run(self) -> None:
         # Chay worker cho toi khi LiveKit ngat ket noi hoac nhan lenh dung.

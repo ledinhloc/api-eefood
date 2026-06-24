@@ -142,7 +142,7 @@ public class MealPlanItemService {
         }
 
         //goi ai chon mon
-        List<GeneratedMealReplacement> aiReplacements = mealPlanAiPlannerService.generateReplacements(
+        List<GeneratedMealReplacement> aiReplacements = mealPlanAiPlannerService.generateMealReplacements(
                 user,
                 bodyMetrics,
                 mealPlan.getGoal(),
