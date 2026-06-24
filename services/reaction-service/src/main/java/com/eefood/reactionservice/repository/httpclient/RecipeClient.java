@@ -1,5 +1,6 @@
 package com.eefood.reactionservice.repository.httpclient;
 
+import com.eefood.reactionservice.dto.request.MealPlanNutritionIngredientRequest;
 import com.eefood.reactionservice.dto.response.CategoryResponse;
 import com.eefood.reactionservice.dto.request.ShoppingMealPlanItemRequest;
 import com.eefood.reactionservice.dto.response.RecipeSummaryResponse;
@@ -57,6 +58,11 @@ public interface RecipeClient {
   ResponseData<List<ShoppingItemDto>> addMealPlanItemsToShopping(
           @RequestParam Long userId,
           @RequestBody List<ShoppingMealPlanItemRequest> request
+  );
+
+  @PostMapping("/api/v1/nutrition/meal-plan/calculate")
+  ResponseData<NutritionAnalysisResponse> calculateMealPlanNutrition(
+          @RequestBody List<MealPlanNutritionIngredientRequest> request
   );
 
   @GetMapping("/api/v1/nutrition/recipe/{recipeId}/chatbot")

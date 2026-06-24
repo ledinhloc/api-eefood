@@ -1,5 +1,6 @@
 package com.eefood.recipeservice.service.nutrition;
 
+import com.eefood.recipeservice.dto.request.MealPlanNutritionIngredientRequest;
 import com.eefood.recipeservice.dto.response.AINutritionResult;
 import com.eefood.recipeservice.dto.response.IngredientNutritionDetail;
 import com.eefood.recipeservice.dto.response.NutritionAnalysisResponse;
@@ -7,13 +8,17 @@ import com.eefood.recipeservice.enums.ErrorMessage;
 import com.eefood.recipeservice.enums.HealthLevel;
 import com.eefood.recipeservice.exception.ExceptionUtil;
 import com.eefood.recipeservice.mapper.NutritionMapper;
+import com.eefood.recipeservice.model.Ingredient;
+import com.eefood.recipeservice.model.IngredientNutrition;
 import com.eefood.recipeservice.model.Recipe;
 import com.eefood.recipeservice.model.RecipeIngredient;
 import com.eefood.recipeservice.model.RecipeIngredientNutrition;
 import com.eefood.recipeservice.model.RecipeNutrition;
 import com.eefood.recipeservice.model.RecipeNutritionAnalysis;
+import com.eefood.recipeservice.repository.IngredientRepository;
 import com.eefood.recipeservice.repository.RecipeRepository;
 import com.eefood.recipeservice.repository.httpclient.ReactionClient;
+import com.eefood.recipeservice.repository.nutrition.IngredientNutritionRepository;
 import com.eefood.recipeservice.repository.nutrition.RecipeNutritionAnalysisRepository;
 import com.eefood.recipeservice.repository.nutrition.RecipeNutritionRepository;
 import com.eefood.recipeservice.util.NutritionSseUtils;
@@ -37,8 +42,10 @@ import java.util.concurrent.TimeUnit;
 @Slf4j
 public class NutritionAnalysisService {
     private final RecipeRepository recipeRepository;
+    private final IngredientRepository ingredientRepository;
     private final RecipeNutritionRepository recipeNutritionRepository;
     private final RecipeNutritionAnalysisRepository recipeNutritionAnalysisRepository;
+    private final IngredientNutritionRepository ingredientNutritionRepository;
     private final AIService aiService;
     private final NutritionMapper nutritionMapper;
     private final NutritionCalculator calculator;
@@ -129,6 +136,79 @@ public class NutritionAnalysisService {
         NutritionAnalysisResponse response = nutritionMapper.toPartialResponse(nutrition, details);
         redisTemplate.opsForValue().set(cacheKey, response, CACHE_TTL);
         return response;
+    }
+
+    public NutritionAnalysisResponse calculateMealPlanNutrition(List<MealPlanNutritionIngredientRequest> ingredients) {
+        if (ingredients == null || ingredients.isEmpty()) {
+            throw ExceptionUtil.badRequest(ErrorMessage.RECIPE_HAS_NO_INGREDIENTS);
+        }
+
+        List<IngredientNutritionDetail> details = new ArrayList<>();
+        double calories = 0D;
+        double protein = 0D;
+        double fat = 0D;
+        double carb = 0D;
+        double fiber = 0D;
+        double sugar = 0D;
+        double calcium = 0D;
+        double sodium = 0D;
+
+        for (MealPlanNutritionIngredientRequest item : ingredients) {
+            if (item == null || item.getName() == null || item.getName().isBlank()) {
+                continue;
+            }
+
+            double grams = calculator.toGrams(item.getQuantity() == null ? 0D : item.getQuantity(), item.getUnit());
+            Ingredient ingredient = ingredientRepository.findByNameIgnoreCase(item.getName().trim()).orElse(null);
+            IngredientNutrition nutrition = ingredient == null
+                    ? null
+                    : ingredientNutritionRepository.findByIngredientId(ingredient.getId()).orElse(null);
+            double ratio = grams / 100D;
+            double itemCalories = nutrition == null ? 0D : calculator.round(calculator.safe(nutrition.getCalories()) * ratio);
+            double itemProtein = nutrition == null ? 0D : calculator.round(calculator.safe(nutrition.getProtein()) * ratio);
+            double itemFat = nutrition == null ? 0D : calculator.round(calculator.safe(nutrition.getFat()) * ratio);
+            double itemCarb = nutrition == null ? 0D : calculator.round(calculator.safe(nutrition.getCarb()) * ratio);
+            double itemFiber = nutrition == null ? 0D : calculator.round(calculator.safe(nutrition.getFiber()) * ratio);
+            double itemSugar = nutrition == null ? 0D : calculator.round(calculator.safe(nutrition.getSugar()) * ratio);
+            double itemCalcium = nutrition == null ? 0D : calculator.round(calculator.safe(nutrition.getCalcium()) * ratio);
+            double itemSodium = nutrition == null ? 0D : calculator.round(calculator.safe(nutrition.getSodium()) * ratio);
+
+            calories += itemCalories;
+            protein += itemProtein;
+            fat += itemFat;
+            carb += itemCarb;
+            fiber += itemFiber;
+            sugar += itemSugar;
+            calcium += itemCalcium;
+            sodium += itemSodium;
+
+            details.add(IngredientNutritionDetail.builder()
+                    .ingredientName(item.getName().trim())
+                    .quantity(grams)
+                    .unit(item.getUnit())
+                    .calories(itemCalories)
+                    .protein(itemProtein)
+                    .fat(itemFat)
+                    .carb(itemCarb)
+                    .fiber(itemFiber)
+                    .sugar(itemSugar)
+                    .calcium(itemCalcium)
+                    .sodium(itemSodium)
+                    .build());
+        }
+
+        return NutritionAnalysisResponse.builder()
+                .totalCalories(calculator.round(calories))
+                .totalProtein(calculator.round(protein))
+                .totalFat(calculator.round(fat))
+                .totalCarb(calculator.round(carb))
+                .totalFiber(calculator.round(fiber))
+                .totalSugar(calculator.round(sugar))
+                .totalCalcium(calculator.round(calcium))
+                .totalSodium(calculator.round(sodium))
+                .healthScore(calculator.round(calculator.calcHealthScore(calories, fat, sodium, protein, fiber, sugar)))
+                .ingredientDetails(details)
+                .build();
     }
 
     // Phân tích dinh dưỡng từ recipeId có sẵn trong DB

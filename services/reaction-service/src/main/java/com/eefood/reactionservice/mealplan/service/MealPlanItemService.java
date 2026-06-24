@@ -1,5 +1,6 @@
 package com.eefood.reactionservice.mealplan.service;
 
+import com.eefood.reactionservice.dto.request.MealPlanNutritionIngredientRequest;
 import com.eefood.reactionservice.dto.request.ShoppingMealPlanIngredientRequest;
 import com.eefood.reactionservice.dto.request.ShoppingMealPlanItemRequest;
 import com.eefood.reactionservice.dto.response.ShoppingItemDto;
@@ -82,6 +83,27 @@ public class MealPlanItemService {
         // Nếu client gửi ingredients thì coi như muốn đồng bộ lại toàn bộ danh sách nguyên liệu.
         if (request.getIngredients() != null) {
             mealPlanIngredientService.replaceIngredients(savedItem.getId(), request.getIngredients());
+            List<MealPlanNutritionIngredientRequest> nutritionIngredients = request.getIngredients().stream()
+                    .filter(Objects::nonNull)
+                    .filter(ingredient -> ingredient.getName() != null && !ingredient.getName().isBlank())
+                    .map(ingredient -> MealPlanNutritionIngredientRequest.builder()
+                            .name(ingredient.getName())
+                            .quantity(ingredient.getQuantity())
+                            .unit(ingredient.getUnit())
+                            .build())
+                    .toList();
+            NutritionAnalysisResponse nutrition = recipeClient.calculateMealPlanNutrition(nutritionIngredients).getData();
+            if (nutrition != null) {
+                savedItem.setCalories(toBigDecimal(nutrition.getTotalCalories()));
+                savedItem.setProtein(toBigDecimal(nutrition.getTotalProtein()));
+                savedItem.setCarbs(toBigDecimal(nutrition.getTotalCarb()));
+                savedItem.setFat(toBigDecimal(nutrition.getTotalFat()));
+                savedItem.setFiber(toBigDecimal(nutrition.getTotalFiber()));
+                savedItem.setSugar(toBigDecimal(nutrition.getTotalSugar()));
+                savedItem.setCalcium(toBigDecimal(nutrition.getTotalCalcium()));
+                savedItem.setSodium(toBigDecimal(nutrition.getTotalSodium()));
+                savedItem = mealPlanItemRepository.save(savedItem);
+            }
         } else if (savedItem.getItemSource() == MealPlanItemSource.RECIPE
                 && !Objects.equals(previousRecipeId, savedItem.getRecipeId())) {
             // Tao snapshot nguyen lieu khi them moi hoac doi recipe.
