@@ -26,8 +26,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
 @Service
@@ -45,7 +43,6 @@ public class MealPlanCandidateService {
     private final MealPlanAiMapper mealPlanAiMapper;
     private final MealPlanNutritionScoringService mealPlanNutritionScoringService;
     private final ChromaRagService chromaRagService;
-    private final Executor applicationTaskExecutor;
 
     public List<MealPlanAiCandidate> loadInitialMealPlanCandidates(UserResponse user, String goal, Set<Long> recentRecipeIds) {
         String semanticQuery = goal == null || goal.isBlank()
@@ -170,17 +167,9 @@ public class MealPlanCandidateService {
                 .toList();
         log.info("Meal plan candidates after fast score recipeIds={}", toRecipeIds(candidatePosts));
 
-        List<CompletableFuture<MealPlanAiCandidate>> futures = candidatePosts.stream()
-                .map(post -> CompletableFuture.supplyAsync(
-                        () -> toCandidateRecipe(post),
-                        applicationTaskExecutor
-                ))
-                .toList();
-
-        CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
-
-        List<MealPlanAiCandidate> nutritionCandidates = futures.stream()
-                .map(CompletableFuture::join)
+        Map<Long, NutritionAnalysisResponse> nutritionByRecipeId = fetchNutritionByRecipeIds(candidatePosts);
+        List<MealPlanAiCandidate> nutritionCandidates = candidatePosts.stream()
+                .map(post -> toCandidateRecipe(post, nutritionByRecipeId.get(post.getRecipeId())))
                 .filter(Objects::nonNull)
                 .toList();
         log.info("Meal plan candidates after nutrition fetch recipeIds={}", toCandidateRecipeIds(nutritionCandidates));
@@ -196,18 +185,31 @@ public class MealPlanCandidateService {
         return finalCandidates;
     }
 
-    private MealPlanAiCandidate toCandidateRecipe(Post post) {
-        try {
-            NutritionAnalysisResponse nutrition = recipeClient.getNutritionByRecipeId(post.getRecipeId(), false).getData();
-            if (nutrition == null) {
-                return null;
-            }
+    private Map<Long, NutritionAnalysisResponse> fetchNutritionByRecipeIds(List<Post> posts) {
+        List<Long> recipeIds = posts.stream()
+                .map(Post::getRecipeId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        if (recipeIds.isEmpty()) {
+            return Map.of();
+        }
 
-            return mealPlanAiMapper.toCandidate(post, nutrition);
+        try {
+            Map<Long, NutritionAnalysisResponse> data = recipeClient.getNutritionByRecipeIds(recipeIds, false).getData();
+            return data == null ? Map.of() : data;
         } catch (Exception e) {
-            log.warn("Skip recipeId={} due to nutrition fetch failure: {}", post.getRecipeId(), e.getMessage());
+            log.warn("Meal plan batch nutrition fetch failed: {}", e.getMessage());
+            return Map.of();
+        }
+    }
+
+    private MealPlanAiCandidate toCandidateRecipe(Post post, NutritionAnalysisResponse nutrition) {
+        if (nutrition == null) {
+            log.warn("Skip recipeId={} due to missing nutrition in batch response", post.getRecipeId());
             return null;
         }
+        return mealPlanAiMapper.toCandidate(post, nutrition);
     }
 
     private boolean violatesAllergiesByKeywords(Post post, List<String> allergies) {

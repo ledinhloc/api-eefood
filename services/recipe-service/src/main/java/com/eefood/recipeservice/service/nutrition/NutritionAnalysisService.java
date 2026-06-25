@@ -32,7 +32,10 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
@@ -136,6 +139,28 @@ public class NutritionAnalysisService {
         NutritionAnalysisResponse response = nutritionMapper.toPartialResponse(nutrition, details);
         redisTemplate.opsForValue().set(cacheKey, response, CACHE_TTL);
         return response;
+    }
+
+    @Transactional
+    public Map<Long, NutritionAnalysisResponse> getNutritionByRecipeIds(List<Long> recipeIds, boolean forceRefresh) {
+        if (recipeIds == null || recipeIds.isEmpty()) {
+            return Map.of();
+        }
+
+        Map<Long, NutritionAnalysisResponse> result = new LinkedHashMap<>();
+        List<Long> distinctRecipeIds = recipeIds.stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        for (Long recipeId : distinctRecipeIds) {
+            try {
+                result.put(recipeId, getNutritionByRecipeId(recipeId, forceRefresh));
+            } catch (Exception e) {
+                log.warn("[Nutrition] Skip recipeId={} in batch: {}", recipeId, e.getMessage());
+            }
+        }
+        return result;
     }
 
     public NutritionAnalysisResponse calculateMealPlanNutrition(List<MealPlanNutritionIngredientRequest> ingredients) {
