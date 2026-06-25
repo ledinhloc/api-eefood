@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
 public class MealPlanCandidateService {
     private static final int POST_LIMIT = 30;
     private static final int CANDIDATE_LIMIT = 15;
-    private static final int SEMANTIC_LIMIT = 30;
+    private static final int SEMANTIC_LIMIT = 50;
 
     private final PostRepository postRepository;
     private final RecipeClient recipeClient;
@@ -146,7 +146,14 @@ public class MealPlanCandidateService {
         List<Long> rankedSemanticPostIds = semanticPostIds;
         log.info("Meal plan candidates from Chroma recipeIds={}", toRecipeIdsByPostIds(preFilteredPosts, rankedSemanticPostIds));
 
-        Map<Long, Integer> fastScores = preFilteredPosts.stream()
+        Set<Long> semanticPostIdSet = new HashSet<>(rankedSemanticPostIds);
+        List<Post> scoringPosts = semanticPostIdSet.isEmpty()
+                ? preFilteredPosts
+                : preFilteredPosts.stream()
+                .filter(post -> semanticPostIdSet.contains(post.getId()))
+                .toList();
+
+        Map<Long, Integer> fastScores = scoringPosts.stream()
                 .collect(Collectors.toMap(
                         Post::getId,
                         post -> scorePostBeforeNutrition(
@@ -159,7 +166,7 @@ public class MealPlanCandidateService {
                         )
                 ));
 
-        List<Post> candidatePosts = preFilteredPosts.stream()
+        List<Post> candidatePosts = scoringPosts.stream()
                 .sorted(Comparator.comparingInt((Post post) ->
                         fastScores.getOrDefault(post.getId(), 0)
                 ).reversed())
