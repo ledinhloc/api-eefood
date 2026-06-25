@@ -2,6 +2,7 @@ package com.eefood.recipeservice.service;
 
 import com.eefood.recipeservice.dto.ShoppingIngredientDto;
 import com.eefood.recipeservice.dto.ShoppingItemDto;
+import com.eefood.recipeservice.dto.request.ShoppingMealPlanItemRequest;
 import com.eefood.recipeservice.dto.response.IngredientAlterResponse;
 import com.eefood.recipeservice.enums.ErrorMessage;
 import com.eefood.recipeservice.exception.ExceptionUtil;
@@ -100,6 +101,51 @@ public class ShoppingListService {
     return itemRepo.save(item);
   }
 
+  @Transactional
+  public List<ShoppingItemDto> addMealPlanItems(Long userId, List<ShoppingMealPlanItemRequest> requests) {
+    if (userId == null || requests == null || requests.isEmpty()) {
+      throw ExceptionUtil.badRequest(ErrorMessage.INVALID_PARAMETER_TYPE);
+    }
+
+    List<ShoppingItem> items = new ArrayList<>();
+    for (ShoppingMealPlanItemRequest request : requests) {
+      if (request == null || request.getRecipeTitle() == null || request.getRecipeTitle().isBlank()
+        || request.getIngredients() == null || request.getIngredients().isEmpty()) {
+        throw ExceptionUtil.badRequest(ErrorMessage.INVALID_PARAMETER_TYPE);
+      }
+
+      int servings = request.getServings() == null || request.getServings() <= 0 ? 1 : request.getServings();
+      ShoppingItem item = ShoppingItem.builder()
+        .userId(userId)
+        .recipe(null)
+        .recipeTitleSnapshot(request.getRecipeTitle().trim())
+        .servings(servings)
+        .isDeleted(false)
+        .ingredients(new ArrayList<>())
+        .build();
+
+      request.getIngredients().forEach(ingredient -> {
+        if (ingredient != null && ingredient.getName() != null && !ingredient.getName().isBlank()) {
+          item.getIngredients().add(ShoppingIngredient.builder()
+            .shoppingItem(item)
+            .ingredientNameSnapshot(ingredient.getName().trim())
+            .quantity((ingredient.getQuantity() == null ? 0D : ingredient.getQuantity()) * servings)
+            .unit(ingredient.getUnit() == null ? "" : ingredient.getUnit().trim())
+            .purchased(false)
+            .isDeleted(false)
+            .build());
+        }
+      });
+
+      if (item.getIngredients().isEmpty()) {
+        throw ExceptionUtil.badRequest(ErrorMessage.INVALID_PARAMETER_TYPE);
+      }
+      items.add(item);
+    }
+
+    return mapper.toItemDtoList(itemRepo.saveAll(items));
+  }
+
   private ShoppingItem updateItemWithNewServings(ShoppingItem item, Recipe recipe, int servings) {
     item.setServings(item.getServings() + servings);
 
@@ -194,26 +240,33 @@ public class ShoppingListService {
     for(ShoppingIngredient ing : ingredients){
       if(ing.getIsDeleted()) continue;
 
-      Long ingredientId = ing.getIngredient().getId();
+      Long ingredientId = ing.getIngredient() == null ? null : ing.getIngredient().getId();
+      String ingredientName = ing.getIngredientNameSnapshot() != null && !ing.getIngredientNameSnapshot().isBlank()
+        ? ing.getIngredientNameSnapshot().trim()
+        : ing.getIngredient() == null ? null : ing.getIngredient().getName();
+      if (ingredientName == null || ingredientName.isBlank()) {
+        continue;
+      }
       String unit = ing.getUnit() == null ? "" : ing.getUnit().trim().toLowerCase();
       Boolean purchased = ing.getPurchased();
 
-      String key = ingredientId + "||" + unit + "||" + purchased;
+      String key = (ingredientId == null ? "name:" + ingredientName.toLowerCase() : "id:" + ingredientId)
+        + "||" + unit + "||" + purchased;
       grouded.compute(key, (k, v) ->{
         if(v == null){
           return ShoppingIngredientDto.builder()
             .id(ing.getId())
             .ingredientId(ingredientId)
-            .ingredientName(ing.getIngredient().getName())
-            .quantity(ing.getQuantity())
-            .image(ing.getIngredient().getImage())
+            .ingredientName(ingredientName)
+            .quantity(ing.getQuantity() == null ? 0D : ing.getQuantity())
+            .image(ing.getIngredient() == null ? null : ing.getIngredient().getImage())
             .unit(unit)
             .purchased(purchased)
             .shoppingIngredientIds(new ArrayList<>(List.of(ing.getId())))
             .build();
         }
         else {
-          v.setQuantity(v.getQuantity() + ing.getQuantity());
+          v.setQuantity(v.getQuantity() + (ing.getQuantity() == null ? 0D : ing.getQuantity()));
           v.getShoppingIngredientIds().add(ing.getId());
           return v;
         }
@@ -225,4 +278,5 @@ public class ShoppingListService {
         Comparator.comparing(ShoppingIngredientDto::getIngredientName, String.CASE_INSENSITIVE_ORDER)
       ).toList();
   }
+
 }

@@ -2,6 +2,7 @@ package com.eefood.recipeservice.controller;
 
 import com.eefood.recipeservice.dto.ShoppingIngredientDto;
 import com.eefood.recipeservice.dto.ShoppingItemDto;
+import com.eefood.recipeservice.dto.request.ShoppingMealPlanItemRequest;
 import com.eefood.recipeservice.dto.response.ResponseData;
 import com.eefood.recipeservice.service.ShoppingListService;
 import com.eefood.recipeservice.util.SecurityUtil;
@@ -34,6 +35,14 @@ public class ShoppingController {
           @RequestParam(defaultValue = "1") Integer servings
   ){
     return new ResponseData<>(HttpStatus.OK.value(), "Success", shoppingListService.addRecipe(userId, recipeId, servings));
+  }
+
+  @PostMapping("/meal-plan/add")
+  public ResponseData<List<ShoppingItemDto>> addMealPlanItems(
+          @RequestParam Long userId,
+          @RequestBody List<ShoppingMealPlanItemRequest> request
+  ){
+    return new ResponseData<>(HttpStatus.OK.value(), "Success", shoppingListService.addMealPlanItems(userId, request));
   }
 
   @DeleteMapping("/{itemId}")

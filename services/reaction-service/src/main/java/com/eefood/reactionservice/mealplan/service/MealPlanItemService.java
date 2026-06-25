@@ -1,5 +1,9 @@
 package com.eefood.reactionservice.mealplan.service;
 
+import com.eefood.reactionservice.dto.request.MealPlanNutritionIngredientRequest;
+import com.eefood.reactionservice.dto.request.ShoppingMealPlanIngredientRequest;
+import com.eefood.reactionservice.dto.request.ShoppingMealPlanItemRequest;
+import com.eefood.reactionservice.dto.response.ShoppingItemDto;
 import com.eefood.reactionservice.dto.response.UserBodyMetricsResponse;
 import com.eefood.reactionservice.dto.response.UserResponse;
 import com.eefood.reactionservice.enums.ErrorMessage;
@@ -9,6 +13,7 @@ import com.eefood.reactionservice.mealplan.dto.ai.GeneratedMealReplacement;
 import com.eefood.reactionservice.mealplan.dto.ai.MealPlanAiCandidate;
 import com.eefood.reactionservice.mealplan.dto.request.MealPlanItemUpsertRequest;
 import com.eefood.reactionservice.mealplan.dto.request.MealPlanRegenerateItemsRequest;
+import com.eefood.reactionservice.mealplan.dto.response.MealPlanItemIngredientResponse;
 import com.eefood.reactionservice.mealplan.dto.response.MealPlanItemResponse;
 import com.eefood.reactionservice.mealplan.dto.response.MealPlanResponse;
 import com.eefood.reactionservice.mealplan.dto.response.NutritionAnalysisResponse;
@@ -78,6 +83,27 @@ public class MealPlanItemService {
         // Nếu client gửi ingredients thì coi như muốn đồng bộ lại toàn bộ danh sách nguyên liệu.
         if (request.getIngredients() != null) {
             mealPlanIngredientService.replaceIngredients(savedItem.getId(), request.getIngredients());
+            List<MealPlanNutritionIngredientRequest> nutritionIngredients = request.getIngredients().stream()
+                    .filter(Objects::nonNull)
+                    .filter(ingredient -> ingredient.getName() != null && !ingredient.getName().isBlank())
+                    .map(ingredient -> MealPlanNutritionIngredientRequest.builder()
+                            .name(ingredient.getName())
+                            .quantity(ingredient.getQuantity())
+                            .unit(ingredient.getUnit())
+                            .build())
+                    .toList();
+            NutritionAnalysisResponse nutrition = recipeClient.calculateMealPlanNutrition(nutritionIngredients).getData();
+            if (nutrition != null) {
+                savedItem.setCalories(toBigDecimal(nutrition.getTotalCalories()));
+                savedItem.setProtein(toBigDecimal(nutrition.getTotalProtein()));
+                savedItem.setCarbs(toBigDecimal(nutrition.getTotalCarb()));
+                savedItem.setFat(toBigDecimal(nutrition.getTotalFat()));
+                savedItem.setFiber(toBigDecimal(nutrition.getTotalFiber()));
+                savedItem.setSugar(toBigDecimal(nutrition.getTotalSugar()));
+                savedItem.setCalcium(toBigDecimal(nutrition.getTotalCalcium()));
+                savedItem.setSodium(toBigDecimal(nutrition.getTotalSodium()));
+                savedItem = mealPlanItemRepository.save(savedItem);
+            }
         } else if (savedItem.getItemSource() == MealPlanItemSource.RECIPE
                 && !Objects.equals(previousRecipeId, savedItem.getRecipeId())) {
             // Tao snapshot nguyen lieu khi them moi hoac doi recipe.
@@ -235,6 +261,31 @@ public class MealPlanItemService {
         return mealPlanService.getCurrentMealPlan(userId);
     }
 
+    public List<ShoppingItemDto> addMealPlanItemsToShopping(Long userId, List<Long> itemIds) {
+        if (userId == null || itemIds == null || itemIds.isEmpty()
+                || itemIds.stream().anyMatch(Objects::isNull)
+                || itemIds.stream().distinct().count() != itemIds.size()) {
+            throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
+        }
+
+        MealPlan mealPlan = mealPlanRepository.findByUserId(userId)
+                .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.MEAL_PLAN_NOT_FOUND));
+
+        List<MealPlanItem> items = mealPlanItemRepository.findAllByIdInAndMealPlanId(itemIds, mealPlan.getId());
+        if (items.size() != itemIds.size()) {
+            throw ExceptionUtil.notFound(ErrorMessage.MEAL_PLAN_ITEM_NOT_FOUND);
+        }
+
+        Map<Long, MealPlanItem> itemsById = items.stream()
+                .collect(Collectors.toMap(MealPlanItem::getId, Function.identity()));
+        List<ShoppingMealPlanItemRequest> requests = itemIds.stream()
+                .map(itemsById::get)
+                .map(this::toShoppingMealPlanItemRequest)
+                .toList();
+
+        return recipeClient.addMealPlanItemsToShopping(userId, requests).getData();
+    }
+
     // @Transactional
     // public MealPlanItemResponse getMealPlanItemDetail(Long userId, Long itemId) {
     //     if (userId == null || itemId == null) {
@@ -255,6 +306,35 @@ public class MealPlanItemService {
         MealPlanItemResponse response = mealPlanItemMapper.toScaledResponse(item);
         response.setIngredients(mealPlanIngredientService.getIngredientResponses(item.getId()));
         return response;
+    }
+
+    private ShoppingMealPlanItemRequest toShoppingMealPlanItemRequest(MealPlanItem item) {
+        List<MealPlanItemIngredientResponse> ingredients = mealPlanIngredientService.getIngredientResponses(item.getId());
+        if (ingredients.isEmpty()) {
+            throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
+        }
+
+        return ShoppingMealPlanItemRequest.builder()
+                .recipeId(item.getRecipeId())
+                .recipeTitle(resolveMealTitle(item))
+                .servings(item.getActualServings() != null
+                        ? item.getActualServings()
+                        : item.getPlannedServings() == null ? 1 : item.getPlannedServings())
+                .ingredients(ingredients.stream()
+                        .map(ingredient -> ShoppingMealPlanIngredientRequest.builder()
+                                .name(ingredient.getName())
+                                .quantity(ingredient.getQuantity())
+                                .unit(ingredient.getUnit())
+                                .build())
+                        .toList())
+                .build();
+    }
+
+    private String resolveMealTitle(MealPlanItem item) {
+        if (item.getRecipeTitle() != null && !item.getRecipeTitle().isBlank()) {
+            return item.getRecipeTitle();
+        }
+        return item.getCustomMealName();
     }
 
     private void applyItemRequest(MealPlanItem item, MealPlanItemUpsertRequest request) {

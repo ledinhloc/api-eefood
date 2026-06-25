@@ -14,7 +14,7 @@ import lombok.Setter;
 public class MealPlanItemIngredientResponse {
     private Long id;
     private String name;
-    private String quantity;
+    private Double quantity;
     private String unit;
     private String note;
 }

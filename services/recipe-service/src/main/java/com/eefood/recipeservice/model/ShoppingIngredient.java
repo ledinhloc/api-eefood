@@ -23,9 +23,12 @@ public class ShoppingIngredient extends BaseEntity {
   @JoinColumn(name = "shopping_item_id", nullable = false)
   private ShoppingItem shoppingItem;
 
-  @ManyToOne(fetch = FetchType.LAZY, optional = false)
-  @JoinColumn(name = "ingredient_id", nullable = false)
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "ingredient_id")
   private Ingredient ingredient;
+
+  @Column(name = "ingredient_name_snapshot")
+  private String ingredientNameSnapshot;
 
   @Column(nullable = false)
   private Double quantity;
