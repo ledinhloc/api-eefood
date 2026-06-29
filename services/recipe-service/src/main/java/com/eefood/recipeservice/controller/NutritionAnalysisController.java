@@ -18,6 +18,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/nutrition")
@@ -48,6 +49,18 @@ public class NutritionAnalysisController {
                 HttpStatus.OK.value(),
                 "Get Nutrition By Recipe Success",
                 nutritionAnalysisService.getNutritionByRecipeId(recipeId, forceRefresh)
+        );
+    }
+
+    @PostMapping("/recipes")
+    public ResponseData<Map<Long, NutritionAnalysisResponse>> getNutritionByRecipeIds(
+            @RequestBody List<Long> recipeIds,
+            @RequestParam(defaultValue = "false") boolean forceRefresh
+    ) {
+        return new ResponseData<>(
+                HttpStatus.OK.value(),
+                "Get Nutrition By Recipes Success",
+                nutritionAnalysisService.getNutritionByRecipeIds(recipeIds, forceRefresh)
         );
     }
 

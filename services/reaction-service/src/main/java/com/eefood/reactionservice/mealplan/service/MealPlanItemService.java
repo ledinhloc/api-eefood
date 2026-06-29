@@ -150,7 +150,7 @@ public class MealPlanItemService {
         UserBodyMetricsResponse bodyMetrics = iamClient.getUserBodyMetrics(userId).getData();
 
         //chon candidate
-        List<MealPlanAiCandidate> candidates = mealPlanCandidateService.loadReplacementCandidates(
+        List<MealPlanAiCandidate> candidates = mealPlanCandidateService.loadReplacementMealPlanCandidates(
                 userId,
                 user,
                 mealPlan.getGoal(),

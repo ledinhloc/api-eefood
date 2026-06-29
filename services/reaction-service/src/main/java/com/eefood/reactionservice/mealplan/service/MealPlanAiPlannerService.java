@@ -5,6 +5,7 @@ import com.eefood.reactionservice.dto.response.UserHeightResponse;
 import com.eefood.reactionservice.dto.response.UserResponse;
 import com.eefood.reactionservice.dto.response.UserWeightResponse;
 import com.eefood.reactionservice.mealplan.dto.ai.GeneratedMealItem;
+import com.eefood.reactionservice.mealplan.dto.ai.GeneratedMealPlanResult;
 import com.eefood.reactionservice.mealplan.dto.ai.GeneratedMealReplacement;
 import com.eefood.reactionservice.mealplan.dto.ai.MealPlanAiCandidate;
 import com.eefood.reactionservice.mealplan.dto.request.MealPlanGenerateRequest;
@@ -23,6 +24,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -38,24 +40,27 @@ public class MealPlanAiPlannerService {
     private final OpenAiChatModel openAiModel;
     private final ObjectMapper objectMapper;
 
-    public List<GeneratedMealItem> generateInitialMealPlan(
+    public GeneratedMealPlanResult generateInitialMealPlan(
             UserResponse user,
             UserBodyMetricsResponse bodyMetrics,
             MealPlanGenerateRequest request,
             List<MealPlanAiCandidate> candidates,
-            int days
+            int days,
+            Set<Long> recentRecipeIds
     ) {
-        return requestMealPlanFromAi(user, bodyMetrics, request, candidates, days, null, null);
+        return requestMealPlanFromAi(user, bodyMetrics, request, candidates, days, null, null, recentRecipeIds, null);
     }
 
-    public List<GeneratedMealItem> generateMealPlanContinuation(
+    public GeneratedMealPlanResult generateMealPlanContinuation(
             UserResponse user,
             UserBodyMetricsResponse bodyMetrics,
             MealPlanGenerateRequest request,
             List<MealPlanAiCandidate> candidates,
             int days,
             List<UserWeightResponse> weightHistory,
-            List<UserHeightResponse> heightHistory
+            List<UserHeightResponse> heightHistory,
+            Set<Long> recentRecipeIds,
+            String currentMealPlanNote
     ) {
         return requestMealPlanFromAi(
                 user,
@@ -64,18 +69,22 @@ public class MealPlanAiPlannerService {
                 candidates,
                 days,
                 weightHistory,
-                heightHistory
+                heightHistory,
+                recentRecipeIds,
+                currentMealPlanNote
         );
     }
 
-    private List<GeneratedMealItem> requestMealPlanFromAi(
+    private GeneratedMealPlanResult requestMealPlanFromAi(
             UserResponse user,
             UserBodyMetricsResponse bodyMetrics,
             MealPlanGenerateRequest request,
             List<MealPlanAiCandidate> candidates,
             int days,
             List<UserWeightResponse> weightHistory,
-            List<UserHeightResponse> heightHistory
+            List<UserHeightResponse> heightHistory,
+            Set<Long> recentRecipeIds,
+            String currentMealPlanNote
     ) {
         try {
             String prompt = buildMealPlanPrompt(
@@ -85,7 +94,9 @@ public class MealPlanAiPlannerService {
                     candidates,
                     days,
                     weightHistory,
-                    heightHistory
+                    heightHistory,
+                    recentRecipeIds,
+                    currentMealPlanNote
             );
             ChatRequest chatRequest = ChatRequest.builder()
                     .messages(UserMessage.from(prompt))
@@ -94,10 +105,12 @@ public class MealPlanAiPlannerService {
             long startTime = System.currentTimeMillis();
             ChatResponse chatResponse = openAiModel.chat(chatRequest);
             log.info("OpenAI meal plan generation completed in {} ms", System.currentTimeMillis() - startTime);
-            return parseGeneratedMealItems(chatResponse.aiMessage().text(), request.getStartDate(), candidates);
+            return parseGeneratedMealPlanResult(chatResponse.aiMessage().text(), request.getStartDate(), candidates);
         } catch (Exception e) {
             log.warn("Meal plan AI generation failed: {}", e.getMessage());
-            return List.of();
+            return GeneratedMealPlanResult.builder()
+                    .items(List.of())
+                    .build();
         }
     }
 
@@ -131,9 +144,12 @@ public class MealPlanAiPlannerService {
             List<MealPlanAiCandidate> candidates,
             int days,
             List<UserWeightResponse> weightHistory,
-            List<UserHeightResponse> heightHistory
+            List<UserHeightResponse> heightHistory,
+            Set<Long> recentRecipeIds,
+            String currentMealPlanNote
     ) {
         String candidateJson;
+        String recentRecipeJson;
         try {
             candidateJson = objectMapper.writeValueAsString(
                     candidates.stream()
@@ -142,6 +158,15 @@ public class MealPlanAiPlannerService {
             );
         } catch (Exception e) {
             candidateJson = "[]";
+        }
+        try {
+            recentRecipeJson = objectMapper.writeValueAsString(
+                    (recentRecipeIds == null ? Set.<Long>of() : recentRecipeIds).stream()
+                            .sorted(Comparator.naturalOrder())
+                            .toList()
+            );
+        } catch (Exception e) {
+            recentRecipeJson = "[]";
         }
 
         String bodyHistorySection = "";
@@ -191,6 +216,7 @@ public class MealPlanAiPlannerService {
                 - Nếu healthConditions có dạ dày/gastric thì hạn chế món cay, chua.
                 Cấu trúc JSON cần trả về:
                 {
+                  "mealPlanNote": "ghi chú tổng quan ngắn cho kế hoạch",
                   "items": [
                     {
                       "planDate": "yyyy-MM-dd",
@@ -206,6 +232,17 @@ public class MealPlanAiPlannerService {
                 goal: %s
                 start_date: %s
                 days: %d
+                current_meal_plan_note: %s
+                recent_recipe_ids: %s
+                meal_plan_rules: [
+                  "Han che chon recipeId trong recent_recipe_ids neu van con lua chon khac phu hop.",
+                  "Khong dung cung mot recipeId qua 1 lan trong cung mot ngay.",
+                  "Han che lap recipeId trong toan bo ke hoach neu candidate_recipes du so mon.",
+                  "BREAKFAST nen nhe hon LUNCH va DINNER; LUNCH va DINNER co the nhieu calories/protein hon.",
+                  "BREAKFAST nen uu tien mon nhanh/de, hop thoi quen an sang Viet Nam nhu bun, pho, hu tieu, banh mi; han che mon khong binh thuong cho buoi sang nhu oc hoac mon nhau.",
+                  "Uu tien mon phu hop region/thoi quen an uong cua user neu khong mau thuan voi di ung, suc khoe va goal.",
+                  "note phai giai thich ngan vi sao mon phu hop voi goal/suc khoe/bua an do."
+                ]
                 candidate_recipes: %s
                 %s
                 """.formatted(
@@ -214,6 +251,8 @@ public class MealPlanAiPlannerService {
                 request.getGoal(),
                 request.getStartDate(),
                 days,
+                currentMealPlanNote == null ? "" : currentMealPlanNote,
+                recentRecipeJson,
                 candidateJson,
                 bodyHistorySection
         );
@@ -221,11 +260,13 @@ public class MealPlanAiPlannerService {
 
     // Chỉ nhận các item JSON hợp lệ và phải trỏ tới candidate recipe đã biết.
     private Map<String, Object> toCandidatePromptData(MealPlanAiCandidate candidate) {
-        return Map.of(
-                "recipeId", candidate.getRecipeId(),
-                "title", candidate.getTitle(),
-                "ingredients", candidate.getIngredientKeywords(),
-                "nutrition", toNutritionPromptData(candidate)
+        return Map.ofEntries(
+                Map.entry("recipeId", candidate.getRecipeId()),
+                Map.entry("title", defaultString(candidate.getTitle())),
+                Map.entry("region", defaultString(candidate.getRegion())),
+                Map.entry("difficulty", defaultString(candidate.getDifficulty())),
+                Map.entry("ingredients", candidate.getIngredientKeywords() == null ? List.of() : candidate.getIngredientKeywords()),
+                Map.entry("nutrition", toNutritionPromptData(candidate))
         );
     }
 
@@ -302,16 +343,20 @@ public class MealPlanAiPlannerService {
         );
     }
 
-    private List<GeneratedMealItem> parseGeneratedMealItems(
+    private GeneratedMealPlanResult parseGeneratedMealPlanResult(
             String raw,
             LocalDate startDate,
             List<MealPlanAiCandidate> candidates
     ) throws Exception {
         String normalized = stripMarkdownCodeFence(raw);
         JsonNode root = objectMapper.readTree(normalized);
+        String mealPlanNote = root.path("mealPlanNote").asText(null);
         JsonNode itemsNode = root.path("items");
         if (!itemsNode.isArray()) {
-            return List.of();
+            return GeneratedMealPlanResult.builder()
+                    .mealPlanNote(normalizeBlank(mealPlanNote))
+                    .items(List.of())
+                    .build();
         }
 
         Set<Long> candidateIds = candidates.stream()
@@ -345,9 +390,12 @@ public class MealPlanAiPlannerService {
                     .build());
         }
 
-        return result.stream()
-                .filter(item -> !item.getPlanDate().isBefore(startDate))
-                .toList();
+        return GeneratedMealPlanResult.builder()
+                .mealPlanNote(normalizeBlank(mealPlanNote))
+                .items(result.stream()
+                        .filter(item -> !item.getPlanDate().isBefore(startDate))
+                        .toList())
+                .build();
     }
 
     private List<GeneratedMealReplacement> parseGeneratedMealReplacements(
@@ -438,6 +486,10 @@ public class MealPlanAiPlannerService {
         return value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
     }
 
+    private String normalizeBlank(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
+    }
+
     // Gemini có thể bọc JSON trong markdown fence nên cần bỏ trước khi parse.
     private String stripMarkdownCodeFence(String raw) {
         if (raw == null) {
@@ -453,5 +505,9 @@ public class MealPlanAiPlannerService {
 
     private double defaultDouble(Double value) {
         return value == null ? 0d : value;
+    }
+
+    private String defaultString(String value) {
+        return value == null ? "" : value;
     }
 }

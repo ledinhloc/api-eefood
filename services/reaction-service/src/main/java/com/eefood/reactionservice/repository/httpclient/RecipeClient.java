@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
+import java.util.Map;
 
 @FeignClient(name = "recipe-service")
 public interface RecipeClient {
@@ -38,6 +39,12 @@ public interface RecipeClient {
   @GetMapping("/api/v1/nutrition/recipe/{recipeId}")
   ResponseData<NutritionAnalysisResponse> getNutritionByRecipeId(
           @PathVariable("recipeId") Long recipeId,
+          @RequestParam(defaultValue = "false") boolean forceRefresh
+  );
+
+  @PostMapping("/api/v1/nutrition/recipes")
+  ResponseData<Map<Long, NutritionAnalysisResponse>> getNutritionByRecipeIds(
+          @RequestBody List<Long> recipeIds,
           @RequestParam(defaultValue = "false") boolean forceRefresh
   );
 
