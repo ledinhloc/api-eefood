@@ -122,7 +122,7 @@ public class MealPlanCandidateService {
         String userCity = user != null && user.getAddress() != null && user.getAddress().get("city") != null
                 ? normalize(user.getAddress().get("city").asText())
                 : "";
-        List<Long> semanticPostIds = List.of();
+        List<Long> semanticPostIds;
         List<Post> preFilteredPosts = approvedPosts.stream()
                 .filter(post -> post.getRecipeId() != null)
                 .filter(post -> !excludedRecipeIds.contains(post.getRecipeId()))
@@ -142,11 +142,12 @@ public class MealPlanCandidateService {
             if (semanticPostIds.isEmpty()) {
                 log.warn("Meal plan candidate fallback: no Chroma matches, using default candidate ranking");
             }
+        } else {
+            semanticPostIds = List.of();
         }
-        List<Long> rankedSemanticPostIds = semanticPostIds;
-        log.info("Meal plan candidates from Chroma recipeIds={}", toRecipeIdsByPostIds(preFilteredPosts, rankedSemanticPostIds));
+        log.info("Meal plan candidates from Chroma recipeIds={}", toRecipeIdsByPostIds(preFilteredPosts, semanticPostIds));
 
-        Set<Long> semanticPostIdSet = new HashSet<>(rankedSemanticPostIds);
+        Set<Long> semanticPostIdSet = new HashSet<>(semanticPostIds);
         List<Post> scoringPosts = semanticPostIdSet.isEmpty()
                 ? preFilteredPosts
                 : preFilteredPosts.stream()
@@ -158,7 +159,7 @@ public class MealPlanCandidateService {
                         Post::getId,
                         post -> scorePostBeforeNutrition(
                                 post,
-                                rankedSemanticPostIds,
+                                semanticPostIds,
                                 eatingPreferences,
                                 dietaryPreferences,
                                 userCity,

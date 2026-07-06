@@ -64,9 +64,11 @@ public class LivePollService {
     LivePollSetting setting = settingRepo.findByPollId(poll.getId())
       .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.POLL_SETTING_NOT_FOUND));
 
-    List<LivePollOption> options = optionRepo.findByPollIdOrderByIdAsc(poll.getId());
-
-    return pollMapper.toFullResponse(poll, setting, options);
+    PollResultResponse result = livePollResultCacheService.getResult(poll.getId());
+    LivePollResponse response = pollMapper.toPollResponse(poll);
+    response.setSetting(pollMapper.toSettingResponse(setting));
+    response.setOptions(result.getOptions());
+    return response;
   }
 
   @Transactional
@@ -167,15 +169,18 @@ public class LivePollService {
     LivePollSetting setting = settingRepo.findByPollId(pollId)
       .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.POLL_SETTING_NOT_FOUND));
 
-    List<LivePollOption> options = optionRepo.findByPollIdOrderByIdAsc(pollId);
-    return pollMapper.toFullResponse(poll, setting, options);
+    PollResultResponse result = livePollResultCacheService.getResult(pollId);
+    LivePollResponse response = pollMapper.toPollResponse(poll);
+    response.setSetting(pollMapper.toSettingResponse(setting));
+    response.setOptions(result.getOptions());
+    return response;
   }
 
   @Transactional
   public PollResultResponse vote(Long liveStreamId, Long pollId, Long userId, List<Long> optionIds) {
     // /vote giờ xử lý theo hướng Redis-first: cập nhật state/result trước, DB flush sau qua Stream.
 
-    if (optionIds == null || optionIds.isEmpty()) {
+    if (optionIds == null) {
       throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
     }
 
@@ -183,6 +188,10 @@ public class LivePollService {
       .filter(Objects::nonNull)
       .distinct()
       .toList();
+
+    if (optionIds.isEmpty()) {
+      throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
+    }
 
     PollVoteMetadata pollMetadata = livePollMetadataCacheService.getPollVoteMetadata(pollId);
 

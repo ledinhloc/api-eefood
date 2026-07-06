@@ -114,8 +114,7 @@ public class MealPlanService {
         //thong tin user
         UserResponse user = iamClient.getUserById(userId).getData();
         UserBodyMetricsResponse bodyMetrics = iamClient.getUserBodyMetrics(userId).getData();
-        Set<Long> recentRecipeIds = mealPlanCandidateService.loadRecentRecipeIds(userId);
-        List<MealPlanAiCandidate> candidates = mealPlanCandidateService.loadInitialMealPlanCandidates(user, request.getGoal(), recentRecipeIds);
+        List<MealPlanAiCandidate> candidates = mealPlanCandidateService.loadInitialMealPlanCandidates(user, request.getGoal(), Set.of());
 
         if (candidates.isEmpty()) {
             throw ExceptionUtil.notFound(ErrorMessage.RECIPE_NOT_FOUND);
@@ -128,8 +127,7 @@ public class MealPlanService {
                 bodyMetrics,
                 request,
                 candidates,
-                resolvedDays,
-                recentRecipeIds
+                resolvedDays
         );
         List<GeneratedMealItem> generatedItems = resolveGeneratedItems(generatedMealPlan);
         if (generatedItems.isEmpty()) {
