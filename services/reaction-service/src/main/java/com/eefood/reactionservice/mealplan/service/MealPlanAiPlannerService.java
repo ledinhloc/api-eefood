@@ -45,10 +45,9 @@ public class MealPlanAiPlannerService {
             UserBodyMetricsResponse bodyMetrics,
             MealPlanGenerateRequest request,
             List<MealPlanAiCandidate> candidates,
-            int days,
-            Set<Long> recentRecipeIds
+            int days
     ) {
-        return requestMealPlanFromAi(user, bodyMetrics, request, candidates, days, null, null, recentRecipeIds, null);
+        return requestMealPlanFromAi(user, bodyMetrics, request, candidates, days, null, null, Set.of(), null);
     }
 
     public GeneratedMealPlanResult generateMealPlanContinuation(
