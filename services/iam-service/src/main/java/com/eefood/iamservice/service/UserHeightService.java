@@ -31,6 +31,17 @@ public class UserHeightService {
         .toList();
   }
 
+  public List<UserHeightResponse> getHeights(Long userId, LocalDate from, LocalDate to) {
+    if (userId == null || from == null || to == null || to.isBefore(from)) {
+      throw ExceptionUtil.badRequest(ErrorMessage.INVALID_PARAMETER_TYPE);
+    }
+    return userHeightRepository
+        .findAllByUser_IdAndRecordedDateBetweenOrderByRecordedDateAsc(userId, from, to)
+        .stream()
+        .map(userBodyMapper::toHeightResponse)
+        .toList();
+  }
+
   @Transactional
   public UserHeightResponse createMyHeight(UserHeightRequest request) {
     User user = getCurrentUser();

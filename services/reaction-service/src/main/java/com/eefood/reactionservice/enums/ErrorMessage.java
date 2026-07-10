@@ -63,6 +63,7 @@ public enum ErrorMessage {
   // meal plan
   MEAL_PLAN_NOT_FOUND("Meal plan not found"),
   MEAL_PLAN_ITEM_NOT_FOUND("Meal plan item not found"),
+  MEAL_PLAN_ITEM_DUPLICATE("This dish already exists in the selected meal"),
 
   //ingre
   INGREDIENT_SHOPPING_NOT_FOUND("Ingredient not found"),

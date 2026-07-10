@@ -1,5 +1,6 @@
 package com.eefood.reactionservice.mealplan.service;
 
+import com.eefood.reactionservice.dto.response.RecipeIngredientsResponse;
 import com.eefood.reactionservice.mealplan.dto.request.MealPlanItemIngredientUpsertRequest;
 import com.eefood.reactionservice.mealplan.dto.response.MealPlanItemIngredientResponse;
 import com.eefood.reactionservice.mealplan.dto.response.MealPlanItemResponse;
@@ -8,6 +9,7 @@ import com.eefood.reactionservice.mealplan.model.MealPlanItem;
 import com.eefood.reactionservice.mealplan.model.MealPlanItemIngredient;
 import com.eefood.reactionservice.mealplan.repo.MealPlanItemIngredientRepository;
 import com.eefood.reactionservice.mealplan.repo.MealPlanItemRepository;
+import com.eefood.reactionservice.repository.httpclient.RecipeClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -25,6 +27,7 @@ public class MealPlanIngredientService {
     private final MealPlanItemRepository mealPlanItemRepository;
     private final MealPlanItemIngredientRepository mealPlanItemIngredientRepository;
     private final MealPlanItemMapper mealPlanItemMapper;
+    private final RecipeClient recipeClient;
 
     public void hydrateIngredients(List<MealPlanItemResponse> items) {
         if (items == null || items.isEmpty()) {
@@ -64,6 +67,27 @@ public class MealPlanIngredientService {
         if (!entities.isEmpty()) {
             mealPlanItemIngredientRepository.saveAll(entities);
         }
+    }
+
+    public void replaceIngredientsFromRecipe(Long mealPlanItemId, Long recipeId) {
+        // Lay nguyen lieu goc tu recipe-service de luu cho item.
+        RecipeIngredientsResponse recipe = recipeClient.getRecipeIngredients(recipeId).getData();
+        List<RecipeIngredientsResponse.RecipeIngredient> ingredients =
+                recipe == null || recipe.getIngredients() == null
+                        ? List.of()
+                        : recipe.getIngredients();
+
+        replaceIngredients(
+                mealPlanItemId,
+                ingredients.stream()
+                        .filter(ingredient -> ingredient.getIngredient() != null)
+                        .map(ingredient -> MealPlanItemIngredientUpsertRequest.builder()
+                                .name(ingredient.getIngredient().getName())
+                                .quantity(ingredient.getQuantity())
+                                .unit(ingredient.getUnit())
+                                .build())
+                        .toList()
+        );
     }
 
     public void deleteIngredientsByItemId(Long mealPlanItemId) {

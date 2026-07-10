@@ -7,7 +7,6 @@ from faster_whisper import WhisperModel
 from subtitle_worker.config import WorkerConfig
 
 
-DEFAULT_BEAM_SIZE = 2
 DEFAULT_CPU_THREADS = max(1, (os.cpu_count() or 4) - 1)
 
 
@@ -27,8 +26,14 @@ class WhisperClient:
     def _transcribe_chunk_blocking(self, wav_bytes: bytes) -> str:
         segments, _ = self.model.transcribe(
             io.BytesIO(wav_bytes),
-            language=self.config.language,
-            beam_size=DEFAULT_BEAM_SIZE,
+            language=self.config.spoken_language,
+            task=(
+                "translate"
+                if self.config.spoken_language == "vi"
+                and self.config.target_language == "en"
+                else "transcribe"
+            ),
+            beam_size=self.config.whisper_beam_size,
             condition_on_previous_text=False,
             vad_filter=True,
             temperature=0.0,

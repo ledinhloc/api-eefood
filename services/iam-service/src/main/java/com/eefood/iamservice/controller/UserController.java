@@ -7,7 +7,9 @@ import com.eefood.iamservice.dto.response.*;
 import com.eefood.iamservice.enums.Provider;
 import com.eefood.iamservice.enums.Role;
 import com.eefood.iamservice.enums.SuccessMessage;
+import com.eefood.iamservice.service.UserHeightService;
 import com.eefood.iamservice.service.UserService;
+import com.eefood.iamservice.service.UserWeightService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -18,6 +20,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -27,6 +30,8 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/v1/users")
 public class UserController {
   private final UserService userService;
+  private final UserHeightService userHeightService;
+  private final UserWeightService userWeightService;
 
   @PreAuthorize("hasRole('ADMIN')")
   @GetMapping
@@ -53,6 +58,26 @@ public class UserController {
   @GetMapping("/{userId}/body-metrics")
   public ResponseData<UserBodyMetricsResponse> getUserBodyMetrics(@PathVariable Long userId) {
     return new ResponseData<>(HttpStatus.OK.value(), "success", userService.getUserBodyMetrics(userId));
+  }
+
+  @GetMapping("/{userId}/weights")
+  public ResponseData<List<UserWeightResponse>> getUserWeights(
+      @PathVariable Long userId,
+      @RequestParam LocalDate from,
+      @RequestParam LocalDate to
+  ) {
+    return new ResponseData<>(
+        HttpStatus.OK.value(), "success", userWeightService.getWeights(userId, from, to));
+  }
+
+  @GetMapping("/{userId}/heights")
+  public ResponseData<List<UserHeightResponse>> getUserHeights(
+      @PathVariable Long userId,
+      @RequestParam LocalDate from,
+      @RequestParam LocalDate to
+  ) {
+    return new ResponseData<>(
+        HttpStatus.OK.value(), "success", userHeightService.getHeights(userId, from, to));
   }
 
   @DeleteMapping("/cache-user-info")

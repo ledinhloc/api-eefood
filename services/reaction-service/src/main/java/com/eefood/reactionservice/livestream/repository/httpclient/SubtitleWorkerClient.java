@@ -13,5 +13,5 @@ public interface SubtitleWorkerClient {
   void start(@RequestBody SubtitleWorkerStartRequest request);
 
   @PostMapping("/stop")
-  void stop(@RequestBody Map<String, Long> request);
+  void stop(@RequestBody Map<String, Object> request);
 }

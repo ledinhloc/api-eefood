@@ -16,7 +16,6 @@ import com.eefood.reactionservice.repository.httpclient.IamClient;
 import com.eefood.reactionservice.repository.httpclient.RecipeClient;
 import com.eefood.reactionservice.service.chatbot.ChromaEmbeddingService;
 import com.eefood.reactionservice.service.follow.FollowService;
-import com.eefood.reactionservice.service.ai.GeminiService;
 import com.eefood.reactionservice.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,10 +43,13 @@ public class PostService {
   private static final double STRONG_REDUCED_WEIGHT = 0.1d;
   private static final double LIGHT_REDUCED_WEIGHT = 0.5d;
   private static final Set<String> STRONG_REDUCED_INGREDIENTS = Set.of(
-    "muối", "đường", "tiêu", "nước", "dầu ăn", "bột ngọt", "hạt nêm", "gia vị"
+    "muối", "đường", "tiêu", "dầu ăn", "dầu thực vật", "bột ngọt", "hạt nêm",
+    "bột canh", "gia vị", "nước lọc"
   );
   private static final Set<String> LIGHT_REDUCED_INGREDIENTS = Set.of(
-    "tỏi", "ớt", "hành", "nước mắm", "xì dầu", "dầu hào"
+    "tỏi", "ớt", "hành tím", "hành lá", "hành tây", "gừng", "sả", "chanh",
+    "ngò rí", "rau thơm", "nước mắm", "nước tương", "xì dầu", "dầu hào",
+    "dầu mè", "tương ớt", "tương cà", "giấm"
   );
 
   private final PostRepository postRepo;
@@ -56,7 +58,6 @@ public class PostService {
   private final PostSearchService postSearchService;
   private final RecipeClient recipeClient;
   private final SecurityUtil securityUtil;
-  private final GeminiService geminiService;
   private final FollowService followService;
   private final PostAdminSearchService postAdminSearchService;
   private final NotificationProducer notificationProducer;
@@ -511,7 +512,7 @@ public class PostService {
       return null;
     }
 
-    //Tính điểm tương đồng
+    //Tìm các nguyên liệu của candidate trùng/match mềm với recipe gốc.
     List<String> matchedIngredients = getMatchedIngredients(targetIngredients, candidateIngredients);
     double weightedScore = matchedIngredients.stream()
       .mapToDouble(this::getIngredientWeight)
@@ -537,7 +538,7 @@ public class PostService {
     }
 
     return filterIngredients.stream()
-      .anyMatch(filterIngredient -> candidateIngredients.stream()
+      .allMatch(filterIngredient -> candidateIngredients.stream()
         .anyMatch(candidateIngredient -> isSoftIngredientMatch(filterIngredient, candidateIngredient)));
   }
 

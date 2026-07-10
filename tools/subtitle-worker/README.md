@@ -2,6 +2,12 @@
 
 Worker nay nhan lenh tu `reaction-service`, join LiveKit room, nghe audio cua streamer, goi Whisper de tao transcript, roi gui subtitle ve backend.
 
+Worker ho tro:
+
+- Phu de cung ngon ngu: `vi -> vi`, `en -> en`.
+- Dich truc tiep bang Whisper: `vi -> en`.
+- Chua ho tro `en -> vi`.
+
 ## Flow
 
 ```text
@@ -22,7 +28,7 @@ UI end live
 Chay trong thu muc nay:
 
 ```powershell
-cd D:\tlcn_v2\api-eefood\tools\subtitle-worker
+cd tools\subtitle-worker
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
@@ -31,7 +37,7 @@ pip install -r requirements.txt
 Neu da tao `.venv` roi thi lan sau chi can:
 
 ```powershell
-cd D:\tlcn_v2\api-eefood\tools\subtitle-worker
+cd tools\subtitle-worker
 .\.venv\Scripts\Activate.ps1
 ```
 
@@ -46,9 +52,14 @@ LIVEKIT_API_SECRET=secret
 REACTION_BASE_URL=http://127.0.0.1:8095
 
 AUDIO_NUM_CHANNELS=1
-WHISPER_MODEL_SIZE=base
-CHUNK_SECONDS=1.5
-CHUNK_OVERLAP_SECONDS=0.25
+WHISPER_MODEL_SIZE=small
+WHISPER_DEVICE=cpu
+WHISPER_COMPUTE_TYPE=int8
+WHISPER_BEAM_SIZE=5
+CHUNK_SECONDS=3.0
+CHUNK_OVERLAP_SECONDS=0.5
+CHUNK_QUEUE_SIZE=1
+MAX_TRANSCRIPT_LATENCY_SECONDS=6.0
 SPOKEN_LANGUAGE=vi
 
 WORKER_CONTROL_HOST=127.0.0.1
@@ -97,7 +108,8 @@ Body:
 {
   "liveStreamId": 43,
   "roomName": "live_2_1779379611589",
-  "spokenLanguage": "vi"
+  "spokenLanguage": "vi",
+  "targetLanguage": "en"
 }
 ```
 
@@ -107,7 +119,8 @@ Response:
 {
   "status": "started",
   "liveStreamId": 43,
-  "roomName": "live_2_1779379611589"
+  "roomName": "live_2_1779379611589",
+  "targetLanguage": "en"
 }
 ```
 
@@ -137,7 +150,8 @@ Body:
 
 ```json
 {
-  "liveStreamId": 43
+  "liveStreamId": 43,
+  "targetLanguage": "en"
 }
 ```
 
@@ -168,13 +182,13 @@ curl http://127.0.0.1:9000/health
 ```powershell
 curl -X POST http://127.0.0.1:9000/start `
   -H "Content-Type: application/json" `
-  -d "{\"liveStreamId\":43,\"roomName\":\"live_2_1779379611589\",\"spokenLanguage\":\"vi\"}"
+  -d "{\"liveStreamId\":43,\"roomName\":\"live_2_1779379611589\",\"spokenLanguage\":\"vi\",\"targetLanguage\":\"en\"}"
 ```
 
 ```powershell
 curl -X POST http://127.0.0.1:9000/stop `
   -H "Content-Type: application/json" `
-  -d "{\"liveStreamId\":43}"
+  -d "{\"liveStreamId\":43,\"targetLanguage\":\"en\"}"
 ```
 
 ## Reaction Service

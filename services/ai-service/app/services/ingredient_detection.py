@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 from collections import OrderedDict
 from io import BytesIO
 from pathlib import Path
@@ -9,7 +10,12 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 from app.core.config import settings
-from app.models.schemas import BoundingBox, DetectionItem, IngredientDetectionResponse
+from app.models.schemas import (
+    BoundingBox,
+    DetectionItem,
+    IngredientDetectionResponse,
+    IngredientDetectionWithAnnotatedImageResponse,
+)
 
 
 class IngredientDetectionError(RuntimeError):
@@ -44,6 +50,30 @@ class IngredientDetectionService:
         """Nhan bytes anh, chay model detection va tra ket qua dang schema."""
         # Nhan bytes anh tu API va chuyen sang dinh dang OpenCV BGR.
         frame = self._read_image(image_bytes)
+        return self._detect_frame(frame)
+
+    def detect_annotated_image(self, image_bytes: bytes) -> bytes:
+        """Nhan bytes anh, ve bounding box/label len anh va tra ve JPEG bytes."""
+        # Doc anh goc va chay detection de lay nhan, confidence va bounding box.
+        frame = self._read_image(image_bytes)
+        result = self._detect_frame(frame)
+        return self._annotate_frame(frame, result)
+
+    def detect_with_annotated_image(
+        self,
+        image_bytes: bytes,
+    ) -> IngredientDetectionWithAnnotatedImageResponse:
+        """Nhan bytes anh, tra ket qua detection kem anh JPEG da ve box dang base64."""
+        frame = self._read_image(image_bytes)
+        result = self._detect_frame(frame)
+        annotated_image = self._annotate_frame(frame, result)
+        return IngredientDetectionWithAnnotatedImageResponse(
+            labels=result.labels,
+            annotatedImageBase64=base64.b64encode(annotated_image).decode("ascii"),
+        )
+
+    def _detect_frame(self, frame: np.ndarray) -> IngredientDetectionResponse:
+        """Chay model detection tren OpenCV frame da decode."""
         frame_height, frame_width = frame.shape[:2]
 
         # Load model va danh sach ten class.
@@ -90,12 +120,8 @@ class IngredientDetectionService:
             imageHeight=frame_height,
         )
 
-    def detect_annotated_image(self, image_bytes: bytes) -> bytes:
-        """Nhan bytes anh, ve bounding box/label len anh va tra ve JPEG bytes."""
-        # Doc anh goc va chay detection de lay nhan, confidence va bounding box.
-        frame = self._read_image(image_bytes)
-        result = self.detect(image_bytes)
-
+    def _annotate_frame(self, frame: np.ndarray, result: IngredientDetectionResponse) -> bytes:
+        """Ve bounding box/label len frame va encode thanh JPEG bytes."""
         # Chuyen sang Pillow de ve duoc nhan Unicode tieng Viet.
         annotated_image = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
         draw = ImageDraw.Draw(annotated_image)

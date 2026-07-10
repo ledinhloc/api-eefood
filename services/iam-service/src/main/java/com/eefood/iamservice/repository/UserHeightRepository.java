@@ -11,6 +11,9 @@ import org.springframework.stereotype.Repository;
 public interface UserHeightRepository extends JpaRepository<UserHeight, Long> {
   List<UserHeight> findAllByUser_IdOrderByRecordedDateDesc(Long userId);
 
+  List<UserHeight> findAllByUser_IdAndRecordedDateBetweenOrderByRecordedDateAsc(
+      Long userId, LocalDate from, LocalDate to);
+
   Optional<UserHeight> findByIdAndUser_Id(Long id, Long userId);
 
   boolean existsByUser_IdAndRecordedDate(Long userId, LocalDate recordedDate);

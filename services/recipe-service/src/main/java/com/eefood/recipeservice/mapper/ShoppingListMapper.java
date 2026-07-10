@@ -13,15 +13,35 @@ import java.util.List;
 public interface ShoppingListMapper {
 
   @Mapping(source = "recipe.id", target = "recipeId")
-  @Mapping(source = "recipe.title", target = "recipeTitle")
+  @Mapping(target = "recipeTitle", expression = "java(resolveRecipeTitle(entity))")
   ShoppingItemDto toDto(ShoppingItem entity);
 
   List<ShoppingItemDto> toItemDtoList(List<ShoppingItem> items);
 
   @Mapping(source = "ingredient.id", target = "ingredientId")
-  @Mapping(source = "ingredient.name", target = "ingredientName")
+  @Mapping(target = "ingredientName", expression = "java(resolveIngredientName(entity))")
   @Mapping(source = "ingredient.image", target = "image")
   ShoppingIngredientDto toDto(ShoppingIngredient entity);
 
   List<ShoppingIngredientDto> toIngredientDtoList(List<ShoppingIngredient> items);
+
+  default String resolveRecipeTitle(ShoppingItem entity) {
+    if (entity == null) {
+      return null;
+    }
+    if (entity.getRecipeTitleSnapshot() != null && !entity.getRecipeTitleSnapshot().isBlank()) {
+      return entity.getRecipeTitleSnapshot();
+    }
+    return entity.getRecipe() == null ? null : entity.getRecipe().getTitle();
+  }
+
+  default String resolveIngredientName(ShoppingIngredient entity) {
+    if (entity == null) {
+      return null;
+    }
+    if (entity.getIngredientNameSnapshot() != null && !entity.getIngredientNameSnapshot().isBlank()) {
+      return entity.getIngredientNameSnapshot();
+    }
+    return entity.getIngredient() == null ? null : entity.getIngredient().getName();
+  }
 }

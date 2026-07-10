@@ -12,12 +12,12 @@ import java.util.Optional;
 @Repository
 public interface ShoppingItemRepository extends JpaRepository<ShoppingItem, Long> {
   @Query("""
-        SELECT s 
-        FROM ShoppingItem s 
-        JOIN FETCH s.recipe r 
+        SELECT s
+        FROM ShoppingItem s
+        LEFT JOIN FETCH s.recipe r
         WHERE s.userId = :userId 
           AND s.isDeleted = false 
-        ORDER BY r.title ASC
+        ORDER BY COALESCE(s.recipeTitleSnapshot, r.title) ASC
     """)
   List<ShoppingItem> findAllActiveByUserIdOrderByRecipeTitle(@Param("userId") Long userId);
   Optional<ShoppingItem> findByIdAndUserIdAndIsDeletedFalse(Long id, Long userId);

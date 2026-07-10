@@ -1,5 +1,6 @@
 package com.eefood.recipeservice.controller;
 
+import com.eefood.recipeservice.dto.request.MealPlanNutritionIngredientRequest;
 import com.eefood.recipeservice.dto.response.NutritionAnalysisResponse;
 import com.eefood.recipeservice.dto.response.ResponseData;
 import com.eefood.recipeservice.service.nutrition.NutritionAnalysisService;
@@ -9,11 +10,15 @@ import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/nutrition")
@@ -44,6 +49,29 @@ public class NutritionAnalysisController {
                 HttpStatus.OK.value(),
                 "Get Nutrition By Recipe Success",
                 nutritionAnalysisService.getNutritionByRecipeId(recipeId, forceRefresh)
+        );
+    }
+
+    @PostMapping("/recipes")
+    public ResponseData<Map<Long, NutritionAnalysisResponse>> getNutritionByRecipeIds(
+            @RequestBody List<Long> recipeIds,
+            @RequestParam(defaultValue = "false") boolean forceRefresh
+    ) {
+        return new ResponseData<>(
+                HttpStatus.OK.value(),
+                "Get Nutrition By Recipes Success",
+                nutritionAnalysisService.getNutritionByRecipeIds(recipeIds, forceRefresh)
+        );
+    }
+
+    @PostMapping("/meal-plan/calculate")
+    public ResponseData<NutritionAnalysisResponse> calculateMealPlanNutrition(
+            @RequestBody List<MealPlanNutritionIngredientRequest> request
+    ) {
+        return new ResponseData<>(
+                HttpStatus.OK.value(),
+                "Calculate Meal Plan Nutrition Success",
+                nutritionAnalysisService.calculateMealPlanNutrition(request)
         );
     }
 

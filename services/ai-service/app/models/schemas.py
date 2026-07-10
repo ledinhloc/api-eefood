@@ -21,9 +21,14 @@ class IngredientDetectionResponse(BaseModel):
     imageHeight: int
 
 
+class IngredientDetectionWithAnnotatedImageResponse(BaseModel):
+    labels: list[str]
+    annotatedImageBase64: str
+
+
 class ResponseData(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     status: int
     message: str
-    data: IngredientDetectionResponse | dict[str, str] | None = None
+    data: IngredientDetectionWithAnnotatedImageResponse | IngredientDetectionResponse | dict[str, str] | None = None

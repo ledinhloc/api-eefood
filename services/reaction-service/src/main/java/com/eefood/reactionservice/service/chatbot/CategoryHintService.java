@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.*;
 import java.util.regex.Pattern;
@@ -199,7 +200,7 @@ public class CategoryHintService {
         if (lower.matches(".*(dinner|tối|buổi tối|evening).*")) return "DINNER";
 
         try {
-            LocalTime localTime = LocalTime.parse(time);
+            LocalDateTime localTime = LocalDateTime.parse(time);
             int hour = localTime.getHour();
 
             if (hour >= 5 && hour < 10) return "BREAKFAST";

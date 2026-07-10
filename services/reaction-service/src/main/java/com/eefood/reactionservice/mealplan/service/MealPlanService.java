@@ -1,10 +1,13 @@
 package com.eefood.reactionservice.mealplan.service;
 
 import com.eefood.reactionservice.dto.response.UserBodyMetricsResponse;
+import com.eefood.reactionservice.dto.response.UserHeightResponse;
 import com.eefood.reactionservice.dto.response.UserResponse;
+import com.eefood.reactionservice.dto.response.UserWeightResponse;
 import com.eefood.reactionservice.enums.ErrorMessage;
 import com.eefood.reactionservice.exception.ExceptionUtil;
 import com.eefood.reactionservice.mealplan.dto.ai.GeneratedMealItem;
+import com.eefood.reactionservice.mealplan.dto.ai.GeneratedMealPlanResult;
 import com.eefood.reactionservice.mealplan.dto.ai.MealPlanAiCandidate;
 import com.eefood.reactionservice.mealplan.dto.request.MealPlanGenerateRequest;
 import com.eefood.reactionservice.mealplan.dto.request.MealPlanUpsertRequest;
@@ -32,6 +35,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -107,9 +111,10 @@ public class MealPlanService {
             throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
         }
 
+        //thong tin user
         UserResponse user = iamClient.getUserById(userId).getData();
         UserBodyMetricsResponse bodyMetrics = iamClient.getUserBodyMetrics(userId).getData();
-        List<MealPlanAiCandidate> candidates = mealPlanCandidateService.loadCandidates(userId, user, request.getGoal());
+        List<MealPlanAiCandidate> candidates = mealPlanCandidateService.loadInitialMealPlanCandidates(user, request.getGoal(), Set.of());
 
         if (candidates.isEmpty()) {
             throw ExceptionUtil.notFound(ErrorMessage.RECIPE_NOT_FOUND);
@@ -117,13 +122,14 @@ public class MealPlanService {
 
         int resolvedDays = resolveDays(request);
 
-        List<GeneratedMealItem> generatedItems = mealPlanAiPlannerService.generatePlan(
+        GeneratedMealPlanResult generatedMealPlan = mealPlanAiPlannerService.generateInitialMealPlan(
                 user,
                 bodyMetrics,
                 request,
                 candidates,
                 resolvedDays
         );
+        List<GeneratedMealItem> generatedItems = resolveGeneratedItems(generatedMealPlan);
         if (generatedItems.isEmpty()) {
             generatedItems = fallbackGenerate(request, candidates);
         }
@@ -134,7 +140,7 @@ public class MealPlanService {
         mealPlan.setGoal(request.getGoal());
         mealPlan.setStartDate(request.getStartDate());
         mealPlan.setEndDate(request.getStartDate().plusDays(resolvedDays - 1L));
-        mealPlan.setNote("Kế hoạch nấu ăn");
+        mealPlan.setNote(resolveMealPlanNote(generatedMealPlan));
         mealPlan.setUserHealthNote(buildUserHealthNote(user, bodyMetrics));
 
         MealPlan savedMealPlan = mealPlanRepository.save(mealPlan);
@@ -166,10 +172,23 @@ public class MealPlanService {
         int resolvedDays = days == null ? DEFAULT_DAYS : days;
 
         LocalDate nextStartDate = startDate != null ? startDate : mealPlan.getEndDate().plusDays(1);
+        if (!nextStartDate.isAfter(mealPlan.getEndDate())) {
+            throw ExceptionUtil.badRequest(ErrorMessage.INVALID_REQUEST);
+        }
         LocalDate nextEndDate = nextStartDate.plusDays(resolvedDays - 1L);
         UserResponse user = iamClient.getUserById(userId).getData();
         UserBodyMetricsResponse bodyMetrics = iamClient.getUserBodyMetrics(userId).getData();
-        List<MealPlanAiCandidate> candidates = mealPlanCandidateService.loadCandidates(userId, user, mealPlan.getGoal());
+        LocalDate historyEndDate = LocalDate.now().isBefore(mealPlan.getStartDate())
+                ? mealPlan.getStartDate()
+                : LocalDate.now();
+        List<UserWeightResponse> weightHistory = iamClient
+                .getUserWeights(userId, mealPlan.getStartDate(), historyEndDate)
+                .getData();
+        List<UserHeightResponse> heightHistory = iamClient
+                .getUserHeights(userId, mealPlan.getStartDate(), historyEndDate)
+                .getData();
+        Set<Long> recentRecipeIds = mealPlanCandidateService.loadRecentRecipeIds(userId);
+        List<MealPlanAiCandidate> candidates = mealPlanCandidateService.loadContinuationMealPlanCandidates(user, mealPlan.getGoal(), recentRecipeIds);
 
         if (candidates.isEmpty()) {
             throw ExceptionUtil.notFound(ErrorMessage.RECIPE_NOT_FOUND);
@@ -181,19 +200,23 @@ public class MealPlanService {
                 .days(resolvedDays)
                 .build();
 
-        List<GeneratedMealItem> generatedItems = mealPlanAiPlannerService.generatePlan(
+        GeneratedMealPlanResult generatedMealPlan = mealPlanAiPlannerService.generateMealPlanContinuation(
                 user,
                 bodyMetrics,
                 continueRequest,
                 candidates,
-                resolvedDays
+                resolvedDays,
+                weightHistory == null ? List.of() : weightHistory,
+                heightHistory == null ? List.of() : heightHistory,
+                recentRecipeIds,
+                mealPlan.getNote()
         );
+        List<GeneratedMealItem> generatedItems = resolveGeneratedItems(generatedMealPlan);
         if (generatedItems.isEmpty()) {
             generatedItems = fallbackGenerate(continueRequest, candidates);
         }
 
         mealPlan.setEndDate(nextEndDate);
-        mealPlan.setNote("Generated by AI");
         mealPlan.setUserHealthNote(buildUserHealthNote(user, bodyMetrics));
         MealPlan savedMealPlan = mealPlanRepository.save(mealPlan);
 
@@ -329,12 +352,35 @@ public class MealPlanService {
         return generated;
     }
 
+    private List<GeneratedMealItem> resolveGeneratedItems(GeneratedMealPlanResult generatedMealPlan) {
+        if (generatedMealPlan == null || generatedMealPlan.getItems() == null) {
+            return List.of();
+        }
+        return generatedMealPlan.getItems();
+    }
+
+    private String resolveMealPlanNote(GeneratedMealPlanResult generatedMealPlan) {
+        if (generatedMealPlan == null || generatedMealPlan.getMealPlanNote() == null
+                || generatedMealPlan.getMealPlanNote().isBlank()) {
+            return "Kế hoạch nấu ăn";
+        }
+        return generatedMealPlan.getMealPlanNote().trim();
+    }
+
     private void saveGeneratedItems(Long mealPlanId, List<GeneratedMealItem> generatedItems) {
-        mealPlanItemRepository.saveAll(
+        List<MealPlanItem> savedItems = mealPlanItemRepository.saveAll(
                 generatedItems.stream()
                         .map(item -> mealPlanItemMapper.toEntity(item, mealPlanId))
                         .toList()
         );
+
+        for (int index = 0; index < savedItems.size(); index++) {
+            // Tao snapshot nguyen lieu cho item do AI sinh ra.
+            mealPlanIngredientService.replaceIngredientsFromRecipe(
+                    savedItems.get(index).getId(),
+                    savedItems.get(index).getRecipeId()
+            );
+        }
     }
 
     private String buildUserHealthNote(UserResponse user, UserBodyMetricsResponse bodyMetrics) {

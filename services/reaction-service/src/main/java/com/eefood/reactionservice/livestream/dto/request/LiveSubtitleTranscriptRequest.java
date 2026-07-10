@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 public class LiveSubtitleTranscriptRequest {
   private Long liveStreamId;
   private String spokenLanguage;
+  private String targetLanguage;
   private String text;
   private LocalDateTime createdAt;
 }

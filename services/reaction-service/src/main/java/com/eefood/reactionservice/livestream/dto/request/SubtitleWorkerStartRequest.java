@@ -13,4 +13,5 @@ public class SubtitleWorkerStartRequest {
   private Long liveStreamId;
   private String roomName;
   private String spokenLanguage;
+  private String targetLanguage;
 }

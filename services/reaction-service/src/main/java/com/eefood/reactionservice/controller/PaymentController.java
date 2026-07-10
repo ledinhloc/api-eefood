@@ -63,7 +63,7 @@ public class PaymentController {
         String html = "<!DOCTYPE html><html><head>" +
                 "<meta name='viewport' content='width=device-width,initial-scale=1'>" +
                 "<script>window.location.href='" + deepLink + "';</script>" +
-                "</head><body></body></html>";
+                "</head><body>Đang quay lại ứng dụng...</body></html>";
 
         log.info("VNPay callback: responseCode={}, transactionStatus={}, isSuccess={}",
                 responseCode, transactionStatus, isSuccess);

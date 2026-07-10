@@ -118,6 +118,12 @@
             <artifactId>langchain4j-google-ai-gemini</artifactId>
             <version>1.8.0</version>
         </dependency>
+        <!-- LangChain4j OpenAI for meal plan -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-open-ai</artifactId>
+            <version>1.8.0</version>
+        </dependency>
         <!--        kafka-->
         <dependency>
             <groupId>org.springframework.kafka</groupId>

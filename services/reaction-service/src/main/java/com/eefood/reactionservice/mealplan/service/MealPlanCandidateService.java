@@ -4,6 +4,7 @@ import com.eefood.reactionservice.dto.response.UserResponse;
 import com.eefood.reactionservice.enums.PostStatus;
 import com.eefood.reactionservice.mealplan.dto.ai.MealPlanAiCandidate;
 import com.eefood.reactionservice.mealplan.dto.response.NutritionAnalysisResponse;
+import com.eefood.reactionservice.mealplan.enums.MealSlot;
 import com.eefood.reactionservice.mealplan.mapper.MealPlanAiMapper;
 import com.eefood.reactionservice.mealplan.model.MealPlan;
 import com.eefood.reactionservice.mealplan.model.MealPlanItem;
@@ -12,9 +13,9 @@ import com.eefood.reactionservice.mealplan.repo.MealPlanRepository;
 import com.eefood.reactionservice.model.Post;
 import com.eefood.reactionservice.repository.httpclient.RecipeClient;
 import com.eefood.reactionservice.repository.post.PostRepository;
+import com.eefood.reactionservice.service.chatbot.ChromaRagService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -22,19 +23,18 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class MealPlanCandidateService {
-    private static final int APPROVED_POST_SCAN_LIMIT = 200;
-    private static final int POST_LIMIT = 15;
-    private static final int CANDIDATE_LIMIT = 12;
+    private static final int POST_LIMIT = 30;
+    private static final int CANDIDATE_LIMIT = 15;
+    private static final int SEMANTIC_LIMIT = 50;
 
     private final PostRepository postRepository;
     private final RecipeClient recipeClient;
@@ -42,13 +42,78 @@ public class MealPlanCandidateService {
     private final MealPlanItemRepository mealPlanItemRepository;
     private final MealPlanAiMapper mealPlanAiMapper;
     private final MealPlanNutritionScoringService mealPlanNutritionScoringService;
-    private final Executor applicationTaskExecutor;
+    private final ChromaRagService chromaRagService;
 
-    public List<MealPlanAiCandidate> loadCandidates(Long userId, UserResponse user, String goal) {
-        List<Post> approvedPosts = postRepository.findByStatusAndIsDeletedFalse(
-                PostStatus.APPROVED,
-                PageRequest.of(0, APPROVED_POST_SCAN_LIMIT)
+    public List<MealPlanAiCandidate> loadInitialMealPlanCandidates(UserResponse user, String goal, Set<Long> recentRecipeIds) {
+        String semanticQuery = goal == null || goal.isBlank()
+                ? null
+                : "Tìm món ăn phù hợp mục tiêu: " + goal.trim();
+        return loadCandidateRecipes(
+                user,
+                goal,
+                Set.of(),
+                recentRecipeIds == null ? Set.of() : recentRecipeIds,
+                POST_LIMIT,
+                CANDIDATE_LIMIT,
+                semanticQuery
         );
+    }
+
+    public List<MealPlanAiCandidate> loadContinuationMealPlanCandidates(UserResponse user, String goal, Set<Long> recentRecipeIds) {
+        String semanticQuery = goal == null || goal.isBlank()
+                ? null
+                : "Tìm món ăn phù hợp mục tiêu: " + goal.trim();
+        return loadCandidateRecipes(
+                user,
+                goal,
+                Set.of(),
+                recentRecipeIds == null ? Set.of() : recentRecipeIds,
+                POST_LIMIT,
+                CANDIDATE_LIMIT,
+                semanticQuery
+        );
+    }
+
+    public List<MealPlanAiCandidate> loadReplacementMealPlanCandidates(
+            Long userId,
+            UserResponse user,
+            String goal,
+            String reason,
+            Set<Long> excludedRecipeIds,
+            List<MealSlot> mealSlots,
+            int replacementCount
+    ) {
+        int candidateLimit = Math.max(replacementCount + 3, CANDIDATE_LIMIT);
+        String semanticQuery = reason == null || reason.isBlank()
+                ? null
+                : "Tìm món ăn thay thế. Yêu cầu: " + reason.trim()
+                + ". Mục tiêu: " + normalize(goal)
+                + ". Bữa ăn: " + (mealSlots == null ? "" : mealSlots.stream()
+                .filter(Objects::nonNull)
+                .map(Enum::name)
+                .distinct()
+                .collect(Collectors.joining(", ")));
+        return loadCandidateRecipes(
+                user,
+                goal,
+                excludedRecipeIds == null ? Set.of() : excludedRecipeIds,
+                loadRecentRecipeIds(userId),
+                candidateLimit,
+                candidateLimit,
+                semanticQuery
+        );
+    }
+
+    private List<MealPlanAiCandidate> loadCandidateRecipes(
+            UserResponse user,
+            String goal,
+            Set<Long> excludedRecipeIds,
+            Set<Long> recentRecipeIds,
+            int postLimit,
+            int candidateLimit,
+            String semanticQuery
+    ) {
+        List<Post> approvedPosts = postRepository.findByStatusAndIsDeletedFalse(PostStatus.APPROVED);
 
         List<String> allergies = normalizeList(user != null ? user.getAllergies() : List.of());
         List<String> eatingPreferences = normalizeList(user != null ? user.getEatingPreferences() : List.of());
@@ -57,53 +122,102 @@ public class MealPlanCandidateService {
         String userCity = user != null && user.getAddress() != null && user.getAddress().get("city") != null
                 ? normalize(user.getAddress().get("city").asText())
                 : "";
-        Set<Long> recentRecipeIds = loadRecentRecipeIds(userId);
-
-        List<Post> candidatePosts = approvedPosts.stream()
+        List<Long> semanticPostIds;
+        List<Post> preFilteredPosts = approvedPosts.stream()
                 .filter(post -> post.getRecipeId() != null)
+                .filter(post -> !excludedRecipeIds.contains(post.getRecipeId()))
                 .filter(post -> !violatesAllergiesByKeywords(post, allergies))
-                .sorted(Comparator.comparingInt((Post post) -> scorePostForInitialSelection(
-                        post,
-                        goal,
-                        eatingPreferences,
-                        dietaryPreferences,
-                        userCity,
-                        recentRecipeIds
-                )).reversed())
-                .limit(POST_LIMIT)
+                .toList();
+        // log.info("Meal plan candidates after hard filter recipeIds={}", toRecipeIds(preFilteredPosts));
+
+        if (semanticQuery != null && !semanticQuery.isBlank()) {
+            semanticPostIds = chromaRagService.retrieveTopKSimilarPostIds(
+                    preFilteredPosts.stream()
+                            .map(Post::getId)
+                            .toList(),
+                    semanticQuery,
+                    List.of(),
+                    SEMANTIC_LIMIT
+            );
+            if (semanticPostIds.isEmpty()) {
+                log.warn("Meal plan candidate fallback: no Chroma matches, using default candidate ranking");
+            }
+        } else {
+            semanticPostIds = List.of();
+        }
+        log.info("Meal plan candidates from Chroma recipeIds={}", toRecipeIdsByPostIds(preFilteredPosts, semanticPostIds));
+
+        Set<Long> semanticPostIdSet = new HashSet<>(semanticPostIds);
+        List<Post> scoringPosts = semanticPostIdSet.isEmpty()
+                ? preFilteredPosts
+                : preFilteredPosts.stream()
+                .filter(post -> semanticPostIdSet.contains(post.getId()))
                 .toList();
 
-        List<CompletableFuture<MealPlanAiCandidate>> futures = candidatePosts.stream()
-                .map(post -> CompletableFuture.supplyAsync(
-                        () -> toCandidateRecipe(post),
-                        applicationTaskExecutor
-                ))
-                .toList();
+        Map<Long, Integer> fastScores = scoringPosts.stream()
+                .collect(Collectors.toMap(
+                        Post::getId,
+                        post -> scorePostBeforeNutrition(
+                                post,
+                                semanticPostIds,
+                                eatingPreferences,
+                                dietaryPreferences,
+                                userCity,
+                                recentRecipeIds
+                        )
+                ));
 
-        CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
-
-        return futures.stream()
-                .map(CompletableFuture::join)
-                .filter(Objects::nonNull)
-                .sorted(Comparator.comparingInt((MealPlanAiCandidate candidate) ->
-                        mealPlanNutritionScoringService.score(candidate, goal, healthConditions)
+        List<Post> candidatePosts = scoringPosts.stream()
+                .sorted(Comparator.comparingInt((Post post) ->
+                        fastScores.getOrDefault(post.getId(), 0)
                 ).reversed())
-                .limit(CANDIDATE_LIMIT)
+                .limit(postLimit)
                 .toList();
+        log.info("Meal plan candidates after fast score recipeIds={}", toRecipeIds(candidatePosts));
+
+        Map<Long, NutritionAnalysisResponse> nutritionByRecipeId = fetchNutritionByRecipeIds(candidatePosts);
+        List<MealPlanAiCandidate> nutritionCandidates = candidatePosts.stream()
+                .map(post -> toCandidateRecipe(post, nutritionByRecipeId.get(post.getRecipeId())))
+                .filter(Objects::nonNull)
+                .toList();
+        log.info("Meal plan candidates after nutrition fetch recipeIds={}", toCandidateRecipeIds(nutritionCandidates));
+
+        List<MealPlanAiCandidate> finalCandidates = nutritionCandidates.stream()
+                .sorted(Comparator.comparingInt((MealPlanAiCandidate candidate) ->
+                        fastScores.getOrDefault(candidate.getPostId(), 0)
+                                + mealPlanNutritionScoringService.score(candidate, goal, healthConditions)
+                ).reversed())
+                .limit(candidateLimit)
+                .toList();
+        log.info("Meal plan final candidates recipeIds={}", toCandidateRecipeIds(finalCandidates));
+        return finalCandidates;
     }
 
-    private MealPlanAiCandidate toCandidateRecipe(Post post) {
-        try {
-            NutritionAnalysisResponse nutrition = recipeClient.getNutritionByRecipeId(post.getRecipeId(), false).getData();
-            if (nutrition == null) {
-                return null;
-            }
+    private Map<Long, NutritionAnalysisResponse> fetchNutritionByRecipeIds(List<Post> posts) {
+        List<Long> recipeIds = posts.stream()
+                .map(Post::getRecipeId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        if (recipeIds.isEmpty()) {
+            return Map.of();
+        }
 
-            return mealPlanAiMapper.toCandidate(post, nutrition);
+        try {
+            Map<Long, NutritionAnalysisResponse> data = recipeClient.getNutritionByRecipeIds(recipeIds, false).getData();
+            return data == null ? Map.of() : data;
         } catch (Exception e) {
-            log.warn("Skip recipeId={} due to nutrition fetch failure: {}", post.getRecipeId(), e.getMessage());
+            log.warn("Meal plan batch nutrition fetch failed: {}", e.getMessage());
+            return Map.of();
+        }
+    }
+
+    private MealPlanAiCandidate toCandidateRecipe(Post post, NutritionAnalysisResponse nutrition) {
+        if (nutrition == null) {
+            log.warn("Skip recipeId={} due to missing nutrition in batch response", post.getRecipeId());
             return null;
         }
+        return mealPlanAiMapper.toCandidate(post, nutrition);
     }
 
     private boolean violatesAllergiesByKeywords(Post post, List<String> allergies) {
@@ -125,80 +239,26 @@ public class MealPlanCandidateService {
         );
     }
 
-    private int scorePostForInitialSelection(
+    private int scorePostBeforeNutrition(
             Post post,
-            String goal,
+            List<Long> rankedSemanticPostIds,
             List<String> eatingPreferences,
             List<String> dietaryPreferences,
             String userCity,
             Set<Long> recentRecipeIds
     ) {
-        return scoreGoal(post, goal)
+        return scoreSemantic(post, rankedSemanticPostIds)
                 + scorePreferences(post, eatingPreferences, dietaryPreferences, userCity)
                 + (post.getRecipeId() != null && recentRecipeIds.contains(post.getRecipeId()) ? -30 : 0);
     }
 
-    private int scoreGoal(Post post, String goal) {
-        String normalizedGoal = normalize(goal);
-        if (normalizedGoal.isBlank()) {
+    private int scoreSemantic(Post post, List<Long> rankedSemanticPostIds) {
+        if (post == null || rankedSemanticPostIds == null || rankedSemanticPostIds.isEmpty()) {
             return 0;
         }
 
-        String searchableText = String.join(" ",
-                normalize(post.getTitle()),
-                normalize(post.getDescription()),
-                String.join(" ", normalizeList(post.getRecipeCategories() == null ? List.of() : new ArrayList<>(post.getRecipeCategories()))),
-                String.join(" ", normalizeList(post.getRecipeIngredientKeywords() == null ? List.of() : new ArrayList<>(post.getRecipeIngredientKeywords())))
-        );
-
-        List<String> positiveKeywords = List.of();
-        List<String> negativeKeywords = List.of();
-
-        if (List.of("giảm cân", "giam can", "eat clean", "healthy", "ăn kiêng", "an kieng")
-                .stream()
-                .anyMatch(keyword -> isTextMatch(normalizedGoal, keyword))) {
-            positiveKeywords = List.of("salad", "luộc", "luoc", "hấp", "hap", "rau", "healthy", "clean", "canh");
-            negativeKeywords = List.of("chiên", "chien", "rán", "ran", "bánh ngọt", "banh ngot", "ngọt", "ngot", "dessert");
-        } else if (List.of("tăng cơ", "tang co", "protein", "muscle")
-                .stream()
-                .anyMatch(keyword -> isTextMatch(normalizedGoal, keyword))) {
-            positiveKeywords = List.of("gà", "ga", "bò", "bo", "trứng", "trung", "cá", "ca", "đậu", "dau", "protein");
-        } else if (List.of("ít đường", "it duong", "tiểu đường", "tieu duong", "low sugar")
-                .stream()
-                .anyMatch(keyword -> isTextMatch(normalizedGoal, keyword))) {
-            positiveKeywords = List.of("ít đường", "it duong", "không đường", "khong duong", "healthy");
-            negativeKeywords = List.of("chè", "che", "bánh", "banh", "kẹo", "keo", "ngọt", "ngot", "dessert");
-        }
-
-        int positiveMatches = 0;
-        for (String keyword : positiveKeywords) {
-            if (isTextMatch(searchableText, keyword)) {
-                positiveMatches++;
-            }
-        }
-
-        int negativeMatches = 0;
-        for (String keyword : negativeKeywords) {
-            if (isTextMatch(searchableText, keyword)) {
-                negativeMatches++;
-            }
-        }
-
-        int weightedScore = positiveMatches - (negativeMatches * 2);
-
-        if (weightedScore <= -2) {
-            return -20;
-        }
-        if (weightedScore == -1 || weightedScore == 0) {
-            return 0;
-        }
-        if (weightedScore == 1) {
-            return 10;
-        }
-        if (weightedScore == 2) {
-            return 20;
-        }
-        return 30;
+        int index = rankedSemanticPostIds.indexOf(post.getId());
+        return index < 0 ? 0 : Math.max(0, 50 - index * 2);
     }
 
     private int scorePreferences(
@@ -244,15 +304,45 @@ public class MealPlanCandidateService {
         return matches;
     }
 
+    private List<Long> toRecipeIds(List<Post> posts) {
+        return posts.stream()
+                .map(Post::getRecipeId)
+                .filter(Objects::nonNull)
+                .toList();
+    }
+
+    private List<Long> toRecipeIdsByPostIds(List<Post> posts, List<Long> postIds) {
+        if (postIds == null || postIds.isEmpty()) {
+            return List.of();
+        }
+
+        return postIds.stream()
+                .map(postId -> posts.stream()
+                        .filter(post -> Objects.equals(post.getId(), postId))
+                        .map(Post::getRecipeId)
+                        .filter(Objects::nonNull)
+                        .findFirst()
+                        .orElse(null))
+                .filter(Objects::nonNull)
+                .toList();
+    }
+
+    private List<Long> toCandidateRecipeIds(List<MealPlanAiCandidate> candidates) {
+        return candidates.stream()
+                .map(MealPlanAiCandidate::getRecipeId)
+                .filter(Objects::nonNull)
+                .toList();
+    }
+
     private boolean isTextMatch(String text, String keyword) {
         String normalizedText = normalize(text);
         String normalizedKeyword = normalize(keyword);
         return !normalizedText.isBlank()
                 && !normalizedKeyword.isBlank()
-                && (normalizedText.contains(normalizedKeyword) || normalizedKeyword.contains(normalizedText));
+                && normalizedText.contains(normalizedKeyword);
     }
 
-    private Set<Long> loadRecentRecipeIds(Long userId) {
+    public Set<Long> loadRecentRecipeIds(Long userId) {
         if (userId == null) {
             return Set.of();
         }

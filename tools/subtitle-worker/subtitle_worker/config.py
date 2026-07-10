@@ -28,14 +28,18 @@ class WorkerConfig:
     whisper_model_size: str
     whisper_device: str
     whisper_compute_type: str
+    whisper_beam_size: int
     bot_identity: str
     bot_name: str
     streamer_identity_prefix: str
     chunk_seconds: float
     chunk_overlap_seconds: float
+    chunk_queue_size: int
+    max_transcript_latency_seconds: float
     sample_rate: int
     num_channels: int
-    language: Optional[str]
+    spoken_language: Optional[str]
+    target_language: Optional[str]
     request_timeout_seconds: int
     worker_control_host: str
     worker_control_port: int
@@ -55,14 +59,23 @@ class WorkerConfig:
         *,
         room_name: str,
         live_stream_id: int,
-        language: Optional[str],
+        spoken_language: Optional[str],
+        target_language: Optional[str],
     ) -> "WorkerConfig":
         # Tao config rieng cho tung live tu payload /start.
+        resolved_spoken_language = spoken_language or self.spoken_language
+        resolved_target_language = target_language or resolved_spoken_language
         return replace(
             self,
             room_name=room_name,
             live_stream_id=live_stream_id,
-            language=language or self.language,
+            spoken_language=resolved_spoken_language,
+            target_language=resolved_target_language,
+            bot_identity=(
+                f"{self.bot_identity}-{live_stream_id}-{resolved_target_language}"
+                if resolved_target_language
+                else f"{self.bot_identity}-{live_stream_id}"
+            ),
         )
 
 
@@ -80,14 +93,21 @@ def load_config() -> WorkerConfig:
         whisper_model_size=os.getenv("WHISPER_MODEL_SIZE", "base"),
         whisper_device=os.getenv("WHISPER_DEVICE", "cpu"),
         whisper_compute_type=os.getenv("WHISPER_COMPUTE_TYPE", "int8"),
+        whisper_beam_size=max(1, int(os.getenv("WHISPER_BEAM_SIZE", "5"))),
         bot_identity=os.getenv("BOT_IDENTITY", "subtitle-worker"),
         bot_name=os.getenv("BOT_NAME", "Subtitle Worker"),
         streamer_identity_prefix=os.getenv("STREAMER_IDENTITY_PREFIX", "streamer_"),
         chunk_seconds=float(os.getenv("CHUNK_SECONDS", "1.5")),
         chunk_overlap_seconds=float(os.getenv("CHUNK_OVERLAP_SECONDS", "0.25")),
+        chunk_queue_size=max(1, int(os.getenv("CHUNK_QUEUE_SIZE", "1"))),
+        max_transcript_latency_seconds=max(
+            0.0,
+            float(os.getenv("MAX_TRANSCRIPT_LATENCY_SECONDS", "6.0")),
+        ),
         sample_rate=int(os.getenv("AUDIO_SAMPLE_RATE", "16000")),
         num_channels=int(os.getenv("AUDIO_NUM_CHANNELS", "1")),
-        language=os.getenv("SPOKEN_LANGUAGE"),
+        spoken_language=os.getenv("SPOKEN_LANGUAGE"),
+        target_language=None,
         request_timeout_seconds=int(os.getenv("REQUEST_TIMEOUT_SECONDS", "30")),
         worker_control_host=os.getenv("WORKER_CONTROL_HOST", "127.0.0.1"),
         worker_control_port=int(os.getenv("WORKER_CONTROL_PORT", "9000")),

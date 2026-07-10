@@ -44,7 +44,8 @@ public class RecipeController {
 
   @GetMapping("/{recipeId}/ingredient-substitutes/{ingredientId}")
   public ResponseData<IngredientAlterResponse> getIngredientAlter(@PathVariable Long recipeId, @PathVariable Long ingredientId) {
-    IngredientAlterResponse responses = alternateIngredientService.getIngredientAlterResponse(recipeId, ingredientId);
+    Long userId = securityUtil.getCurrentUserId();
+    IngredientAlterResponse responses = alternateIngredientService.getIngredientAlterResponse(recipeId, ingredientId, userId);
     return new ResponseData<>(200, "Get success", responses);
   }
 
