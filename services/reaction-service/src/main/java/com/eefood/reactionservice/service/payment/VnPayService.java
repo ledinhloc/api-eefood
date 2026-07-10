@@ -255,7 +255,7 @@ public class VnPayService {
         return vnPayConfig.getPayUrl() + "?" + queryString + "&vnp_SecureHash=" + secureHash;
     }
 
-    private boolean verifySecureHash(VnPayCallbackParams params) {
+    public boolean verifySecureHash(VnPayCallbackParams params) {
         Map<String, String> map = new HashMap<>();
         map.put("vnp_TmnCode", params.getVnp_TmnCode());
         map.put("vnp_Amount", params.getVnp_Amount());
