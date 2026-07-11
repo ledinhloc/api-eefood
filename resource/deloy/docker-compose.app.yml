@@ -100,8 +100,12 @@ services:
       - env.discovery.eureka.client.service-url.defaultZone=http://discovery-server:8761/eureka
       - env.global.jwt.issuer-uri=https://keycloak.codespace.io.vn/realms/eefood-realm
       - env.global.config-server=http://config-service:8888
+      - env.global.redis.host=redis
+      - env.global.redis.port=6379
 
       - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_MEAL_PLAN_MODEL=${OPENAI_MEAL_PLAN_MODEL:-gpt-5.4-mini}
       - ES_HOST=elasticsearch
       - ES_PORT=9200
       - env.global.kafka.bootstrap-servers=kafka:29092

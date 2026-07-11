@@ -39,13 +39,12 @@ public class ChromaRagService {
             List<String> ingredients,
             int k
     ) {
-        if (candidatePostIds == null || candidatePostIds.isEmpty()) {
-            return List.of();
-        }
-
         List<Long> matchedIds = retrieveTopKSimilarPostIds(candidatePostIds, query, ingredients, k);
         if (matchedIds.isEmpty()) {
             log.warn("Chroma semantic search returned no post IDs, using first-posts fallback");
+            if (candidatePostIds == null || candidatePostIds.isEmpty()) {
+                return List.of();
+            }
             return fallbackToFirstKPosts(candidatePostIds, k);
         }
         return postRepo.findAllById(matchedIds).stream()
@@ -60,12 +59,10 @@ public class ChromaRagService {
             List<String> ingredients,
             int k
     ) {
-        if (candidatePostIds == null || candidatePostIds.isEmpty()) {
-            return List.of();
-        }
+        boolean hasCandidateFilter = candidatePostIds != null && !candidatePostIds.isEmpty();
 
         log.info("Chroma semantic search: totalStoredPosts={}, searchablePosts={}, requestedTopK={}",
-                postChromaEmbeddingRepository.count(), candidatePostIds.size(), k);
+                postChromaEmbeddingRepository.count(), hasCandidateFilter ? candidatePostIds.size() : "ALL", k);
 
         String enhancedQuery = buildRagQuery(
                 query == null || query.isBlank() ? String.join(" ", ingredients != null ? ingredients : List.of()) : query,
@@ -90,14 +87,19 @@ public class ChromaRagService {
 
         // 2. ChromaDB search với filter
         Embedding queryEmbedding = Embedding.from(vector);
-        Filter postIdFilter = createPostIdFilter(candidatePostIds);
 
-        EmbeddingSearchRequest searchRequest = EmbeddingSearchRequest.builder()
-                .queryEmbedding(queryEmbedding)
-                .maxResults(k)
-                .minScore(0.15)
-                .filter(postIdFilter)
-                .build();
+        EmbeddingSearchRequest.EmbeddingSearchRequestBuilder searchRequestBuilder =
+                EmbeddingSearchRequest.builder()
+                        .queryEmbedding(queryEmbedding)
+                        .maxResults(k)
+                        .minScore(0.15);
+
+        if (hasCandidateFilter) {
+            Filter postIdFilter = createPostIdFilter(candidatePostIds);
+            searchRequestBuilder.filter(postIdFilter);
+        }
+
+        EmbeddingSearchRequest searchRequest = searchRequestBuilder.build();
 
         EmbeddingSearchResult<TextSegment> result;
         try {
