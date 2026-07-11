@@ -35,6 +35,7 @@ public class PostScrollSearchService {
     private final PostViewLogService postViewLogService;
     private static final int DEFAULT_TOP_N = 10;
 
+
     public List<Long> searchAllPostIds(
             String keyword,
             String region,

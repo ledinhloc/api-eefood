@@ -133,30 +133,31 @@ public class ChatbotTools {
         log.info("UserId: " + userId);
 
         try {
-            UserContext ctx = loadUserContext(userId);
-
-            log.info("UserContext: " + ctx.user().getId());
-
-            List<Long> candidateIds = postScrollSearchService.searchAllPostIds(
-                    keyword,
-                    location,
-                    difficulty,
-                    category,
-                    maxCookTime,
-                    ctx.user(),
-                    ctx.newFollowings(),
-                    ctx.oldFollowings(),
-                    10
-            );
-
-            log.info("CandidateIds size={}", candidateIds.size());
-
-            log.info("Candidate ids:{}", candidateIds);
-
-            if(candidateIds.isEmpty()) {
-                return buildEmptyResponse(ChatTool.SUGGEST_POST.name(), ChatRole.AI.name());
-            }
-            List<PostResponse> posts = chromaRagService.retrieveTopKSimilarPosts(candidateIds, originalQuery, ingredient, 5);
+//            UserContext ctx = loadUserContext(userId);
+//
+//            log.info("UserContext: " + ctx.user().getId());
+//
+//            List<Long> candidateIds = postScrollSearchService.searchAllPostIds(
+//                    keyword,
+//                    location,
+//                    difficulty,
+//                    category,
+//                    maxCookTime,
+//                    ctx.user(),
+//                    ctx.newFollowings(),
+//                    ctx.oldFollowings(),
+//                    10
+//            );
+//
+//            log.info("CandidateIds size={}", candidateIds.size());
+//
+//            log.info("Candidate ids:{}", candidateIds);
+//
+//            if(candidateIds.isEmpty()) {
+//                return buildEmptyResponse(ChatTool.SUGGEST_POST.name(), ChatRole.AI.name());
+//            }
+//            List<PostResponse> posts = chromaRagService.retrieveTopKSimilarPosts(candidateIds, originalQuery, ingredient, 5);
+            List<PostResponse> posts = chromaRagService.retrieveTopKSimilarPosts(null, originalQuery, ingredient, 5);
             return buildResponse(posts,ChatTool.SUGGEST_POST.name(), ChatRole.AI.name());
         }
         catch(Exception e) {
