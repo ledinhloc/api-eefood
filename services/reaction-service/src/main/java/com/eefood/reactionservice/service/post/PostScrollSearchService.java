@@ -35,10 +35,6 @@ public class PostScrollSearchService {
     private final PostViewLogService postViewLogService;
     private static final int DEFAULT_TOP_N = 10;
 
-    @Cacheable(
-            cacheNames = "candidate-post-ids",
-            key = "#keyword + #region + #difficulty + #categories + #maxCookTime + #user.id"
-    )
     public List<Long> searchAllPostIds(
             String keyword,
             String region,
