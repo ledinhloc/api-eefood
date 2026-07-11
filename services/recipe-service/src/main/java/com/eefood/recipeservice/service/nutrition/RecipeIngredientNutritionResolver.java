@@ -55,32 +55,21 @@ public class RecipeIngredientNutritionResolver {
                         () -> batchNormalizeIngredientNames(ingredients),
                         nutritionAiExecutor);
 
-        CompletableFuture<Map<Long, IngredientNutrition>> existingFuture =
-                CompletableFuture.supplyAsync(
-                        () -> ingredientNutritionRepository
-                                .findByIngredientIdIn(ingredientIds)
-                                .stream()
-                                .collect(Collectors.toMap(
-                                        n -> n.getIngredient().getId(),
-                                        Function.identity())),
-                        nutritionAiExecutor);
-
         // Khai báo raw trước, gán sau try/catch
         Map<Long, String> rawKeywords;
-        Map<Long, IngredientNutrition> rawNutritions;
         try {
             rawKeywords    = normalizeFuture.get(15, TimeUnit.SECONDS);
-            rawNutritions  = existingFuture.get(8, TimeUnit.SECONDS);
         } catch (Exception e) {
             log.warn("[Nutrition] Parallel init failed, falling back: {}", e.getMessage());
             rawKeywords    = fallbackToOriginalNames(ingredients);
-            rawNutritions  = ingredientNutritionRepository
-                    .findByIngredientIdIn(ingredientIds)
-                    .stream()
-                    .collect(Collectors.toMap(
-                            n -> n.getIngredient().getId(),
-                            Function.identity()));
         }
+
+        Map<Long, IngredientNutrition> rawNutritions = ingredientNutritionRepository
+                .findByIngredientIdIn(ingredientIds)
+                .stream()
+                .collect(Collectors.toMap(
+                        n -> n.getIngredient().getId(),
+                        Function.identity()));
 
         // Gán vào final map — an toàn để dùng trong lambda
         final Map<Long, String> normalizedKeywords = rawKeywords;

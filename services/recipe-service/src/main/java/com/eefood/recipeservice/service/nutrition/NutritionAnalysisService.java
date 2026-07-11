@@ -141,7 +141,6 @@ public class NutritionAnalysisService {
         return response;
     }
 
-    @Transactional
     public Map<Long, NutritionAnalysisResponse> getNutritionByRecipeIds(List<Long> recipeIds, boolean forceRefresh) {
         if (recipeIds == null || recipeIds.isEmpty()) {
             return Map.of();
