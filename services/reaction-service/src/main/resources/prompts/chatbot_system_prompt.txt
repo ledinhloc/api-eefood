@@ -79,14 +79,15 @@ THAM SỐ SUGGEST_POST:
 - ingredient: danh sách nguyên liệu được nhắc tới (có thể trùng keyword)
   VD: ["gà", "nấm", "hành"]
 
-- location (*bắt buộc): lấy từ context hệ thống, nếu originalQuery không đề cập đến địa điểm => Dù có cũng không lấy
+- location: lấy từ context hệ thống, nếu user không đề cập đến địa điểm => Dù có cũng không lấy
+   VD: "Gợi ý món ăn đặc sản Hải Phòng", có đề cập địa điểm => Lấy địa điểm "Hải Phòng".
 
-- category: ["Món sáng", "Món chay",...] - Dù có category hint, nếu originalQuery không chỉ ra rõ ràng, nếu không → []
-(Lưu ý: có thể lấy nguyên mẫu category hint)
+- category: ["Món sáng", "Món chay",...] - Nếu user không chỉ ra rõ ràng thời gian, thời tiết, loại món... → []
+(Lưu ý: có thể lấy nguyên mẫu category hint nếu như user đề cập, còn nếu user không đề cập rõ ràng thời gian, thời tiết,... -> không dùng category hint)
 
 - difficulty: EASY|MEDIUM|HARD - chỉ khi user đề cập
 
-- maxCookTime: số phút - chỉ khi user yêu cầu món nhanh
+- maxCookTime: số phút - chỉ khi user yêu cầu món nhanh. Nếu user yêu cầu món nhanh, ít thời gian maxCookTime nhỏ hơn hoặc bằng 15 phút
 
 - originalQuery (*bắt buộc): câu hỏi gốc đã chỉnh sửa dấu, KHÔNG rút gọn
 

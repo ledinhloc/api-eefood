@@ -85,12 +85,12 @@ public class ChatbotTools {
     public ChatbotResponse suggestPost(
             @P("""
                 Từ khóa chính của món ăn (1–3 từ).
-                Lấy trực tiếp từ câu người dùng hoặc nhận diện từ ảnh.
+                Lấy trực tiếp từ câu người dùng (đã chuẩn hóa dấu) hoặc nhận diện từ ảnh.
                 Ví dụ: phở, bún bò, gà rán.
                 """) String keyword,
             @P("""
                 Khu vực / địa điểm người dùng muốn ăn.
-                Lấy từ địa điểm đã cung cấp ở đầu vào
+                Nếu người dùng không đề cập → null.
                 Không suy đoán.
                 """) String location,
             @P("""
@@ -101,7 +101,8 @@ public class ChatbotTools {
             @P("""
                 Danh mục món ăn.
                 Chỉ truyền khi người dùng hoặc ngữ cảnh có căn cứ rõ ràng.
-                Nếu không chắc → truyền null hoặc [].
+                Nếu có category hint nhưng người không không đề cập → không dùng category hint
+                Nếu người dùng không đề cập → truyền null hoặc [].
                 """) List<String> category,
             @P("""
                 Thời gian nấu tối đa (phút).
@@ -133,31 +134,31 @@ public class ChatbotTools {
         log.info("UserId: " + userId);
 
         try {
-//            UserContext ctx = loadUserContext(userId);
-//
-//            log.info("UserContext: " + ctx.user().getId());
-//
-//            List<Long> candidateIds = postScrollSearchService.searchAllPostIds(
-//                    keyword,
-//                    location,
-//                    difficulty,
-//                    category,
-//                    maxCookTime,
-//                    ctx.user(),
-//                    ctx.newFollowings(),
-//                    ctx.oldFollowings(),
-//                    10
-//            );
-//
-//            log.info("CandidateIds size={}", candidateIds.size());
-//
-//            log.info("Candidate ids:{}", candidateIds);
-//
-//            if(candidateIds.isEmpty()) {
-//                return buildEmptyResponse(ChatTool.SUGGEST_POST.name(), ChatRole.AI.name());
-//            }
-//            List<PostResponse> posts = chromaRagService.retrieveTopKSimilarPosts(candidateIds, originalQuery, ingredient, 5);
-            List<PostResponse> posts = chromaRagService.retrieveTopKSimilarPosts(null, originalQuery, ingredient, 5);
+            UserContext ctx = loadUserContext(userId);
+
+            log.info("UserContext: " + ctx.user().getId());
+
+            List<Long> candidateIds = postScrollSearchService.searchAllPostIds(
+                    keyword,
+                    location,
+                    difficulty,
+                    category,
+                    maxCookTime,
+                    ctx.user(),
+                    ctx.newFollowings(),
+                    ctx.oldFollowings(),
+                    10
+            );
+
+            log.info("CandidateIds size={}", candidateIds.size());
+
+            log.info("Candidate ids:{}", candidateIds);
+
+            if(candidateIds.isEmpty()) {
+                return buildEmptyResponse(ChatTool.SUGGEST_POST.name(), ChatRole.AI.name());
+            }
+            List<PostResponse> posts = chromaRagService.retrieveTopKSimilarPosts(candidateIds, originalQuery, ingredient, 5);
+            //List<PostResponse> posts = chromaRagService.retrieveTopKSimilarPosts(null, originalQuery, ingredient, 5);
             return buildResponse(posts,ChatTool.SUGGEST_POST.name(), ChatRole.AI.name());
         }
         catch(Exception e) {
