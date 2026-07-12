@@ -99,7 +99,7 @@ def load_config() -> WorkerConfig:
         streamer_identity_prefix=os.getenv("STREAMER_IDENTITY_PREFIX", "streamer_"),
         chunk_seconds=float(os.getenv("CHUNK_SECONDS", "1.5")),
         chunk_overlap_seconds=float(os.getenv("CHUNK_OVERLAP_SECONDS", "0.25")),
-        chunk_queue_size=max(1, int(os.getenv("CHUNK_QUEUE_SIZE", "1"))),
+        chunk_queue_size=max(1, int(os.getenv("CHUNK_QUEUE_SIZE", "2"))),
         max_transcript_latency_seconds=max(
             0.0,
             float(os.getenv("MAX_TRANSCRIPT_LATENCY_SECONDS", "6.0")),

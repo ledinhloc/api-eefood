@@ -68,6 +68,7 @@ class SubtitleWorkerManager:
             spoken_language=live_config.spoken_language,
             target_language=live_config.target_language,
         )
+        #khi task chạy worker kết thúc, tự gọi hàm dọn dẹp worker khỏi danh sách active.
         task.add_done_callback(
             lambda done_task, key=worker_key: self._remove_finished_worker(
                 key,

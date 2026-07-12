@@ -34,16 +34,16 @@ public class RecipeIngredientNutritionResolver {
     @Transactional
     public List<RecipeIngredientNutrition> resolveIngredientNutritions(
             Recipe recipe, List<RecipeIngredient> ingredients) {
-
         List<RecipeIngredientNutrition> existing =
                 recipeIngredientNutritionRepository.findByRecipeId(recipe.getId());
-
+        // Kiêểm tra xem các nguyên liệu có đủ dinh dưỡng chưa
         if (existing.size() == ingredients.size()) {
             log.info("[Nutrition] Reusing existing RecipeIngredientNutrition for recipeId={}",
                     recipe.getId());
             return existing;
         }
 
+        // Nếu không có thì đi phân tích lại từ đầu
         recipeIngredientNutritionRepository.deleteByRecipeId(recipe.getId());
 
         List<Long> ingredientIds = ingredients.stream()
@@ -190,6 +190,7 @@ public class RecipeIngredientNutritionResolver {
                 .build();
     }
 
+    // Định dạng nguyên liệu
     private Map<Long, String> batchNormalizeIngredientNames(List<RecipeIngredient> ingredients) {
         Map<Long, String> result = new LinkedHashMap<>();
         List<RecipeIngredient> needsAI = new ArrayList<>();
@@ -208,11 +209,12 @@ public class RecipeIngredientNutritionResolver {
                     .map(ri -> ri.getIngredient().getName())
                     .toList();
             try {
+                // Gọi AI để định dạng
                 String namesJson = objectMapper.writeValueAsString(names);
                 String aiResponse = aiService.normalizeIngredientNames(namesJson);
                 String cleanJson = aiResponse.replaceAll("```json|```", "").trim();
                 List<String> normalizedNames = objectMapper.readValue(cleanJson, new TypeReference<List<String>>() {});
-
+                // Nếu định đang được đầy đủ tên nguyên liệu -> bỏ vào mảng kết quả
                 if (normalizedNames.size() == needsAI.size()) {
                     for (int i = 0; i < needsAI.size(); i++) {
                         String normalized = normalizedNames.get(i);
@@ -221,6 +223,7 @@ public class RecipeIngredientNutritionResolver {
                                 (normalized != null && !normalized.isBlank()) ? normalized.trim() : names.get(i)
                         );
                     }
+                    // Không thì bỏ luôn cái trong mảng cũ vào
                 } else {
                     needsAI.forEach(ri -> result.put(ri.getIngredient().getId(), ri.getIngredient().getName()));
                 }

@@ -37,6 +37,7 @@ public class NutritionCalculator {
                 .build();
     }
 
+    // Công thức đánh giá điểm sức khỏe
     public double calcHealthScore(double calories, double fat, double sodium,
                                   double protein, double fiber, double sugar) {
 
