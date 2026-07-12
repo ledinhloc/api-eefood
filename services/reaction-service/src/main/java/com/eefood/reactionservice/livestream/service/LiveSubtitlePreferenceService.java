@@ -50,6 +50,7 @@ public class LiveSubtitlePreferenceService {
 
     SubtitleLanguage targetLanguage = SubtitleLanguage.fromCode(request.getTargetLanguage());
 
+    //Map.put(key, value) được thiết kế để trả về value cũ của key đó, không trả về value vừa thêm.
     SubtitleSubscription previousSubscription = subscriptionsBySessionId.put(
       sessionId,
       SubtitleSubscription.builder()
@@ -59,6 +60,7 @@ public class LiveSubtitlePreferenceService {
         .targetLanguage(targetLanguage)
         .build()
     );
+    //Nếu session này từng đăng ký cái khác, kiểm tra dừng worker cũ
     if (previousSubscription != null) {
       stopWorkerIfNoSubscribers(previousSubscription.getLiveStreamId(), previousSubscription.getTargetLanguage());
     }

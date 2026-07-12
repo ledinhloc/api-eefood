@@ -37,7 +37,7 @@ public class AlternateIngredientService {
     public IngredientAlterResponse getIngredientAlterResponse(Long recipeId, Long ingredientId, Long userId) {
 
         RecipeIngredient ri = recipeIngredientRepository
-                .findByRecipeIdAndIngredientIdAndIsDeletedFalse(recipeId, ingredientId)
+                .findFirstByRecipeIdAndIngredientIdAndIsDeletedFalseOrderByIdAsc(recipeId, ingredientId)
                 .orElse(null);
         if (ri == null) {
             throw ExceptionUtil.badRequest(ErrorMessage.RECIPE_NOT_FOUND);
@@ -141,7 +141,7 @@ public class AlternateIngredientService {
             return;
         }
         RecipeIngredient ri = recipeIngredientRepository
-                .findByRecipeIdAndIngredientIdAndIsDeletedFalse(recipeId,ingredientId)
+                .findFirstByRecipeIdAndIngredientIdAndIsDeletedFalseOrderByIdAsc(recipeId,ingredientId)
                 .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.RECIPE_NOT_FOUND));
 
         Optional<UserIngredientSubstitution> existing =

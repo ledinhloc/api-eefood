@@ -475,10 +475,11 @@ NOW ANALYZE THE FOLLOWING HTML AND RETURN ONLY JSON:
     List<IngredientAlterResponse> ingreAltResponse = alternateIngredientService.getIngredientAndSub(id);
 
     Map<Long, IngredientAlterResponse> alterMap = ingreAltResponse.stream()
-            .collect(Collectors.toMap(
-                    ia -> ia.getIngredient().getId(),
-                    ia -> ia
-            ));
+        .collect(Collectors.toMap(
+                ia -> ia.getIngredient().getId(),
+                ia -> ia,
+                (oldValue, newValue) -> oldValue
+        ));
 
     List<RecipeIngredientResponse> updatedIngredients = riResponse.stream()
             .map(ri -> {
