@@ -21,7 +21,7 @@ class SubtitleWorker:
         self.whisper_client = WhisperClient(self.config)
         self.backend_client = BackendClient(self.config)
         self.livekit_client = LiveKitAudioClient(self.config, self.handle_chunk)
-        # Giu backlog nho de subtitle live uu tien audio moi hon audio cu.
+        # queue chờ xử lý
         self.chunk_queue: asyncio.Queue[Optional[QueueItem]] = asyncio.Queue(
             maxsize=self.config.chunk_queue_size
         )

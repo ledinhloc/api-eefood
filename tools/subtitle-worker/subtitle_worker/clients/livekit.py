@@ -147,6 +147,7 @@ class LiveKitAudioClient:
         )
 
         try:
+            #Tạo stream để đọc audio frame từ LiveKit track.
             async for event in audio_stream:
                 for wav_bytes in chunker.push(event.frame):
                     logger.debug(
@@ -165,6 +166,7 @@ class LiveKitAudioClient:
                 publication_sid,
             )
         finally:
+            #để xử lý nốt audio còn dư và đóng stream.
             final_chunk = chunker.flush()
             if final_chunk:
                 try:
