@@ -16,6 +16,7 @@ public class WeatherCodeMapperUtils {
 
     private final RestTemplate restTemplate;
 
+    // Gọi api thời tiết dựa trên địa điểm
     public WeatherInfoRequest getCurrentWeather(double latitude, double longitude) {
 
         String url = UriComponentsBuilder.fromHttpUrl(OPEN_METEO_URL)

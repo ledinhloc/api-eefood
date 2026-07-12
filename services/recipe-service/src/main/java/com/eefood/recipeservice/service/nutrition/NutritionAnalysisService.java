@@ -110,7 +110,7 @@ public class NutritionAnalysisService {
     @Transactional
     public NutritionAnalysisResponse getNutritionByRecipeId(Long recipeId, boolean forceRefresh) {
         String cacheKey = CACHE_PREFIX + recipeId;
-
+        // forceRefresh == true => Lấy dữ liệu cache từ redis
         if (!forceRefresh) {
             NutritionAnalysisResponse cached =
                     (NutritionAnalysisResponse) redisTemplate.opsForValue().get(cacheKey);
@@ -119,18 +119,21 @@ public class NutritionAnalysisService {
                 return cached;
             }
         }
-
+        // Nếu không thì thực hiện lấy thông tin recipe
         Recipe recipe = recipeRepository.findByIdWithIngredients(recipeId)
                 .orElseThrow(() -> ExceptionUtil.notFound(ErrorMessage.RECIPE_NOT_FOUND));
 
+        // Lấy thông tin nguyên liệu
         if (recipe.getIngredients() == null || recipe.getIngredients().isEmpty()) {
             throw ExceptionUtil.badRequest(ErrorMessage.RECIPE_HAS_NO_INGREDIENTS);
         }
 
+        // Lấy list nguyên liệu để định dạng
         List<RecipeIngredient> ingredients = new ArrayList<>(recipe.getIngredients());
         List<RecipeIngredientNutrition> rinList =
                 recipeIngredientNutritionResolver.resolveIngredientNutritions(recipe, ingredients);
 
+        // Tính toán tổng dinh dưỡng trên mỗi recipe
         RecipeNutrition nutrition = calculateAndSaveTotalNutrition(recipe, rinList);
         List<IngredientNutritionDetail> details = rinList.stream()
                 .map(nutritionMapper::toDetail)
